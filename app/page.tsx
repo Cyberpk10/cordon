@@ -1,5 +1,6 @@
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
+import LiveSimulation from "@/components/LiveSimulation";
 import StatStrip from "@/components/StatStrip";
 import PlatformCards from "@/components/PlatformCards";
 import ProductTour from "@/components/ProductTour";
@@ -14,6 +15,7 @@ export default function Home() {
       <Nav />
       <main className="flex-1">
         <Hero />
+        <LiveSimulation />
         <StatStrip />
         <PlatformCards />
         <ProductTour />
