@@ -13,16 +13,26 @@ Usage:
     python3 scripts/attack_sim.py
     python3 scripts/attack_sim.py --base-url http://localhost:8000 --pace 3 --no-prompt
 
-Stdlib only — no pip install required. Re-runnable: the demo login account is fixed and
-reused across runs (signup, or login on a 409 "already exists"); the simulated victim
-*employee* identity inside each run's events is freshened per run so detections behave
-deterministically regardless of how many times you've already run this.
+Which Aegis account this runs as: log in to the SAME account in the frontend to watch, so
+credentials are never hardcoded and never committed. Resolved in this order:
+    1. --email / --password flags
+    2. AEGIS_EMAIL / AEGIS_PASSWORD environment variables
+    3. an interactive prompt at startup (password entry is hidden, via getpass)
+If the account doesn't exist yet on this local instance, it's created (signup) with
+whatever credentials you provided; if it already exists, this just logs into it. Either
+way, use those same credentials to log into the frontend yourself.
+
+Stdlib only — no pip install required. Re-runnable: the simulated victim *employee*
+identity inside each run's events is freshened per run so detections behave deterministically
+regardless of how many times you've already run this against the same account.
 """
 
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
+import os
 import sys
 import time
 import urllib.error
@@ -31,9 +41,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 DEFAULT_BASE_URL = "http://localhost:8000"
-DEFAULT_EMAIL = "redteam-demo@aegis.local"
-DEFAULT_PASSWORD = "RedTeamDemo!2026"
-DEFAULT_ACCOUNT_NAME = "Aegis Red Team Demo"
+DEFAULT_ACCOUNT_NAME = "Aegis Demo Account"
+EMAIL_ENV_VAR = "AEGIS_EMAIL"
+PASSWORD_ENV_VAR = "AEGIS_PASSWORD"
 FRONTEND_URL = "http://localhost:5173"
 
 _RESET = "\033[0m"
@@ -134,25 +144,37 @@ class HTTPStatusError(RuntimeError):
         super().__init__(f"{status} on {path}: {body}")
 
 
-def ensure_demo_account(client: AegisClient, *, email: str, password: str, account_name: str) -> None:
-    """Signs up the fixed demo account, or logs in if it already exists (re-runnable)."""
-    setup(f"Ensuring demo account {_c(_BOLD, email)} exists...")
+def ensure_account(client: AegisClient, *, email: str, password: str, account_name: str) -> None:
+    """Logs into `email` if it already exists on this local instance; creates it (signup)
+    if not. Tries login first (the common case for a real user's own account) rather than
+    signup-first, and never prints the password anywhere."""
+    setup(f"Logging into {_c(_BOLD, email)} on this local Aegis instance...")
+    try:
+        resp = client.post("/api/auth/login", {"email": email, "password": password}, auth=False)
+        client.token = resp["access_token"]
+        aegis(f"logged in. account_id={resp['user']['account_id']}")
+        return
+    except HTTPStatusError as exc:
+        if exc.status != 401:
+            raise
+
+    setup(f"No matching login — creating the account {_c(_BOLD, email)}...")
     try:
         resp = client.post(
             "/api/auth/signup",
             {"account_name": account_name, "email": email, "password": password},
             auth=False,
         )
-        client.token = resp["access_token"]
-        aegis(f"account created. account_id={resp['user']['account_id']}")
-        return
     except HTTPStatusError as exc:
-        if exc.status != 409:
-            raise
-
-    resp = client.post("/api/auth/login", {"email": email, "password": password}, auth=False)
+        if exc.status == 409:
+            raise RuntimeError(
+                f"An account for {email} already exists on this instance, but the password "
+                f"you provided doesn't match it. Re-check AEGIS_PASSWORD / --password (or the "
+                f"password you typed at the prompt) and try again."
+            ) from None
+        raise
     client.token = resp["access_token"]
-    aegis(f"logged into existing demo account. account_id={resp['user']['account_id']}")
+    aegis(f"account created. account_id={resp['user']['account_id']}")
 
 
 def configure_autonomy_policy(client: AegisClient) -> None:
@@ -425,23 +447,52 @@ def run_stage_6_autonomous_response(
         _print_autonomy_rows(client, incident_id=incident_id)
 
 
+def resolve_credentials(args: argparse.Namespace) -> tuple[str, str]:
+    """--email/--password flags > AEGIS_EMAIL/AEGIS_PASSWORD env vars > interactive prompt
+    (password entry hidden via getpass). Never hardcoded, never logged, never committed."""
+    email = args.email or os.environ.get(EMAIL_ENV_VAR)
+    if not email:
+        email = input("Aegis account email: ").strip()
+
+    password = args.password or os.environ.get(PASSWORD_ENV_VAR)
+    if not password:
+        password = getpass.getpass("Aegis account password (hidden): ")
+
+    if not email or not password:
+        raise RuntimeError("An email and password are required (flags, env vars, or the prompt).")
+    return email, password
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Aegis backend URL (default: %(default)s)")
-    parser.add_argument("--email", default=DEFAULT_EMAIL, help="Demo account email (default: %(default)s)")
-    parser.add_argument("--password", default=DEFAULT_PASSWORD, help="Demo account password (default: %(default)s)")
-    parser.add_argument("--account-name", default=DEFAULT_ACCOUNT_NAME)
+    parser.add_argument(
+        "--email", default=None,
+        help=f"Account email. Falls back to ${EMAIL_ENV_VAR}, then an interactive prompt.",
+    )
+    parser.add_argument(
+        "--password", default=None,
+        help=f"Account password. Falls back to ${PASSWORD_ENV_VAR}, then a hidden prompt. "
+        f"Prefer the env var or prompt over this flag — command-line args are visible in "
+        f"your shell history and `ps`.",
+    )
+    parser.add_argument(
+        "--account-name", default=DEFAULT_ACCOUNT_NAME,
+        help="Only used if this account doesn't exist yet and needs to be created.",
+    )
     parser.add_argument("--pace", type=float, default=4.0, help="Seconds between stages (default: %(default)s)")
     parser.add_argument("--no-prompt", action="store_true", help="Skip the 'press Enter to start' gate")
     args = parser.parse_args()
 
     banner("AEGIS RED-TEAM SIMULATION — authorized, local/dev only, synthetic data")
     print(_c(_DIM, f"Target backend : {args.base_url}"))
-    print(_c(_DIM, f"Demo login     : {args.email} / {args.password}"))
-    print(_c(_DIM, f"Frontend       : {FRONTEND_URL}  (log in, then open the Detections tab)"))
+    print(_c(_DIM, f"Frontend       : {FRONTEND_URL}  (log in with the same account to watch)"))
     print()
     print("This script only ever talks to the URL above. Never point --base-url at a")
     print("production/staging deployment.")
+
+    email, password = resolve_credentials(args)
+    print(_c(_DIM, f"\nRunning as     : {email}"))
 
     if not args.no_prompt:
         try:
@@ -451,7 +502,7 @@ def main() -> int:
 
     client = AegisClient(args.base_url)
     try:
-        ensure_demo_account(client, email=args.email, password=args.password, account_name=args.account_name)
+        ensure_account(client, email=email, password=password, account_name=args.account_name)
         configure_autonomy_policy(client)
 
         case_id = run_stage_1_phishing_lure(client, args.pace)
@@ -476,8 +527,8 @@ def main() -> int:
         print("Check the Cases, Detections, and Autonomy tabs in the frontend —")
         print(f"{FRONTEND_URL}")
         print()
-        print(_c(_DIM, "Re-run this script any time — it logs into the same demo account and"))
-        print(_c(_DIM, "uses a fresh synthetic actor identity each run."))
+        print(_c(_DIM, "Re-run this script any time — it logs into the same account and uses"))
+        print(_c(_DIM, "a fresh synthetic actor identity each run."))
         return 0
     except HTTPStatusError as exc:
         print(_c(_RED, f"\n[ERROR] {exc}"), file=sys.stderr)
