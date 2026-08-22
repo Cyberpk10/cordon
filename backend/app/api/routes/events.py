@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.baselines.aggregation import BaselineSnapshot, empty_baseline, update_baseline
 from app.core.config import settings
+from app.core.time import to_naive_utc
 from app.db.models import ActorBaseline, Event, Incident, User
 from app.db.session import get_db
 from app.detections.base import ActorEventWindow
@@ -38,7 +39,15 @@ def _persist_event(db: Session, account_id: UUID, event: ActivityEvent) -> Event
     row = Event(
         id=event.id or uuid.uuid4(),
         account_id=account_id,
-        timestamp=event.timestamp,
+        # Client-supplied timestamps may or may not carry a UTC offset (both are valid
+        # ISO8601). Normalizing to naive UTC here — same convention as every other
+        # DB-persisted timestamp in this app (see app.core.time) — means a row just added
+        # to this session never disagrees in awareness with a same-actor row loaded fresh
+        # from the DB moments later in _to_activity_event below, regardless of dialect or
+        # what format the caller sent. Without this, run_detections' own timestamp
+        # comparisons (e.g. app.detections.impossible_travel's sort) can raise
+        # "can't compare offset-naive and offset-aware datetimes".
+        timestamp=to_naive_utc(event.timestamp),
         actor=event.actor,
         source_ip=event.source_ip,
         geo=event.geo.model_dump(mode="json") if event.geo else None,
@@ -56,7 +65,10 @@ def _persist_event(db: Session, account_id: UUID, event: ActivityEvent) -> Event
 def _to_activity_event(row: Event) -> ActivityEvent:
     return ActivityEvent(
         id=row.id,
-        timestamp=row.timestamp,
+        # Postgres (production) returns an aware datetime for a DateTime(timezone=True)
+        # column; SQLite (tests/dev) returns naive. See the identical normalization +
+        # comment in _persist_event above.
+        timestamp=to_naive_utc(row.timestamp),
         actor=row.actor,
         source_ip=row.source_ip,
         geo=row.geo,

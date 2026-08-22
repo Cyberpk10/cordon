@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getDashboardSummary } from "../../api/client";
+import { useInterval } from "../../hooks/useInterval";
 import type { DashboardSummary } from "../../types/analysis";
 import DriftAlertSummary from "./DriftAlertSummary";
 import ExposureAvoidedCard from "./ExposureAvoidedCard";
@@ -11,12 +12,19 @@ import ThreatTrendChart from "./ThreatTrendChart";
 import TopIndicatorsTable from "./TopIndicatorsTable";
 import VerdictDonut from "./VerdictDonut";
 
+// Dev-friendly live refresh so newly-created cases/incidents show up on their own — see
+// frontend/src/hooks/useInterval.ts.
+const POLL_INTERVAL_MS = 5000;
+
 export default function DashboardView() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pollTick, setPollTick] = useState(0);
+
+  useInterval(() => setPollTick((tick) => tick + 1), POLL_INTERVAL_MS);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,7 +48,7 @@ export default function DashboardView() {
     return () => {
       cancelled = true;
     };
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, pollTick]);
 
   return (
     <div className="flex flex-col gap-6">

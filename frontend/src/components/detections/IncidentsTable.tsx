@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { getIncidents } from "../../api/client";
+import { useInterval } from "../../hooks/useInterval";
 import type { IncidentSummary, Verdict } from "../../types/analysis";
 import VerdictBadge from "../VerdictBadge";
 
 const PAGE_SIZE = 20;
+// Dev-friendly live refresh so newly-raised incidents show up on their own — see
+// frontend/src/hooks/useInterval.ts.
+const POLL_INTERVAL_MS = 5000;
 
 const VERDICT_OPTIONS: { label: string; value: Verdict | "" }[] = [
   { label: "All verdicts", value: "" },
@@ -23,6 +27,9 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
   const [verdict, setVerdict] = useState<Verdict | "">("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pollTick, setPollTick] = useState(0);
+
+  useInterval(() => setPollTick((tick) => tick + 1), POLL_INTERVAL_MS);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +54,7 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
     return () => {
       cancelled = true;
     };
-  }, [page, verdict, refreshToken]);
+  }, [page, verdict, refreshToken, pollTick]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 

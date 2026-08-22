@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.audit_log import log_event
 from app.auth.dependencies import get_current_user, require_admin
+from app.core.time import to_naive_utc
 from app.db.models import Event, Incident, Label, User
 from app.db.session import get_db
 from app.events.schema import ActivityEvent
@@ -41,7 +42,8 @@ def _latest_label(db: Session, account_id: UUID, incident_id: UUID) -> Label | N
 def _to_activity_event(row: Event) -> ActivityEvent:
     return ActivityEvent(
         id=row.id,
-        timestamp=row.timestamp,
+        # Same naive/aware normalization as app.api.routes.events._to_activity_event.
+        timestamp=to_naive_utc(row.timestamp),
         actor=row.actor,
         source_ip=row.source_ip,
         geo=row.geo,

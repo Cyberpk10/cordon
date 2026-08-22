@@ -94,6 +94,53 @@ def test_get_and_delete_incident_lifecycle(authed_client, load_events_fixture):
     assert missing.status_code == 404
 
 
+def test_events_with_explicit_utc_offset_timestamps_do_not_crash_across_batches(authed_client):
+    """Regression test: ActivityEvent.timestamp accepts ISO8601 both with and without an
+    explicit UTC offset (e.g. "+00:00", what datetime.isoformat() produces on an aware
+    datetime). Previously, a second /api/events batch for an actor with already-persisted
+    events would 500 with "can't compare offset-naive and offset-aware datetimes" — the new
+    batch's freshly-parsed events (still holding whatever awareness the client sent) got
+    mixed with that actor's DB-loaded history (round-tripped through SQLite, which strips
+    tzinfo) inside one detection window, e.g. in app.detections.impossible_travel's sort.
+    Reproduced with two logins, geographically far apart, split across two separate POSTs —
+    exactly how a real streaming telemetry source would send them."""
+    actor = "bob@corp.com"
+    first = authed_client.post(
+        "/api/events",
+        json={
+            "events": [
+                {
+                    "timestamp": "2026-01-06T09:00:00+00:00",
+                    "actor": actor,
+                    "action": "login",
+                    "outcome": "success",
+                    "geo": {"country": "US", "region": "NY", "lat": 40.7128, "lon": -74.0060},
+                }
+            ]
+        },
+    )
+    assert first.status_code == 200
+
+    second = authed_client.post(
+        "/api/events",
+        json={
+            "events": [
+                {
+                    "timestamp": "2026-01-06T09:30:00+00:00",
+                    "actor": actor,
+                    "action": "login",
+                    "outcome": "success",
+                    "geo": {"country": "RU", "region": "Moscow", "lat": 55.7558, "lon": 37.6173},
+                }
+            ]
+        },
+    )
+    assert second.status_code == 200
+    incidents = second.json()["incidents_created"]
+    assert len(incidents) == 1
+    assert "IMPOSSIBLE_TRAVEL" in incidents[0]["detection_types"]
+
+
 def test_incidents_are_isolated_per_account(
     authed_client, other_account_authed_client, load_events_fixture
 ):
