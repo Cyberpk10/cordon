@@ -121,7 +121,7 @@ function AnalyzerApp() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <AegisLogo className="h-8 w-8" />
-              <h1 className="text-3xl font-bold text-slate-900">Aegis</h1>
+              <h1 className="text-3xl font-bold text-slate-900">Cordon</h1>
             </div>
             {user && (
               <div className="flex items-center gap-3 text-sm">

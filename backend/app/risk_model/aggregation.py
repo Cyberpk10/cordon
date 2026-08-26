@@ -103,7 +103,7 @@ def residual_risk(
     result["false_negative_count"] = len(false_negatives)
     result["note"] = (
         "Scoped only to cases with an analyst label confirming a missed malicious "
-        "verdict within this period — not an estimate of threats outside Aegis's own "
+        "verdict within this period — not an estimate of threats outside Cordon's own "
         "labeled data."
     )
     return result

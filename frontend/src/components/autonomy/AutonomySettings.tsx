@@ -3,7 +3,7 @@ import { getAutonomyPolicy, haltAutonomy, putAutonomyPolicy } from "../../api/cl
 import type { AutonomyLevel, AutonomyPolicy, AutonomyPolicyRule } from "../../types/analysis";
 
 const LEVELS: { level: AutonomyLevel; label: string; description: string }[] = [
-  { level: "L0", label: "L0 — Recommend only", description: "Aegis never acts automatically. Every finding stays a human-approved recommendation." },
+  { level: "L0", label: "L0 — Recommend only", description: "Cordon never acts automatically. Every finding stays a human-approved recommendation." },
   { level: "L1", label: "L1 — Low-impact auto-execute", description: "Auto-executes reversible, non-containment actions (quarantine email, flag account) above their confidence threshold." },
   { level: "L2", label: "L2 — Containment auto-execute", description: "Adds containment actions (disable session, block sender domain) above a (typically higher) confidence threshold." },
   { level: "L3", label: "L3 — Full auto (opt-in per rule)", description: "A rule marked \"full auto\" executes without a confidence check. Exclusions and reversibility still always apply." },

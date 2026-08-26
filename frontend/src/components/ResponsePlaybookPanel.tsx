@@ -61,7 +61,7 @@ export default function ResponsePlaybookPanel({
     <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-slate-800">Response Playbook</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Recommended next steps derived from this case&apos;s indicators. Aegis never performs
+        Recommended next steps derived from this case&apos;s indicators. Cordon never performs
         these automatically — an operator approves and marks each one done.
       </p>
 

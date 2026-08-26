@@ -12,7 +12,7 @@ export default function AegisLogo({ className }: AegisLogoProps) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       role="img"
-      aria-label="Aegis"
+      aria-label="Cordon"
     >
       <defs>
         <linearGradient id="aegisGrad" x1="8" y1="56" x2="56" y2="8" gradientUnits="userSpaceOnUse">

@@ -25,7 +25,7 @@ SLATE_BORDER = colors.HexColor("#cbd5e1")
 SLATE_ROW = colors.HexColor("#f8fafc")
 
 METHODOLOGY_NOTE = (
-    "This evidence pack aggregates Aegis case analyses whose automated, rule-based indicators "
+    "This evidence pack aggregates Cordon case analyses whose automated, rule-based indicators "
     "map to each control in the selected framework, for the stated period. A control is marked "
     '"Operating" if at least one supporting case was detected in this period. Sample case '
     "references are the most recent supporting cases (up to 5), included for auditor "
@@ -100,14 +100,14 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
-        title=f"Aegis Audit Evidence Pack - {ctx.framework_name}",
+        title=f"Cordon Audit Evidence Pack - {ctx.framework_name}",
     )
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle("AegisTitle", parent=styles["Title"], textColor=NAVY)
     heading_style = ParagraphStyle("AegisHeading", parent=styles["Heading2"], textColor=NAVY)
 
     elements = [
-        Paragraph("Aegis — Threat &amp; Compliance Evidence Pack", title_style),
+        Paragraph("Cordon — Threat &amp; Compliance Evidence Pack", title_style),
         Spacer(1, 0.15 * inch),
         Paragraph(
             f"Framework: {xml_escape(ctx.framework_name)} (v{xml_escape(ctx.framework_version)})",

@@ -264,7 +264,7 @@ TEMPLATE_REGISTRY: dict[str, CopilotTemplate] = {
         ),
         CopilotTemplate(
             "unsupported_question",
-            "Use this when the question cannot be answered from Aegis's case data "
+            "Use this when the question cannot be answered from Cordon's case data "
             "using any of the other available templates.",
             UnsupportedQuestionParams,
             _execute_unsupported_question,

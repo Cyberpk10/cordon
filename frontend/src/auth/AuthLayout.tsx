@@ -15,7 +15,7 @@ export default function AuthLayout({ title, subtitle, children, footer }: AuthLa
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-blue/20 via-transparent to-brand-purple/20" />
         <div className="relative flex items-center gap-3">
           <AegisLogo className="h-9 w-9" />
-          <span className="text-xl font-semibold tracking-tight">Aegis</span>
+          <span className="text-xl font-semibold tracking-tight">Cordon</span>
         </div>
         <div className="relative max-w-md">
           <h2 className="text-3xl font-semibold leading-tight text-white">
@@ -26,14 +26,14 @@ export default function AuthLayout({ title, subtitle, children, footer }: AuthLa
             platform.
           </p>
         </div>
-        <p className="relative text-sm text-slate-400">&copy; {new Date().getFullYear()} Aegis</p>
+        <p className="relative text-sm text-slate-400">&copy; {new Date().getFullYear()} Cordon</p>
       </div>
 
       <div className="flex w-full flex-1 flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2">
         <div className="mx-auto w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2 lg:hidden">
             <AegisLogo className="h-8 w-8" />
-            <span className="text-lg font-semibold text-slate-900">Aegis</span>
+            <span className="text-lg font-semibold text-slate-900">Cordon</span>
           </div>
 
           <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>

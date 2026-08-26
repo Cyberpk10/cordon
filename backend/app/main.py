@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Aegis",
+    title="Cordon",
     description="Defensive email-security analysis API.",
     version="0.1.0",
     lifespan=lifespan,

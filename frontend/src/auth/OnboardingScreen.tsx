@@ -34,7 +34,7 @@ export default function OnboardingScreen({ onSwitchToLogin }: OnboardingScreenPr
 
   return (
     <AuthLayout
-      title="Create your Aegis account"
+      title="Create your Cordon account"
       subtitle="Set up your organization and admin login in under a minute."
       footer={
         <>

@@ -25,9 +25,9 @@ import anthropic
 from app.copilot.templates import TEMPLATE_REGISTRY
 
 SELECTION_SYSTEM_PROMPT = (
-    "You are a query router for Aegis, a defensive email-security platform. Your only job "
+    "You are a query router for Cordon, a defensive email-security platform. Your only job "
     "is to pick exactly one of the provided tools and fill in its parameters to best answer "
-    "the user's question using Aegis's own case data. You must always call one of the "
+    "the user's question using Cordon's own case data. You must always call one of the "
     "provided tools — never respond with plain text. If no tool genuinely answers the "
     "question, call unsupported_question with a brief reason. Never fabricate data yourself; "
     "your only output is a single tool call."
@@ -35,7 +35,7 @@ SELECTION_SYSTEM_PROMPT = (
 
 NARRATION_SYSTEM_PROMPT = (
     "You are a defensive SOC analyst assistant. You will be given the user's original "
-    "question and a JSON object of figures already retrieved from Aegis's database. Answer "
+    "question and a JSON object of figures already retrieved from Cordon's database. Answer "
     "the question using ONLY the numbers/fields present in that JSON. Never invent, "
     "estimate, or add any figure that is not present in the JSON. If the JSON does not "
     "contain enough information to answer the question, say so plainly instead of guessing. "

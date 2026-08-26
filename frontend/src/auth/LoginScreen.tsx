@@ -32,7 +32,7 @@ export default function LoginScreen({ onSwitchToSignup, onForgotPassword }: Logi
 
   return (
     <AuthLayout
-      title="Sign in to Aegis"
+      title="Sign in to Cordon"
       subtitle="Enter your credentials to access your account."
       footer={
         <>

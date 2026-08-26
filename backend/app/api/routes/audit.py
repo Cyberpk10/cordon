@@ -234,7 +234,7 @@ async def download_audit_report(
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Report file not found on disk.") from exc
 
-    filename = f"aegis-audit-{report.framework_key}-{report_id}.{format}"
+    filename = f"cordon-audit-{report.framework_key}-{report_id}.{format}"
     return Response(
         content=content,
         media_type=media_type,

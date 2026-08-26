@@ -32,7 +32,7 @@ class GraphConnector(ActionConnector):
     _GRAPH_SCOPE = ["https://graph.microsoft.com/.default"]
     # A dedicated folder per mailbox, created on first use — never Deleted Items or any
     # folder a user might empty without realizing it holds a quarantined message.
-    _QUARANTINE_FOLDER_NAME = "Aegis Quarantine"
+    _QUARANTINE_FOLDER_NAME = "Cordon Quarantine"
 
     def __init__(self, *, tenant_id: str, client_id: str, client_secret: str) -> None:
         self._tenant_id = tenant_id
@@ -203,7 +203,7 @@ class GraphConnector(ActionConnector):
                 "POST",
                 f"/users/{mailbox}/mailFolders/inbox/messageRules",
                 json={
-                    "displayName": f"Aegis: block {target}",
+                    "displayName": f"Cordon: block {target}",
                     "sequence": 1,
                     "isEnabled": True,
                     "conditions": {"senderContains": [f"@{target}"]},

@@ -40,7 +40,7 @@ export default function CopilotView() {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-white">Threat Copilot</h2>
         <p className="text-sm text-slate-300">
-          Ask questions about your Aegis data in plain English. Every answer is grounded in a
+          Ask questions about your Cordon data in plain English. Every answer is grounded in a
           whitelisted, parameterized query — never free-form SQL — and the underlying figures are
           shown alongside the narrative.
         </p>
@@ -69,7 +69,7 @@ export default function CopilotView() {
           type="text"
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          placeholder="Ask a question about your Aegis data…"
+          placeholder="Ask a question about your Cordon data…"
           className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
         />
         <button

@@ -22,7 +22,7 @@ export default function ForwardingAddressCard({ forwardingAddress }: ForwardingA
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-slate-800">Your forwarding address</h2>
       <p className="mt-1 text-sm text-slate-600">
-        Forward any suspicious email to this address — Aegis will analyze it automatically and
+        Forward any suspicious email to this address — Cordon will analyze it automatically and
         add it to your Cases.
       </p>
 

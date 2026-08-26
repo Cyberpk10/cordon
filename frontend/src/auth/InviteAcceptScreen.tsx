@@ -45,7 +45,7 @@ export default function InviteAcceptScreen() {
   }
 
   return (
-    <AuthLayout title="Set your password" subtitle="Finish setting up your Aegis account.">
+    <AuthLayout title="Set your password" subtitle="Finish setting up your Cordon account.">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && <ErrorBanner message={error} />}
 
@@ -60,7 +60,7 @@ export default function InviteAcceptScreen() {
         />
         <p className="-mt-3 text-xs text-slate-500">At least {MIN_PASSWORD_LENGTH} characters.</p>
 
-        <SubmitButton isLoading={isLoading}>Join Aegis</SubmitButton>
+        <SubmitButton isLoading={isLoading}>Join Cordon</SubmitButton>
       </form>
     </AuthLayout>
   );

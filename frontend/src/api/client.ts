@@ -215,7 +215,7 @@ export async function downloadAuditReport(id: string, format: "pdf" | "json"): P
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `aegis-audit-report.${format}`;
+  link.download = `cordon-audit-report.${format}`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
