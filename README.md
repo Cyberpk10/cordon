@@ -1,11 +1,11 @@
-# Aegis
+# Cordon
 
-Aegis is a **defensive** email-security analysis tool. It ingests a single `.eml` file, runs a
+Cordon is a **defensive** email-security analysis tool. It ingests a single `.eml` file, runs a
 deterministic, rule-based phishing indicator engine over it, fuses the findings into a 0-100 risk
 score, and maps the findings to compliance/control frameworks (MITRE ATT&CK, NIST CSF, ISO 27001,
 SOC 2).
 
-Aegis performs **analysis only**: it does not send email, does not exploit anything, and does not
+Cordon performs **analysis only**: it does not send email, does not exploit anything, and does not
 make outbound network/DNS calls. SPF/DKIM/DMARC results are parsed from the email's existing
 `Authentication-Results` header rather than independently re-verified.
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Aegis is a **defensive** email/identity-security platform. It started as a single-shot `.eml`
+Cordon is a **defensive** email/identity-security platform. It started as a single-shot `.eml`
 analyzer (Milestone 1) and has grown milestone-by-milestone (see `README.md` and the dated
 comments throughout `backend/app/core/config.py`, which doubles as a changelog) into:
 
@@ -19,7 +19,7 @@ comments throughout `backend/app/core/config.py`, which doubles as a changelog) 
   gated by a policy engine, executed for real only via a Microsoft Graph connector — otherwise a
   mock connector, so nothing fires unconfigured.
 
-Aegis performs analysis and (opt-in, policy-gated) containment only: no exploitation, no
+Cordon performs analysis and (opt-in, policy-gated) containment only: no exploitation, no
 destructive actions are defined anywhere in the action catalog.
 
 Three independent components, each with its own dependency/test setup:

@@ -1,4 +1,4 @@
-# Deploying Aegis to production
+# Deploying Cordon to production
 
 Backend → **Render** (Docker web service + managed Postgres). Frontend → **Vercel** (static Vite
 build). This gets you a live HTTPS URL end to end. Follow the steps in order — the backend and
@@ -31,7 +31,7 @@ frontend each need the other's URL, so there's a short back-and-forth at steps 5
 Render builds from a connected GitHub repo. If this repo isn't on GitHub yet:
 
 ```bash
-gh repo create aegis --private --source=. --remote=origin
+gh repo create cordon --private --source=. --remote=origin
 git push -u origin main
 ```
 
@@ -57,7 +57,7 @@ should return `{"status":"ok"}`.
 **Recommended — Blueprint (one step, auto-wires the database URL):**
 
 1. In the Render dashboard: **New +** → **Blueprint**.
-2. Connect your GitHub account if you haven't, select the `aegis` repo.
+2. Connect your GitHub account if you haven't, select the `cordon` repo.
 3. Render reads `render.yaml` from the repo root and shows you the two resources it'll create
    (`aegis-db` Postgres, `aegis-backend` web service) — confirm the plans match what you want
    (Starter/Basic-256mb per above, or swap to `free` first if you changed the file).
@@ -74,7 +74,7 @@ should return `{"status":"ok"}`.
 it errors): create them manually instead —
 1. **New +** → **PostgreSQL** → name it `aegis-db`, plan Basic-256mb, create it. Copy its
    **Internal Connection String** once it's provisioned.
-2. **New +** → **Web Service** → connect the `aegis` repo → Runtime: **Docker** → Dockerfile
+2. **New +** → **Web Service** → connect the `cordon` repo → Runtime: **Docker** → Dockerfile
    path `backend/Dockerfile`, Docker context `backend` → plan Starter.
 3. Under **Environment**, add: `DATABASE_URL` (the connection string you copied),
    `ENVIRONMENT=production`, `LOG_LEVEL=INFO`, `CORS_ALLOWED_ORIGINS=https://placeholder.vercel.app`
@@ -120,7 +120,7 @@ triggers an automatic redeploy.
 ## 7. Verify end to end
 
 Open the Vercel URL in a browser:
-- Confirm it loads over HTTPS and shows the Aegis login screen.
+- Confirm it loads over HTTPS and shows the Cordon login screen.
 - Create an account through the onboarding screen (or sign in with one you already created via
   the API) — it should land on the dashboard with no CORS errors in the browser console
   (DevTools → Console/Network).
@@ -128,7 +128,7 @@ Open the Vercel URL in a browser:
   return `401` (confirms the backend itself, independent of CORS, is healthy and actually
   enforcing auth — a `200` here would mean routes aren't protected).
 
-That's a live, HTTPS, production Aegis deployment.
+That's a live, HTTPS, production Cordon deployment.
 
 ## 8. (Optional) Email forwarding intake (M8 Stage 3) — Mailgun setup
 
@@ -159,7 +159,7 @@ instead of only uploading `.eml` files. Requires a domain you control DNS for.
 5. On the Render service, set `MAILGUN_WEBHOOK_SIGNING_KEY` (the value from step 4) and
    `INBOUND_EMAIL_DOMAIN` (the subdomain from step 2, e.g. `in.yourdomain.com`) — same
    `sync: false` prompt-for-value pattern as `JWT_SECRET_KEY`. Redeploy.
-6. Verify: sign in to Aegis, open the **Settings** tab, copy the forwarding address shown there
+6. Verify: sign in to Cordon, open the **Settings** tab, copy the forwarding address shown there
    (`pilot-<token>@in.yourdomain.com`), and forward yourself a real (or sample) phishing email to
    it. A new Case should appear in the Cases tab within a few seconds. `curl -I
    https://<your-backend>.onrender.com/api/inbound/email/mime` (a bare GET, no valid payload)
@@ -178,7 +178,7 @@ that hasn't gone through this stays on MockConnector automatically.
 customer:
 
 1. **Azure Portal → Entra ID → App registrations → New registration.**
-   - Name: e.g. "Aegis Autonomous Response".
+   - Name: e.g. "Cordon Autonomous Response".
    - Supported account types: **Accounts in any organizational directory (multitenant)** — this
      lets the one app registration serve every future customer's tenant, not just your own.
    - No redirect URI — this is a daemon/client-credentials app, nothing signs in interactively.
@@ -212,7 +212,7 @@ everything needed here) with 25 user licenses, free, renews automatically for an
 long as you're actively using it. Billing info is requested for identity verification only, no
 charge. Use that sandbox's own Directory (tenant) ID as the `tenant_id` in step 7, do the admin
 consent (step 2) directly in that same tenant, then submit a real test phishing email addressed
-to one of the sandbox's mailboxes and confirm it actually moves to an "Aegis Quarantine" folder.
+to one of the sandbox's mailboxes and confirm it actually moves to a "Cordon Quarantine" folder.
 
 ## Notes for later
 
