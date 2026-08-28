@@ -8,20 +8,26 @@ import type {
   AutonomyActionListResponse,
   AutonomyHaltResponse,
   AutonomyPolicy,
+  CampaignDetailResponse,
+  CampaignRecipientInput,
   CaseDetail,
   CaseListResponse,
   ControlHealthListResponse,
   CopilotQueryResponse,
   DashboardSummary,
+  DomainVerifyResponse,
   DriftAlertListResponse,
   EventBatchResponse,
   FinancialRiskResponse,
+  HumanRiskSummaryResponse,
   IncidentDetail,
   IncidentListResponse,
   Label,
   MessageChannel,
   RemediationPlaybook,
+  SimulationTrainingRecommendationsListResponse,
   TargetsListResponse,
+  TemplateListResponse,
   Verdict,
 } from "../types/analysis";
 import { apiFetch } from "./authClient";
@@ -468,6 +474,101 @@ export async function getMonitoringControls(
 
 export async function getMonitoringDrift(): Promise<DriftAlertListResponse> {
   const response = await apiFetch(`/api/monitoring/drift`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+// ---- Phishing simulation ------------------------------------------------------------------
+
+export async function verifySimulationDomain(domain: string): Promise<DomainVerifyResponse> {
+  const response = await apiFetch(`/api/sim/domains/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ domain }),
+  });
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function getSimulationTemplates(): Promise<TemplateListResponse> {
+  const response = await apiFetch(`/api/sim/templates`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export interface CreateSimulationCampaignParams {
+  name: string;
+  template_id: string;
+  recipients: CampaignRecipientInput[];
+}
+
+export async function createSimulationCampaign(
+  params: CreateSimulationCampaignParams
+): Promise<CampaignDetailResponse> {
+  const response = await apiFetch(`/api/sim/campaigns`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function getSimulationCampaign(id: string): Promise<CampaignDetailResponse> {
+  const response = await apiFetch(`/api/sim/campaigns/${id}`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function sendSimulationCampaign(
+  id: string,
+  authorizationAccepted: boolean
+): Promise<CampaignDetailResponse> {
+  const response = await apiFetch(`/api/sim/campaigns/${id}/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ authorization_accepted: authorizationAccepted }),
+  });
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+// ---- Human Risk -----------------------------------------------------------------------------
+
+export interface GetHumanRiskSummaryParams {
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export async function getHumanRiskSummary(
+  params: GetHumanRiskSummaryParams = {}
+): Promise<HumanRiskSummaryResponse> {
+  const query = new URLSearchParams();
+  if (params.dateFrom) query.set("date_from", params.dateFrom);
+  if (params.dateTo) query.set("date_to", params.dateTo);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+
+  const response = await apiFetch(`/api/human-risk/summary${suffix}`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function getTrainingRecommendations(): Promise<SimulationTrainingRecommendationsListResponse> {
+  const response = await apiFetch(`/api/human-risk/recommendations`);
   if (!response.ok) {
     return parseErrorOrThrow(response);
   }

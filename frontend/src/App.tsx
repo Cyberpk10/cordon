@@ -13,6 +13,7 @@ import CopilotView from "./components/copilot/CopilotView";
 import DetectionsView from "./components/detections/DetectionsView";
 import AutonomyView from "./components/autonomy/AutonomyView";
 import ControlMonitoringView from "./components/monitoring/ControlMonitoringView";
+import SimulationsView from "./components/simulations/SimulationsView";
 import SettingsView from "./components/settings/SettingsView";
 import { postAnalyze, postAnalyzeText, AnalyzeError } from "./api/client";
 import type { AnalyzeResponse } from "./types/analysis";
@@ -33,6 +34,7 @@ type Tab =
   | "detections"
   | "autonomy"
   | "monitoring"
+  | "simulations"
   | "settings";
 
 type AuthScreen = "login" | "onboarding" | "forgot-password";
@@ -112,7 +114,8 @@ function AnalyzerApp() {
           tab === "copilot" ||
           tab === "detections" ||
           tab === "autonomy" ||
-          tab === "monitoring"
+          tab === "monitoring" ||
+          tab === "simulations"
             ? "max-w-6xl"
             : "max-w-3xl"
         }`}
@@ -156,6 +159,7 @@ function AnalyzerApp() {
                 "audit",
                 "copilot",
                 "autonomy",
+                "simulations",
                 "settings",
               ] as const
             ).map((t) => (
@@ -183,6 +187,8 @@ function AnalyzerApp() {
         {tab === "autonomy" && <AutonomyView />}
 
         {tab === "monitoring" && <ControlMonitoringView />}
+
+        {tab === "simulations" && <SimulationsView />}
 
         {tab === "audit" && <AuditView />}
 

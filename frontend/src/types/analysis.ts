@@ -481,3 +481,136 @@ export interface DriftAlertListResponse {
   items: DriftAlert[];
   total: number;
 }
+
+// ---- Phishing simulation (M9 Stage 1) ----------------------------------------------------
+
+export type SimulationDomainStatus = "pending" | "verified";
+
+export interface DomainVerifyResponse {
+  domain: string;
+  status: SimulationDomainStatus;
+  verification_record_name: string;
+  verification_record_value: string;
+  verified_at: string | null;
+  checked_at: string;
+}
+
+export interface SimulationTemplateSummary {
+  id: string;
+  name: string;
+  category: string;
+  subject: string;
+  sender_display_name: string;
+  landing_page_headline: string;
+  landing_page_teaching_points: string[];
+  has_fake_login_form: boolean;
+}
+
+export interface TemplateListResponse {
+  items: SimulationTemplateSummary[];
+}
+
+export interface CampaignRecipientInput {
+  email: string;
+  department?: string | null;
+}
+
+export type SimulationCampaignStatus = "draft" | "authorized" | "sending" | "sent" | "send_failed";
+export type SimulationRecipientStatus = "pending" | "sent" | "send_failed" | "clicked" | "submitted";
+
+export interface CampaignRecipientSummary {
+  id: string;
+  email: string;
+  department: string | null;
+  status: SimulationRecipientStatus;
+  sent_at: string | null;
+  clicked_at: string | null;
+  click_count: number;
+  submitted_at: string | null;
+  submit_count: number;
+  reported_at: string | null;
+  report_count: number;
+  dry_run_tracking_url: string | null;
+}
+
+export interface CampaignDetailResponse {
+  id: string;
+  name: string;
+  template_id: string;
+  status: SimulationCampaignStatus;
+  dry_run: boolean;
+  from_address: string | null;
+  created_at: string;
+  created_by_user_id: string | null;
+  authorized_by_user_id: string | null;
+  authorized_at: string | null;
+  sent_at: string | null;
+  recipients: CampaignRecipientSummary[];
+}
+
+// ---- Human Risk (M9 Stage 2) --------------------------------------------------------------
+
+export interface RiskiestUser {
+  email: string;
+  department: string;
+  risk_score: number;
+  click_count: number;
+  submit_count: number;
+  report_count: number;
+  last_failure_at: string | null;
+}
+
+export interface ClickRatePeriod {
+  period_start: string;
+  period_end: string;
+  sent_count: number;
+  click_count: number;
+  submit_count: number;
+  report_count: number;
+  click_rate: number;
+  submit_rate: number;
+}
+
+export interface LureEffectiveness {
+  template_id: string;
+  template_name: string;
+  sent_count: number;
+  click_count: number;
+  submit_count: number;
+  click_rate: number;
+  submit_rate: number;
+}
+
+export interface DepartmentBreakdown {
+  department: string;
+  employees_tested: number;
+  click_count: number;
+  submit_count: number;
+  report_count: number;
+  avg_risk_score: number;
+}
+
+export interface HumanRiskSummaryResponse {
+  period_start: string;
+  period_end: string;
+  riskiest_users: RiskiestUser[];
+  click_rate_over_time: ClickRatePeriod[];
+  lure_effectiveness: LureEffectiveness[];
+  department_breakdown: DepartmentBreakdown[];
+  generated_at: string;
+}
+
+export interface SimulationTrainingRecommendation {
+  recipient: string;
+  template_id: string;
+  template_name: string;
+  risk_score: number;
+  recommendation: string;
+  first_flagged_at: string;
+  updated_at: string;
+}
+
+export interface SimulationTrainingRecommendationsListResponse {
+  items: SimulationTrainingRecommendation[];
+  total: number;
+}
