@@ -307,6 +307,9 @@ class AuditControlEvidence(BaseModel):
     detection_count: int
     sample_cases: list[AuditCaseRef]
     operating: bool
+    # M9 Stage 2 — populated only for the small, fixed set of controls in
+    # app.human_risk.framework_mapping.HUMAN_RISK_CONTROL_IDS; None for every other control.
+    human_risk_evidence: "HumanRiskEvidenceResponse | None" = None
 
 
 class AuditEvidenceResponse(BaseModel):
@@ -761,6 +764,10 @@ class TemplateListResponse(BaseModel):
 
 class CampaignRecipientInput(BaseModel):
     email: str
+    # Free text, admin-supplied (M9 Stage 2) — there is no employee directory in this
+    # codebase, so this is whatever the admin types at campaign-creation time. Used for the
+    # Human Risk view's department breakdown; see app.db.models.SimulationRecipient.
+    department: str | None = None
 
 
 class CampaignCreateRequest(BaseModel):
@@ -788,12 +795,16 @@ class SimulationRecipientStatus(str, Enum):
 class CampaignRecipientSummary(BaseModel):
     id: UUID
     email: str
+    department: str | None
     status: SimulationRecipientStatus
     sent_at: datetime | None
     clicked_at: datetime | None
     click_count: int
     submitted_at: datetime | None
     submit_count: int
+    # M9 Stage 2 — independent of `status` (see app.db.models.SimulationRecipient).
+    reported_at: datetime | None
+    report_count: int
     # Only ever populated when the campaign was sent in dry-run mode (Mailgun unconfigured) —
     # lets a developer/demo user click through the real landing-page flow with no live
     # mailbox. Never populated for a real send, so a live campaign's per-employee tracking
@@ -820,3 +831,78 @@ class CampaignSendRequest(BaseModel):
     # Required, no default — omitting it entirely is a 422 (structurally can't be forgotten
     # by accident); present but false is an explicit 400 (see app.api.routes.simulation).
     authorization_accepted: bool
+
+
+# ---- Human Risk (M9 Stage 2) ------------------------------------------------------------
+
+
+class RiskiestUserResponse(BaseModel):
+    email: str
+    department: str
+    risk_score: int
+    click_count: int
+    submit_count: int
+    report_count: int
+    last_failure_at: datetime | None
+
+
+class ClickRatePeriodResponse(BaseModel):
+    period_start: datetime
+    period_end: datetime
+    sent_count: int
+    click_count: int
+    submit_count: int
+    report_count: int
+    click_rate: float
+    submit_rate: float
+
+
+class LureEffectivenessResponse(BaseModel):
+    template_id: str
+    template_name: str
+    sent_count: int
+    click_count: int
+    submit_count: int
+    click_rate: float
+    submit_rate: float
+
+
+class DepartmentBreakdownResponse(BaseModel):
+    department: str
+    employees_tested: int
+    click_count: int
+    submit_count: int
+    report_count: int
+    avg_risk_score: float
+
+
+class HumanRiskSummaryResponse(BaseModel):
+    period_start: datetime
+    period_end: datetime
+    riskiest_users: list[RiskiestUserResponse]
+    click_rate_over_time: list[ClickRatePeriodResponse]
+    lure_effectiveness: list[LureEffectivenessResponse]
+    department_breakdown: list[DepartmentBreakdownResponse]
+    generated_at: datetime
+
+
+class SimulationTrainingRecommendationResponse(BaseModel):
+    recipient: str
+    template_id: str
+    template_name: str
+    risk_score: int
+    recommendation: str
+    first_flagged_at: datetime
+    updated_at: datetime
+
+
+class SimulationTrainingRecommendationsListResponse(BaseModel):
+    items: list[SimulationTrainingRecommendationResponse]
+    total: int
+
+
+class HumanRiskEvidenceResponse(BaseModel):
+    campaigns_run: int
+    distinct_employees_tested: int
+    distinct_employees_trained: int
+    sample_campaign_ids: list[UUID]

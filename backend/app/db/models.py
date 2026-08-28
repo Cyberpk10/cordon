@@ -621,7 +621,16 @@ class SimulationRecipient(Base):
     `submitted_at`/`submit_count` record only the fact and time of a submission event, never
     any value a trainee typed into the fake form. There is no Text/String/JSON column here (or
     anywhere in this schema) shaped to hold a credential — this is a structural property of
-    the table, not an application-level choice to leave a credential column unpopulated."""
+    the table, not an application-level choice to leave a credential column unpopulated.
+
+    `reported_at`/`report_count` (M9 Stage 2) are an INDEPENDENT signal, deliberately not part
+    of the `status` ratchet above — reporting a simulation email is a good outcome that can
+    happen with or without a prior click (the ideal case is a report with no click at all), so
+    it must never advance or regress `status`; see app.simulation.policy.advance_status, which
+    is untouched by reporting. `department` is free text supplied by the admin per-recipient at
+    campaign-creation time — there is no employee directory anywhere in this codebase (these
+    are the customer's own staff being tested, not Cordon User rows), so it's whatever was most
+    recently supplied for that email across campaigns, with no cross-campaign validation."""
 
     __tablename__ = "simulation_recipients"
     __table_args__ = (
@@ -648,6 +657,9 @@ class SimulationRecipient(Base):
     click_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     submit_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    department: Mapped[str | None] = mapped_column(String, nullable=True)
+    reported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    report_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -676,8 +688,45 @@ class SimulationEvent(Base):
     recipient_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("simulation_recipients.id", ondelete="CASCADE"), nullable=False
     )
-    event_type: Mapped[str] = mapped_column(String, nullable=False)  # "click" | "submit"
+    event_type: Mapped[str] = mapped_column(String, nullable=False)  # "click" | "submit" | "report"
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
     ip_address: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class SimulationTrainingRecommendation(Base):
+    """Current human-risk training recommendation for a recipient of phishing-simulation
+    campaigns (M9 Stage 2) — one row per (account, recipient email), upserted inline inside
+    GET /api/sim/track/{token} whenever a click/submit event fires (see
+    app.api.routes.simulation._upsert_training_recommendation), refreshed (score only) on a
+    later report event for the same recipient. Distinct from TrainingRecommendation (M4
+    Stage 3), which is the same general shape but driven by real analyzed Case hits, not
+    simulation outcomes — reusing that table would let two unrelated recompute paths clobber
+    the same (account_id, recipient) row."""
+
+    __tablename__ = "simulation_training_recommendations"
+    __table_args__ = (
+        UniqueConstraint(
+            "account_id", "recipient", name="uq_simulation_training_recommendations_account_recipient"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    recipient: Mapped[str] = mapped_column(String, nullable=False)
+    template_id: Mapped[str] = mapped_column(String, nullable=False)
+    template_name: Mapped[str] = mapped_column(String, nullable=False)
+    risk_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    recommendation: Mapped[str] = mapped_column(Text, nullable=False)
+    first_flagged_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )

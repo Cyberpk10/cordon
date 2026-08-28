@@ -1,4 +1,4 @@
-version: "1.3"
+version: "1.4"
 framework: "SOC 2 (Trust Services Criteria)"
 framework_key: soc2
 source: "https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services"
@@ -37,6 +37,15 @@ controls:
   # other SOC2 entries in this file.
   - id: CC7.4
     name: "The entity responds to identified security incidents by executing a defined incident response program that includes assigned roles, containment, remediation, communication, and documentation"
+    url: null
+  # M9 Stage 2 — human risk / phishing-simulation training evidence (CC1: Control
+  # Environment family, COSO Principle 4 "commitment to competence"). AICPA TSC text is
+  # paywalled; wording cross-checked against multiple independent compliance-industry
+  # references (same sourcing tier as the other SOC2 entries in this file). Mapped only via
+  # app.human_risk.framework_mapping, not via the `mappings:` section below — there is no
+  # analogous "indicator" for a simulation event the way there is for an analyzed email.
+  - id: CC1.4
+    name: "The entity demonstrates a commitment to attract, develop, and retain competent individuals in alignment with objectives"
     url: null
 
 mappings:

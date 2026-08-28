@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from app.dashboard.aggregation import CaseRow
+from app.human_risk.audit_evidence import HumanRiskControlEvidence
 
 DEFAULT_SAMPLE_SIZE = 5
 
@@ -29,6 +30,10 @@ class ControlEvidence:
     supporting_case_ids: list[str]
     sample_cases: list[CaseRef]
     operating: bool
+    # M9 Stage 2 — attached by app.api.routes.audit for the small, fixed set of controls in
+    # app.human_risk.framework_mapping.HUMAN_RISK_CONTROL_IDS; evidence_for_framework below
+    # never sets this itself (a simulation campaign has no Case/Verdict to aggregate here).
+    human_risk: HumanRiskControlEvidence | None = None
 
 
 def evidence_for_framework(

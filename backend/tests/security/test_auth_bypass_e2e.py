@@ -37,6 +37,8 @@ PROTECTED_ROUTES = [
     ("GET", "/api/monitoring/controls"),
     ("GET", "/api/sim/templates"),
     ("GET", f"/api/sim/campaigns/{uuid.uuid4()}"),
+    ("GET", "/api/human-risk/summary"),
+    ("GET", "/api/human-risk/recommendations"),
 ]
 
 

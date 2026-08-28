@@ -27,14 +27,18 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.rate_limit import limiter
 from app.auth.security import generate_opaque_token, hash_token
 from app.core.config import settings
+from app.core.time import to_naive_utc
 from app.db.models import (
     SimulationCampaign,
     SimulationDomain,
     SimulationEvent,
     SimulationRecipient,
+    SimulationTrainingRecommendation,
     User,
 )
 from app.db.session import get_db
+from app.human_risk.recommendation import decide_training_recommendation
+from app.human_risk.scoring import RecipientCampaignOutcome, RecipientSimulationHistory
 from app.models.schemas import (
     CampaignCreateRequest,
     CampaignDetailResponse,
@@ -53,7 +57,11 @@ from app.simulation.dns_check import (
     verification_record_name,
     verification_record_value,
 )
-from app.simulation.landing_page import render_invalid_link_page, render_teaching_page
+from app.simulation.landing_page import (
+    render_invalid_link_page,
+    render_report_confirmation_page,
+    render_teaching_page,
+)
 from app.simulation.mailgun_sender import mailgun_is_configured, send_simulation_email
 from app.simulation.policy import advance_status
 from app.simulation.templates import TEMPLATES
@@ -85,18 +93,30 @@ def _email_domain(email: str) -> str | None:
     return match.group(1) if match else None
 
 
+def _naive(value: datetime | None) -> datetime | None:
+    """SQLite (used by the test suite) round-trips DateTime(timezone=True) columns as
+    naive, while Postgres (production) returns them aware — see app.core.time.to_naive_utc.
+    Values just set in-process this request (e.g. `datetime.now(timezone.utc)`, still aware,
+    not yet reloaded) must be normalized the same way before comparing against anything
+    freshly queried from the DB, or subtraction raises."""
+    return to_naive_utc(value) if value is not None else None
+
+
 def _to_recipient_summary(
     recipient: SimulationRecipient, *, dry_run_tracking_urls: dict[uuid.UUID, str]
 ) -> CampaignRecipientSummary:
     return CampaignRecipientSummary(
         id=recipient.id,
         email=recipient.email,
+        department=recipient.department,
         status=SimulationRecipientStatus(recipient.status),
         sent_at=recipient.sent_at,
         clicked_at=recipient.clicked_at,
         click_count=recipient.click_count,
         submitted_at=recipient.submitted_at,
         submit_count=recipient.submit_count,
+        reported_at=recipient.reported_at,
+        report_count=recipient.report_count,
         dry_run_tracking_url=dry_run_tracking_urls.get(recipient.id),
     )
 
@@ -200,14 +220,14 @@ async def create_campaign(
     if body.template_id not in TEMPLATES:
         raise HTTPException(status_code=400, detail=f"Unknown template_id: {body.template_id}")
 
-    normalized: dict[str, str] = {}
+    normalized: dict[str, str | None] = {}
     for entry in body.recipients:
         email = _normalize_email(entry.email)
         if _email_domain(email) is None:
             raise HTTPException(status_code=422, detail=f"Not a valid email address: {entry.email}")
-        normalized[email] = email  # dedupe case-insensitively
+        normalized[email] = entry.department  # dedupe case-insensitively; last one wins
 
-    recipient_emails = list(normalized.values())
+    recipient_emails = list(normalized.keys())
     domains = {_email_domain(e) for e in recipient_emails}
 
     verified_domains = {
@@ -244,6 +264,7 @@ async def create_campaign(
                 account_id=current_user.account_id,
                 campaign_id=campaign.id,
                 email=email,
+                department=normalized[email],
                 status="pending",
             )
         )
@@ -352,6 +373,9 @@ async def send_campaign(
         raw_token = generate_opaque_token()
         recipient.token_hash = hash_token(raw_token)
         tracking_url = f"{tracking_base}/api/sim/track/{raw_token}"
+        # Same token as tracking_url — both links live in the same email already, so this
+        # adds no new secret. See app.simulation.templates's module docstring.
+        report_url = f"{tracking_url}?event=report"
 
         try:
             result = send_simulation_email(
@@ -359,8 +383,12 @@ async def send_campaign(
                 from_address=from_address,
                 from_display_name=template.sender_display_name,
                 subject=template.subject,
-                html_body=template.html_body_template.format(tracking_url=tracking_url),
-                text_body=template.text_body_template.format(tracking_url=tracking_url),
+                html_body=template.html_body_template.format(
+                    tracking_url=tracking_url, report_url=report_url
+                ),
+                text_body=template.text_body_template.format(
+                    tracking_url=tracking_url, report_url=report_url
+                ),
                 campaign_id=campaign.id,
             )
         except Exception as exc:  # noqa: BLE001 — recorded per-recipient, never aborts the batch
@@ -396,6 +424,92 @@ async def send_campaign(
     return _to_campaign_detail(campaign, dry_run_tracking_urls=dry_run_tracking_urls)
 
 
+def _recipient_history(
+    db: Session, account_id: uuid.UUID, email: str
+) -> RecipientSimulationHistory:
+    """Rebuilds one recipient's full cross-campaign outcome history for risk scoring —
+    every SimulationRecipient row this email has ever had within this account, joined to
+    its campaign for `sent_at`/`template_id`."""
+    rows = (
+        db.query(SimulationRecipient, SimulationCampaign)
+        .join(SimulationCampaign, SimulationRecipient.campaign_id == SimulationCampaign.id)
+        .filter(SimulationRecipient.account_id == account_id, SimulationRecipient.email == email)
+        .all()
+    )
+    outcomes = [
+        RecipientCampaignOutcome(
+            campaign_id=str(campaign.id),
+            template_id=campaign.template_id,
+            template_name=TEMPLATES[campaign.template_id].name,
+            department=recipient.department,
+            sent_at=_naive(campaign.sent_at),
+            clicked_at=_naive(recipient.clicked_at),
+            submitted_at=_naive(recipient.submitted_at),
+            reported_at=_naive(recipient.reported_at),
+        )
+        for recipient, campaign in rows
+    ]
+    return RecipientSimulationHistory(email=email, outcomes=outcomes)
+
+
+def _upsert_training_recommendation(db: Session, account_id: uuid.UUID, email: str) -> None:
+    """Called after a click/submit event only — a report-only history never triggers a
+    recommendation (reporting is the opposite of falling for a lure). Mirrors
+    app.remediation.targets's upsert-by-unique-key pattern, just for simulation data."""
+    history = _recipient_history(db, account_id, email)
+    decision = decide_training_recommendation(
+        history, fast_report_window_minutes=settings.human_risk_fast_report_window_minutes
+    )
+    if not decision.should_upsert:
+        return
+
+    existing = (
+        db.query(SimulationTrainingRecommendation)
+        .filter(
+            SimulationTrainingRecommendation.account_id == account_id,
+            SimulationTrainingRecommendation.recipient == email,
+        )
+        .first()
+    )
+    if existing:
+        existing.template_id = decision.template_id
+        existing.template_name = decision.template_name
+        existing.risk_score = decision.risk_score
+        existing.recommendation = decision.recommendation
+    else:
+        db.add(
+            SimulationTrainingRecommendation(
+                account_id=account_id,
+                recipient=email,
+                template_id=decision.template_id,
+                template_name=decision.template_name,
+                risk_score=decision.risk_score,
+                recommendation=decision.recommendation,
+            )
+        )
+
+
+def _refresh_recommendation_score_after_report(db: Session, account_id: uuid.UUID, email: str) -> None:
+    """A report alone never CREATES a recommendation (see _upsert_training_recommendation),
+    but if one already exists from a past failure, its stored risk_score snapshot is
+    refreshed here so it doesn't go stale relative to the live score a report just lowered —
+    the referenced template/recommendation text is untouched."""
+    existing = (
+        db.query(SimulationTrainingRecommendation)
+        .filter(
+            SimulationTrainingRecommendation.account_id == account_id,
+            SimulationTrainingRecommendation.recipient == email,
+        )
+        .first()
+    )
+    if existing is None:
+        return
+    history = _recipient_history(db, account_id, email)
+    existing.risk_score = decide_training_recommendation(
+        history, fast_report_window_minutes=settings.human_risk_fast_report_window_minutes
+    ).risk_score
+
+
 @router.get("/track/{token}", response_class=HTMLResponse)
 @limiter.limit(_TRACK_RATE_LIMIT)
 async def track(
@@ -408,15 +522,38 @@ async def track(
     logged-in Cordon user; the opaque token itself is the only thing identifying them.
     Deliberately takes no request body (`event` is the only thing besides the path token) —
     see the module docstring for why that's what makes credential capture structurally
-    impossible here, not just an application-level choice not to read one."""
+    impossible here, not just an application-level choice not to read one.
+
+    `event=report` (M9 Stage 2) is a distinct, independent signal from click/submit — see
+    app.db.models.SimulationRecipient's docstring — and never touches `status`."""
     recipient = (
         db.query(SimulationRecipient).filter(SimulationRecipient.token_hash == hash_token(token)).first()
     )
     if recipient is None:
         return HTMLResponse(render_invalid_link_page(), status_code=404)
 
-    kind = "submit" if event == "submit" else "click"
     now = datetime.now(timezone.utc)
+    kind = event if event in {"submit", "report"} else "click"
+
+    if kind == "report":
+        recipient.reported_at = recipient.reported_at or now
+        recipient.report_count += 1
+        db.add(
+            SimulationEvent(
+                account_id=recipient.account_id,
+                campaign_id=recipient.campaign_id,
+                recipient_id=recipient.id,
+                event_type="report",
+                occurred_at=now,
+                ip_address=_client_ip(request),
+            )
+        )
+        _refresh_recommendation_score_after_report(db, recipient.account_id, recipient.email)
+        db.commit()
+
+        template = TEMPLATES[recipient.campaign.template_id]
+        return HTMLResponse(render_report_confirmation_page(template))
+
     recipient.status = advance_status(recipient.status, kind)
     if kind == "click":
         recipient.clicked_at = recipient.clicked_at or now
@@ -435,6 +572,7 @@ async def track(
             ip_address=_client_ip(request),
         )
     )
+    _upsert_training_recommendation(db, recipient.account_id, recipient.email)
     db.commit()
 
     template = TEMPLATES[recipient.campaign.template_id]

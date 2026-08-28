@@ -87,6 +87,16 @@ def build_json_report(ctx: ReportContext) -> bytes:
                         }
                         for sample in control.sample_cases
                     ],
+                    "human_risk": (
+                        {
+                            "campaigns_run": control.human_risk.campaigns_run,
+                            "distinct_employees_tested": control.human_risk.distinct_employees_tested,
+                            "distinct_employees_trained": control.human_risk.distinct_employees_trained,
+                            "sample_campaign_ids": control.human_risk.sample_campaign_ids,
+                        }
+                        if control.human_risk
+                        else None
+                    ),
                 }
                 for control in ctx.controls
             ],
@@ -161,6 +171,25 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
         )
     )
     elements.append(table)
+
+    human_risk_controls = [c for c in ctx.controls if c.human_risk is not None]
+    if human_risk_controls:
+        elements.append(Spacer(1, 0.25 * inch))
+        elements.append(Paragraph("Human-Risk / Security-Awareness Evidence", heading_style))
+        elements.append(Spacer(1, 0.05 * inch))
+        for control in human_risk_controls:
+            hr = control.human_risk
+            samples = ", ".join(cid[:8] for cid in hr.sample_campaign_ids) or "—"
+            elements.append(
+                Paragraph(
+                    f"<b>{xml_escape(control.control_id)}</b> — {hr.campaigns_run} phishing-"
+                    f"simulation campaign(s) run, {hr.distinct_employees_tested} employee(s) "
+                    f"tested, {hr.distinct_employees_trained} employee(s) flagged for follow-up "
+                    f"training this period. Sample campaigns: {xml_escape(samples)}.",
+                    styles["Normal"],
+                )
+            )
+            elements.append(Spacer(1, 0.08 * inch))
 
     doc.build(elements)
     return buffer.getvalue()

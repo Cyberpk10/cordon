@@ -99,6 +99,23 @@ def render_teaching_page(
     return _PAGE_SHELL.format(title="Security awareness simulation", body=body)
 
 
+def render_report_confirmation_page(template: SimulationTemplate) -> str:
+    """M9 Stage 2 — shown when a recipient clicks the genuine "report this email" link
+    instead of the simulated lure. A distinct, positive-reinforcement page: reporting is a
+    good outcome, not a failure, and should never look or read like the teaching page."""
+    name = escape(template.name)
+    body = (
+        '<span class="badge">Simulation</span>'
+        "<h1>Great catch!</h1>"
+        f'<p>You correctly identified "{name}" as a simulated phishing email and reported '
+        "it — exactly the right move for a real suspicious email. Your organization logs "
+        "this as a positive security-awareness outcome, not a failure.</p>"
+        "<p>Nothing about this report was shared with anyone outside your security team, "
+        "and no credentials were ever requested or collected.</p>"
+    )
+    return _PAGE_SHELL.format(title="Reported — thank you", body=body)
+
+
 def render_invalid_link_page() -> str:
     body = (
         "<h1>This link is no longer valid</h1>"

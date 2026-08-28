@@ -1,11 +1,14 @@
-"""The phishing-simulation template catalog (M9 Stage 1) — a small, fixed, reviewable set of
-generic (non-trademarked, no real-brand impersonation) pretexts, mirroring
-app.autonomy.actions.ACTIONS: a frozen-dataclass dict, not a DB table, since Stage 1 templates
-are not user-authorable.
+"""The phishing-simulation template catalog (M9 Stage 1, extended Stage 2) — a small, fixed,
+reviewable set of generic (non-trademarked, no real-brand impersonation) pretexts, mirroring
+app.autonomy.actions.ACTIONS: a frozen-dataclass dict, not a DB table, since templates are
+not user-authorable.
 
-Every `html_body_template`/`text_body_template` interpolates exactly one placeholder,
-`{tracking_url}` — nothing else in a template body is ever dynamic, so there is no
-user-controlled-string interpolation risk on the send side.
+Every `html_body_template`/`text_body_template` interpolates exactly two placeholders,
+`{tracking_url}` (the simulated lure) and `{report_url}` (M9 Stage 2 — a genuine "report this
+email" link, same token as tracking_url with `?event=report` appended, so a recipient who
+correctly identifies the email as suspicious has a real action to take, and that action feeds
+app.human_risk.scoring as a positive signal). Nothing else in a template body is ever
+dynamic, so there is no user-controlled-string interpolation risk on the send side.
 """
 
 from __future__ import annotations
@@ -26,6 +29,7 @@ class SimulationTemplate:
     landing_page_headline: str
     landing_page_teaching_points: list[str]
     has_fake_login_form: bool
+    report_link_text: str
 
 
 TEMPLATES: dict[str, SimulationTemplate] = {
@@ -43,6 +47,8 @@ TEMPLATES: dict[str, SimulationTemplate] = {
             'now: <a href="{tracking_url}">Keep my account active</a>.</p>'
             "<p>If you do not act before the deadline, your account will be locked "
             "and you will need to contact the helpdesk to restore access.</p>"
+            '<p style="font-size:0.85em;color:#666;">Think this is suspicious? '
+            '<a href="{report_url}">Report it</a>.</p>'
             "<p>IT Support</p>"
         ),
         text_body_template=(
@@ -50,7 +56,7 @@ TEMPLATES: dict[str, SimulationTemplate] = {
             "To avoid losing access to your account, please confirm your password now: "
             "{tracking_url}\n\nIf you do not act before the deadline, your account will "
             "be locked and you will need to contact the helpdesk to restore access.\n\n"
-            "IT Support"
+            "Think this is suspicious? Report it: {report_url}\n\nIT Support"
         ),
         landing_page_headline="This was a phishing simulation.",
         landing_page_teaching_points=[
@@ -61,6 +67,7 @@ TEMPLATES: dict[str, SimulationTemplate] = {
             "emailed link.",
         ],
         has_fake_login_form=True,
+        report_link_text="Report this email",
     ),
     "hr_benefits_deadline": SimulationTemplate(
         id="hr_benefits_deadline",
@@ -74,12 +81,15 @@ TEMPLATES: dict[str, SimulationTemplate] = {
             "<p>The open-enrollment deadline has been moved up. Please log in to review "
             'and confirm your benefits elections before it closes: '
             '<a href="{tracking_url}">Review my benefits</a>.</p>'
+            '<p style="font-size:0.85em;color:#666;">Think this is suspicious? '
+            '<a href="{report_url}">Report it</a>.</p>'
             "<p>Thank you,<br>HR Team</p>"
         ),
         text_body_template=(
             "Hi there,\n\nThe open-enrollment deadline has been moved up. Please log in "
             "to review and confirm your benefits elections before it closes: "
-            "{tracking_url}\n\nThank you,\nHR Team"
+            "{tracking_url}\n\nThink this is suspicious? Report it: {report_url}\n\n"
+            "Thank you,\nHR Team"
         ),
         landing_page_headline="This was a phishing simulation.",
         landing_page_teaching_points=[
@@ -90,6 +100,7 @@ TEMPLATES: dict[str, SimulationTemplate] = {
             "before entering credentials anywhere.",
         ],
         has_fake_login_form=True,
+        report_link_text="Report this email",
     ),
     "shared_document_notice": SimulationTemplate(
         id="shared_document_notice",
@@ -102,10 +113,13 @@ TEMPLATES: dict[str, SimulationTemplate] = {
             "<p>A colleague has shared a document with you.</p>"
             '<p><a href="{tracking_url}">View document</a></p>'
             "<p>This link will expire in 48 hours.</p>"
+            '<p style="font-size:0.85em;color:#666;">Think this is suspicious? '
+            '<a href="{report_url}">Report it</a>.</p>'
         ),
         text_body_template=(
             "A colleague has shared a document with you.\n\nView document: {tracking_url}\n\n"
-            "This link will expire in 48 hours."
+            "This link will expire in 48 hours.\n\n"
+            "Think this is suspicious? Report it: {report_url}"
         ),
         landing_page_headline="This was a phishing simulation.",
         landing_page_teaching_points=[
@@ -118,5 +132,6 @@ TEMPLATES: dict[str, SimulationTemplate] = {
             "password from an email link.",
         ],
         has_fake_login_form=True,
+        report_link_text="Report this email",
     ),
 }

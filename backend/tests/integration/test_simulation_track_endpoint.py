@@ -151,6 +151,9 @@ def test_simulation_recipients_table_has_no_credential_shaped_column(db_session)
         "click_count",
         "submitted_at",
         "submit_count",
+        "department",
+        "reported_at",
+        "report_count",
         "created_at",
     }
     assert columns == known_safe

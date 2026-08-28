@@ -330,5 +330,11 @@ class Settings:
         )
     )
 
+    # Human-risk scoring (M9 Stage 2) — how soon after a simulation email was sent a "report
+    # this email" click still counts as a fast, high-value catch. See app.human_risk.scoring.
+    human_risk_fast_report_window_minutes: int = field(
+        default_factory=lambda: int(os.environ.get("HUMAN_RISK_FAST_REPORT_WINDOW_MINUTES", "60"))
+    )
+
 
 settings = Settings()

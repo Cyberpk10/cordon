@@ -22,6 +22,7 @@ from app.api.routes.cases import router as cases_router
 from app.api.routes.copilot import router as copilot_router
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.events import router as events_router
+from app.api.routes.human_risk import router as human_risk_router
 from app.api.routes.inbound import router as inbound_router
 from app.api.routes.incidents import router as incidents_router
 from app.api.routes.labels import router as labels_router
@@ -106,6 +107,7 @@ app.include_router(monitoring_router)
 app.include_router(messages_router)
 app.include_router(inbound_router)
 app.include_router(simulation_router)
+app.include_router(human_risk_router)
 
 
 @app.get("/health")
