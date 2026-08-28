@@ -293,5 +293,42 @@ class Settings:
     # app.ml.classifier) — only needs overriding for a non-standard deployment layout.
     ml_artifacts_dir: str = field(default_factory=lambda: os.environ.get("ML_ARTIFACTS_DIR", ""))
 
+    # Authorized phishing-simulation campaigns (M9 Stage 1). Off by default — same idiom as
+    # every other optional feature. Even when on, app.simulation.mailgun_sender degrades to a
+    # dry run (no real email sent) unless mailgun_api_key AND simulation_sending_domain are
+    # both set, so a campaign can never accidentally email real employees from an
+    # unconfigured deployment.
+    enable_phishing_simulation: bool = field(
+        default_factory=lambda: _env_bool("ENABLE_PHISHING_SIMULATION", False)
+    )
+    mailgun_api_key: str = field(default_factory=lambda: os.environ.get("MAILGUN_API_KEY", ""))
+    mailgun_api_base_url: str = field(
+        default_factory=lambda: os.environ.get("MAILGUN_API_BASE_URL", "https://api.mailgun.net/v3")
+    )
+    mailgun_send_timeout_seconds: float = field(
+        default_factory=lambda: float(os.environ.get("MAILGUN_SEND_TIMEOUT_SECONDS", "15"))
+    )
+    # A domain Cordon itself owns and has registered in Mailgun — simulation email is always
+    # sent from here, NEVER from the customer's own domain (that would be spoofing the
+    # customer's real senders, not simulating a third-party attacker). Empty means every send
+    # degrades to dry-run — see app.simulation.mailgun_sender.
+    simulation_sending_domain: str = field(
+        default_factory=lambda: os.environ.get("SIMULATION_SENDING_DOMAIN", "")
+    )
+    # Public base URL recipients' browsers hit for GET /api/sim/track/{token}. Required (checked
+    # at send time, not import time) for any non-dry-run send — a misconfigured/blank value
+    # would otherwise email a real employee a broken or wrong link.
+    simulation_tracking_base_url: str = field(
+        default_factory=lambda: os.environ.get("SIMULATION_TRACKING_BASE_URL", "")
+    )
+    # DNS-over-HTTPS resolver used to check a domain-verification TXT record (see
+    # app.simulation.dns_check) — httpx-based like every other network call in this codebase,
+    # so it's respx-mockable in tests rather than needing a raw-socket DNS library.
+    simulation_dns_over_https_url: str = field(
+        default_factory=lambda: os.environ.get(
+            "SIMULATION_DNS_OVER_HTTPS_URL", "https://cloudflare-dns.com/dns-query"
+        )
+    )
+
 
 settings = Settings()

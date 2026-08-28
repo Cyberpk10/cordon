@@ -533,3 +533,151 @@ class GraphIntegration(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class SimulationDomain(Base):
+    """A domain this account has proven control of via a DNS TXT record, and therefore may
+    target with phishing-simulation campaigns (M9 Stage 1). Unlike Invite/RefreshToken tokens,
+    `verification_token` is deliberately NOT hashed: it isn't a bearer credential that grants
+    access to anything if leaked — it's published in public DNS on purpose, and the real
+    security boundary is DNS control itself (only whoever can edit this domain's DNS can ever
+    make the check pass), not secrecy of the token string."""
+
+    __tablename__ = "simulation_domains"
+    __table_args__ = (
+        UniqueConstraint("account_id", "domain", name="uq_simulation_domains_account_domain"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    domain: Mapped[str] = mapped_column(String, nullable=False)
+    verification_token: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class SimulationCampaign(Base):
+    """An admin-authored, admin-authorized phishing-simulation send (M9 Stage 1). Recipients
+    are immutable once created — Stage 1 has no add/remove-recipient endpoint — which keeps
+    the domain-verification gate a single point-in-time check at creation with no TOCTOU gap
+    between "verified" and "sent". `authorized_by_user_id`/`authorized_at` are the durable,
+    queryable half of the authorization gate (app.api.routes.simulation checks these before
+    ever calling the sender); the AuditLogEntry emitted alongside is the "who did what, when"
+    trail, not the enforcement mechanism itself."""
+
+    __tablename__ = "simulation_campaigns"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    # Key into app.simulation.templates.TEMPLATES — not a FK, since the template catalog is a
+    # fixed Python dict in Stage 1, not a DB table.
+    template_id: Mapped[str] = mapped_column(String, nullable=False)
+    # "draft" | "authorized" | "sending" | "sent" | "send_failed"
+    status: Mapped[str] = mapped_column(String, nullable=False, default="draft")
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    authorized_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    authorized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # True iff Mailgun credentials / the simulation-sending domain were unconfigured at send
+    # time — see the connector_factory-style graceful fallback in app.simulation.mailgun_sender.
+    dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Computed and stored only at send time (depends on server config, which could change
+    # between campaign creation and send) — null while status is "draft"/"authorized".
+    from_address: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    recipients: Mapped[list["SimulationRecipient"]] = relationship(
+        back_populates="campaign", cascade="all, delete-orphan"
+    )
+
+
+class SimulationRecipient(Base):
+    """One targeted address within a campaign (M9 Stage 1). `account_id` is duplicated here
+    alongside `campaign_id` — same pattern as Label duplicating account_id alongside
+    case_id/incident_id — so every query and cross-tenant check can filter directly on
+    account_id without an extra join through campaigns.
+
+    `token_hash` is nullable and only populated at send time: the raw per-recipient tracking
+    token is generated the moment it's about to be embedded in the outbound email (or the
+    dry-run preview URL) and is never persisted or returned via any API response — only its
+    SHA-256 hash is stored (same principle as Invite.token_hash), looked up via
+    app.auth.security.hash_token() when GET /api/sim/track/{token} is hit.
+
+    CRITICAL: no column on this table is ever written from the landing page's "submit" event.
+    `submitted_at`/`submit_count` record only the fact and time of a submission event, never
+    any value a trainee typed into the fake form. There is no Text/String/JSON column here (or
+    anywhere in this schema) shaped to hold a credential — this is a structural property of
+    the table, not an application-level choice to leave a credential column unpopulated."""
+
+    __tablename__ = "simulation_recipients"
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "email", name="uq_simulation_recipients_campaign_email"),
+        Index("ix_simulation_recipients_account_id", "account_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("simulation_campaigns.id", ondelete="CASCADE"), nullable=False
+    )
+    email: Mapped[str] = mapped_column(String, nullable=False)
+    token_hash: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
+    # "pending" | "sent" | "send_failed" | "clicked" | "submitted" — monotonic ratchet, see
+    # app.simulation.policy.advance_status.
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    send_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    mailgun_message_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    clicked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    click_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    submit_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    campaign: Mapped[SimulationCampaign] = relationship(back_populates="recipients")
+
+
+class SimulationEvent(Base):
+    """Append-only raw click/submit log (M9 Stage 1) — same "summary column on the parent +
+    append-only event table" split already used by Label/RemediationAction elsewhere in this
+    schema. SimulationRecipient's status/clicked_at/submitted_at is the fast, queryable ratchet
+    used by the send-gate and list views; this table is the full forensic history (a recipient
+    can click more than once). Never carries anything a trainee typed — only
+    event_type/occurred_at/ip_address."""
+
+    __tablename__ = "simulation_events"
+    __table_args__ = (Index("ix_simulation_events_recipient_id", "recipient_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("simulation_campaigns.id", ondelete="CASCADE"), nullable=False
+    )
+    recipient_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("simulation_recipients.id", ondelete="CASCADE"), nullable=False
+    )
+    event_type: Mapped[str] = mapped_column(String, nullable=False)  # "click" | "submit"
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    ip_address: Mapped[str | None] = mapped_column(String, nullable=True)

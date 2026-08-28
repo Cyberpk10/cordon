@@ -721,3 +721,102 @@ class UserListResponse(BaseModel):
 
 class UserRoleUpdateRequest(BaseModel):
     role: UserRole
+
+
+# ---- Phishing simulation (M9 Stage 1) --------------------------------------------------
+
+
+class SimulationDomainStatus(str, Enum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+
+
+class DomainVerifyRequest(BaseModel):
+    domain: str
+
+
+class DomainVerifyResponse(BaseModel):
+    domain: str
+    status: SimulationDomainStatus
+    verification_record_name: str
+    verification_record_value: str
+    verified_at: datetime | None = None
+    checked_at: datetime
+
+
+class SimulationTemplateResponse(BaseModel):
+    id: str
+    name: str
+    category: str
+    subject: str
+    sender_display_name: str
+    landing_page_headline: str
+    landing_page_teaching_points: list[str]
+    has_fake_login_form: bool
+
+
+class TemplateListResponse(BaseModel):
+    items: list[SimulationTemplateResponse]
+
+
+class CampaignRecipientInput(BaseModel):
+    email: str
+
+
+class CampaignCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    template_id: str
+    recipients: list[CampaignRecipientInput] = Field(min_length=1)
+
+
+class SimulationCampaignStatus(str, Enum):
+    DRAFT = "draft"
+    AUTHORIZED = "authorized"
+    SENDING = "sending"
+    SENT = "sent"
+    SEND_FAILED = "send_failed"
+
+
+class SimulationRecipientStatus(str, Enum):
+    PENDING = "pending"
+    SENT = "sent"
+    SEND_FAILED = "send_failed"
+    CLICKED = "clicked"
+    SUBMITTED = "submitted"
+
+
+class CampaignRecipientSummary(BaseModel):
+    id: UUID
+    email: str
+    status: SimulationRecipientStatus
+    sent_at: datetime | None
+    clicked_at: datetime | None
+    click_count: int
+    submitted_at: datetime | None
+    submit_count: int
+    # Only ever populated when the campaign was sent in dry-run mode (Mailgun unconfigured) —
+    # lets a developer/demo user click through the real landing-page flow with no live
+    # mailbox. Never populated for a real send, so a live campaign's per-employee tracking
+    # links are never exposed back through this read API.
+    dry_run_tracking_url: str | None = None
+
+
+class CampaignDetailResponse(BaseModel):
+    id: UUID
+    name: str
+    template_id: str
+    status: SimulationCampaignStatus
+    dry_run: bool
+    from_address: str | None
+    created_at: datetime
+    created_by_user_id: UUID | None
+    authorized_by_user_id: UUID | None
+    authorized_at: datetime | None
+    sent_at: datetime | None
+    recipients: list[CampaignRecipientSummary]
+
+
+class CampaignSendRequest(BaseModel):
+    # Required, no default — omitting it entirely is a 422 (structurally can't be forgotten
+    # by accident); present but false is an explicit 400 (see app.api.routes.simulation).
+    authorization_accepted: bool

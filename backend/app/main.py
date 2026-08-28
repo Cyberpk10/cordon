@@ -31,6 +31,7 @@ from app.api.routes.remediation import cases_router as remediation_cases_router
 from app.api.routes.remediation import incidents_router as remediation_incidents_router
 from app.api.routes.remediation import targets_router as targets_router
 from app.api.routes.risk import router as risk_router
+from app.api.routes.simulation import router as simulation_router
 from app.auth.rate_limit import limiter
 from app.core.body_limit import MaxBodySizeMiddleware
 from app.core.config import settings
@@ -104,6 +105,7 @@ app.include_router(autonomy_router)
 app.include_router(monitoring_router)
 app.include_router(messages_router)
 app.include_router(inbound_router)
+app.include_router(simulation_router)
 
 
 @app.get("/health")
