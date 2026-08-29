@@ -5,10 +5,10 @@ Render backend, its own Postgres database, its own Vercel frontend, its own secr
 is shared with production, and pushing to `staging` never affects `main`'s deployments or data.
 
 > **Status**: live. `cordon-staging-backend` + `cordon-staging-db` are provisioned and migrated;
-> `cordon-staging` is deployed and seeded with a demo account. One thing is still outstanding —
-> see "Auto-deploy on push" below — until then, pushes to `staging` redeploy the backend
-> automatically but the frontend needs one manual `vercel --prod` per change (same as production
-> today).
+> `cordon-staging` is deployed and seeded with a demo account. **Auto-deploy-on-push is not yet
+> live for either the backend or the frontend** — both need the same one-time manual step (a
+> GitHub connection only the account owner can grant) described in "Auto-deploy on push" below.
+> Until then, deploy staging manually after a push (commands in that section).
 
 ## Resources
 
@@ -59,12 +59,12 @@ this repo, never in chat history beyond the moment they're pasted in.
 
 ```
 main       ← production (backend auto-deploys; frontend deployed manually)
-staging    ← staging (backend auto-deploys; frontend manual until Git is connected — see below)
+staging    ← staging (both manual for now — see "Auto-deploy on push" below)
 ```
 
 - **Day to day**: branch off `staging` (or commit straight to it) for anything you want to try
-  against a real deployment. Pushing to `staging` redeploys `cordon-staging-backend`
-  automatically (Render watches the branch directly).
+  against a real deployment, then deploy manually (see "Auto-deploy on push" below) until the
+  one-time GitHub connection step is done.
 - **Promoting to production**, once you've verified something on staging:
   1. Open a PR from `staging` into `main` on GitHub (or `git checkout main && git merge staging`
      if you're comfortable skipping review) and merge it.
@@ -77,26 +77,47 @@ staging    ← staging (backend auto-deploys; frontend manual until Git is conne
 - Keep `staging` roughly in sync with `main` (merge `main` back into `staging` periodically, or
   just re-branch it after a promotion) so it doesn't drift into testing something already stale.
 
-### Auto-deploy on push, for the frontend (one-time step still needed)
+### Auto-deploy on push (one-time step still needed — for both services)
 
-`cordon-staging` exists on Vercel and is deployed, but isn't yet connected to GitHub — connecting
-a *new* Vercel project to GitHub requires a one-time **Login Connection** at the Vercel account
-level (Vercel → Account Settings → Login Connections → GitHub), which only the account owner can
-grant interactively in a browser; it can't be done via API/CLI with a stored token. Once that's
-authorized once:
+Neither staging service actually redeploys on push yet, even though each looks fully configured
+for it. This was verified directly, not assumed: `cordon-staging-backend`'s `autoDeploy`/
+`branch`/`repo` fields are byte-for-byte the same shape as production's working config, but two
+separate real pushes to `staging` (confirmed several minutes apart) produced zero deploys on it,
+while the same pushes to `main` redeploy `aegis-backend` within seconds every time. The
+difference isn't anything in the service config — it's that `aegis-backend` was originally
+connected through Render's dashboard "New Blueprint" flow, which completes a GitHub App
+authorization handshake for that specific repo connection; creating `cordon-staging-backend`
+via the API/CLI with a bare repo URL builds and deploys fine on demand, but doesn't get that same
+push-webhook wiring. The Vercel side has the analogous gap for a more visible reason: connecting
+a *new* Vercel project to GitHub at all requires a one-time account-level **Login Connection**
+(Vercel → Account Settings → Login Connections → GitHub) that only the account owner can grant
+interactively in a browser — it isn't exposed through the CLI/API with a stored token (confirmed
+by the CLI's own error: `Error: Failed to link Cyberpk10/cordon. You need to add a Login
+Connection to your GitHub account first.`).
+
+**To fix the frontend**: grant the Login Connection above once, then:
 
 ```sh
-cd <a checkout of this repo, any branch>
+cd <a checkout of this repo, any branch>/frontend
 vercel link --project cordon-staging   # if not already linked in this checkout
 vercel git connect https://github.com/Cyberpk10/cordon.git
 ```
 
 Then in the Vercel dashboard, Project Settings → Git → set **Production Branch** to `staging`.
-After that, pushing to `staging` redeploys the frontend automatically, same as the backend
-already does. Until then, deploy staging's frontend manually after a push:
+
+**To fix the backend**: in the Render dashboard, open `cordon-staging-backend` → Settings →
+"Build & Deploy" (or wherever the repo connection lives in your dashboard version) and
+disconnect/reconnect the GitHub repo through the picker (rather than a pasted URL) — that's the
+flow that completes the GitHub App handshake. I couldn't complete this one from the CLI/API at
+all; it needs you in the dashboard.
+
+**Until either is fixed**, deploy staging manually after a push:
 
 ```sh
-# from a `staging` checkout, in frontend/ (or any directory rsynced from it)
+# Backend — from a `staging` checkout:
+render deploys create <cordon-staging-backend's service ID> --confirm
+
+# Frontend — from a `staging` checkout, in frontend/ (or any directory rsynced from it):
 vercel link --project cordon-staging   # first time only
 vercel --prod
 ```
