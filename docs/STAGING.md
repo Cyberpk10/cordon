@@ -4,35 +4,42 @@ A fully separate deployment of Cordon for testing changes before they reach cust
 Render backend, its own Postgres database, its own Vercel frontend, its own secrets. Nothing here
 is shared with production, and pushing to `staging` never affects `main`'s deployments or data.
 
-> **Status**: the `staging` git branch exists and is pushed. The Render/Vercel resources below
-> are provisioned as a one-time setup step — see "Provisioning" if they don't exist yet in your
-> account. Once they do, everything in this doc describes steady-state usage.
+> **Status**: live. `cordon-staging-backend` + `cordon-staging-db` are provisioned and migrated;
+> `cordon-staging` is deployed and seeded with a demo account. One thing is still outstanding —
+> see "Auto-deploy on push" below — until then, pushes to `staging` redeploy the backend
+> automatically but the frontend needs one manual `vercel --prod` per change (same as production
+> today).
 
 ## Resources
 
 | | Production | Staging |
 |---|---|---|
 | Backend (Render) | `aegis-backend` | `cordon-staging-backend` |
-| Database (Render Postgres) | `aegis-db` | `cordon-staging-db` (plan `basic_256mb`, persistent) |
+| Database (Render Postgres) | `aegis-db` (`basic_256mb`) | `cordon-staging-db` (`basic_256mb`, persistent) |
 | Frontend (Vercel) | `aegis-frontend` | `cordon-staging` |
 | Git branch | `main` | `staging` |
 | Backend URL | `https://aegis-backend-zbcr.onrender.com` | `https://cordon-staging-backend.onrender.com` |
-| Frontend URL | `https://aegis-frontend-rouge.vercel.app` | *(assigned when the Vercel project is created — see Provisioning)* |
+| Frontend URL | `https://aegis-frontend-rouge.vercel.app` | `https://cordon-staging.vercel.app` |
 
 Staging's `ENVIRONMENT` env var is `staging` (vs. production's `production`) — purely an
 informational label today (nothing in the app branches on it), kept accurate for whenever that
-changes.
+changes. Staging's Render web service runs on the `free` plan (sleeps after 15 min idle — expect
+a slow first request after a quiet period); its database is `basic_256mb` like production, so
+seeded test data doesn't get wiped by the free Postgres plan's 30-day auto-delete.
 
 ## Secrets
 
 Every secret staging needs is **separate from production's** — a leaked or misused staging
 credential should never be able to touch real customer data or a real third-party integration:
 
-- `JWT_SECRET_KEY` — its own randomly generated value. Staging sessions and production sessions
-  are never interchangeable.
+- `JWT_SECRET_KEY` — its own randomly generated value, set once at provisioning time. Staging
+  sessions and production sessions are never interchangeable.
 - `DATABASE_URL` — points at `cordon-staging-db`, never at `aegis-db`.
-- `ANTHROPIC_API_KEY` — staging has its own (`ENABLE_LLM_REASONING=true`,
-  `ENABLE_COPILOT=true`), so the AI analyst narrative and copilot can actually be tested there.
+- `ANTHROPIC_API_KEY` / `ENABLE_LLM_REASONING` / `ENABLE_COPILOT` — **not yet enabled**. Staging
+  was provisioned with these off (matching a fresh deployment's defaults) pending an
+  `ANTHROPIC_API_KEY` value for this environment specifically. To turn them on: set
+  `ANTHROPIC_API_KEY` on `cordon-staging-backend` (Render dashboard → Environment, or via the
+  API) and flip `ENABLE_LLM_REASONING`/`ENABLE_COPILOT` to `true`, then redeploy.
 - **Deliberately left unset in staging**: `MAILGUN_WEBHOOK_SIGNING_KEY`, `INBOUND_EMAIL_DOMAIN`,
   `MICROSOFT_GRAPH_CLIENT_ID`/`MICROSOFT_GRAPH_CLIENT_SECRET`. These wire up real third-party
   systems (a real inbound-mail domain, a real Azure app registration) — sharing them between
@@ -41,23 +48,23 @@ credential should never be able to touch real customer data or a real third-part
   feature gated by these degrades to mock/off automatically when unset (see `CLAUDE.md`'s
   "feature flags default off and fail soft" convention) — staging simply runs with those features
   in their default state, same as any fresh, unconfigured deployment.
-- `ENABLE_PHISHING_SIMULATION=false` by default in staging for the same reason — see "Phishing
-  simulation" below if you want to turn it on.
+- `ENABLE_PHISHING_SIMULATION=false` for the same reason — flip it on in the dashboard if you
+  want to exercise that feature in staging (still gated by real DNS domain verification either
+  way — see "Seeding" below).
 
 Actual secret *values* live only in the Render/Vercel dashboards (Environment tab) — never in
-this repo, never in chat history beyond the moment you paste them in.
+this repo, never in chat history beyond the moment they're pasted in.
 
 ## Git workflow
 
 ```
-main       ← production (auto-deploys backend; frontend deployed manually, see below)
-staging    ← staging (auto-deploys both backend and frontend)
+main       ← production (backend auto-deploys; frontend deployed manually)
+staging    ← staging (backend auto-deploys; frontend manual until Git is connected — see below)
 ```
 
 - **Day to day**: branch off `staging` (or commit straight to it) for anything you want to try
-  against a real deployment. Pushing to `staging` redeploys `cordon-staging-backend` (Render
-  watches the branch directly) and `cordon-staging` (Vercel's Git integration does the same) —
-  no manual deploy step for staging.
+  against a real deployment. Pushing to `staging` redeploys `cordon-staging-backend`
+  automatically (Render watches the branch directly).
 - **Promoting to production**, once you've verified something on staging:
   1. Open a PR from `staging` into `main` on GitHub (or `git checkout main && git merge staging`
      if you're comfortable skipping review) and merge it.
@@ -65,24 +72,49 @@ staging    ← staging (auto-deploys both backend and frontend)
      `main`, unchanged by any of this).
   3. The frontend does **not** auto-deploy on `main` today (`aegis-frontend` has no Git
      integration — every production frontend deploy so far has been a manual
-     `cd frontend && npx vercel --prod`, and this setup deliberately didn't change that). Run
-     that command from an up-to-date `main` checkout to finish the promotion.
+     `cd frontend && npx vercel --prod`). Run that command from an up-to-date `main` checkout to
+     finish the promotion.
 - Keep `staging` roughly in sync with `main` (merge `main` back into `staging` periodically, or
   just re-branch it after a promotion) so it doesn't drift into testing something already stale.
 
+### Auto-deploy on push, for the frontend (one-time step still needed)
+
+`cordon-staging` exists on Vercel and is deployed, but isn't yet connected to GitHub — connecting
+a *new* Vercel project to GitHub requires a one-time **Login Connection** at the Vercel account
+level (Vercel → Account Settings → Login Connections → GitHub), which only the account owner can
+grant interactively in a browser; it can't be done via API/CLI with a stored token. Once that's
+authorized once:
+
+```sh
+cd <a checkout of this repo, any branch>
+vercel link --project cordon-staging   # if not already linked in this checkout
+vercel git connect https://github.com/Cyberpk10/cordon.git
+```
+
+Then in the Vercel dashboard, Project Settings → Git → set **Production Branch** to `staging`.
+After that, pushing to `staging` redeploys the frontend automatically, same as the backend
+already does. Until then, deploy staging's frontend manually after a push:
+
+```sh
+# from a `staging` checkout, in frontend/ (or any directory rsynced from it)
+vercel link --project cordon-staging   # first time only
+vercel --prod
+```
+
 ## Seeding / resetting staging data
 
-Staging starts empty. Seed a demo account with realistic activity (cases, incidents, autonomy
-actions) using the existing red-team simulation script — it talks purely over the HTTP API, so
-it works against any deployment, not just localhost:
+Seeded already with a demo account and a realistic multi-stage attack campaign (cases, incidents,
+autonomy actions) via the existing red-team simulation script — it talks purely over the HTTP
+API, so it works against any deployment, not just localhost:
 
 ```sh
 python3 scripts/attack_sim.py --base-url https://cordon-staging-backend.onrender.com \
   --email staging-demo@cordon.test --account-name "Staging Demo" --no-prompt
 ```
 
-Log into the staging frontend with the same credentials to watch the data appear. Re-runnable —
-each run freshens the simulated identity so detections stay deterministic.
+Log into `https://cordon-staging.vercel.app` with `staging-demo@cordon.test` (password set at
+seed time) to see it. Re-runnable — each run freshens the simulated identity so detections stay
+deterministic, and adds more activity to click through.
 
 Reset (delete all cases/incidents for that account) with:
 
@@ -94,22 +126,23 @@ python3 scripts/cleanup_sim.py --base-url https://cordon-staging-backend.onrende
 campaign. Domain verification (`POST /api/sim/domains/verify`) requires proving real DNS control
 via a TXT record; there's no legitimate way to fake that even in staging without undermining the
 actual security property it exists to enforce. To test the phishing-simulation feature in
-staging, verify a real (sub)domain you control there, the same as you would in production.
+staging, verify a real (sub)domain you control there, the same as you would in production
+(`ENABLE_PHISHING_SIMULATION` must also be turned on — see Secrets above).
 
-## Provisioning (one-time setup)
+## Re-provisioning from scratch
 
-If the resources in the table above don't exist yet:
+If these resources ever need to be recreated (e.g. after a deliberate teardown):
 
-1. **Render** (backend + database) — needs a Render API key (Account Settings → API Keys).
-   Creates `cordon-staging-db` (`basic_256mb`) and `cordon-staging-backend` (Docker, `free` plan,
-   tracking the `staging` branch, `backend/` as root directory — same `Dockerfile` as
-   production). Env vars set per the Secrets section above. No separate migration step is
-   needed: `backend/docker-entrypoint.sh` runs `alembic upgrade head` on every boot, so the
-   first deploy migrates `cordon-staging-db` automatically.
-2. **Vercel** (frontend) — Vercel → Add New → Project → import the `Cyberpk10/cordon` GitHub
-   repo → Root Directory `frontend` → name it `cordon-staging` → after import, Project Settings →
-   Git → set Production Branch to `staging`. Then set `VITE_API_BASE_URL` (Project Settings →
-   Environment Variables) to the staging backend's URL, and push to `staging` to trigger the
-   first deploy.
-3. Once the Vercel URL is known, set the staging backend's `CORS_ALLOWED_ORIGINS` to that exact
-   URL (no wildcard) so only the staging frontend can call it.
+1. **Render**: `render postgres create --name cordon-staging-db --plan basic_256mb --confirm`,
+   then `render services create --name cordon-staging-backend --type web_service --runtime docker
+   --repo https://github.com/Cyberpk10/cordon --branch staging --root-directory backend --plan
+   free --health-check-path /health --confirm`. Set env vars via `PUT
+   https://api.render.com/v1/services/{id}/env-vars` (full array — see Secrets above for the
+   list; get the DB's connection string from `GET
+   https://api.render.com/v1/postgres/{id}/connection-info`). No separate migration step:
+   `backend/docker-entrypoint.sh` runs `alembic upgrade head` on every boot.
+2. **Vercel**: `vercel project add cordon-staging`, link a checkout of the repo's `frontend/`
+   directory to it (`vercel link --project cordon-staging`), `vercel env add
+   VITE_API_BASE_URL production` with the staging backend's URL, then `vercel --prod` to deploy.
+   See "Auto-deploy on push" above for connecting GitHub.
+3. Set the backend's `CORS_ALLOWED_ORIGINS` to the exact staging frontend URL once known.
