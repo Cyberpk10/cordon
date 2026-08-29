@@ -167,4 +167,3 @@ If these resources ever need to be recreated (e.g. after a deliberate teardown):
    VITE_API_BASE_URL production` with the staging backend's URL, then `vercel --prod` to deploy.
    See "Auto-deploy on push" above for connecting GitHub.
 3. Set the backend's `CORS_ALLOWED_ORIGINS` to the exact staging frontend URL once known.
-
