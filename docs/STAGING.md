@@ -168,3 +168,4 @@ If these resources ever need to be recreated (e.g. after a deliberate teardown):
    See "Auto-deploy on push" above for connecting GitHub.
 3. Set the backend's `CORS_ALLOWED_ORIGINS` to the exact staging frontend URL once known.
 <!-- staging auto-deploy verification 2026-08-29T22:47:31Z -->
+<!-- staging auto-deploy verification (attempt 3) 2026-08-29T22:57:44Z -->
