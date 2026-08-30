@@ -31,6 +31,7 @@ from app.db.session import get_db
 from app.inbound.mailgun import extract_raw_email, verify_signature
 from app.inbound.unwrap import unwrap_forwarded_email
 from app.models.schemas import InboundEmailResponse
+from app.sender_history.loader import load_sender_history
 from app.storage.raw_email_store import save_raw_email
 
 router = APIRouter(prefix="/api/inbound", tags=["inbound"])
@@ -136,8 +137,9 @@ async def receive_inbound_email(
             status="duplicate", case_id=existing.id, verdict=existing.verdict, score=existing.score
         )
 
+    history = load_sender_history(db, account.id)
     try:
-        result = run_email_pipeline(unwrapped)
+        result = run_email_pipeline(unwrapped, history)
     except Exception:  # noqa: BLE001 - unparseable even after unwrap; nothing a retry would fix
         log_event(
             db,

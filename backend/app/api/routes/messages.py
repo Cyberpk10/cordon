@@ -23,6 +23,7 @@ from app.indicators.engine import run_indicators
 from app.mapping.framework_mapper import map_indicators
 from app.models.schemas import ChatMessageSummary, MessageAnalyzeRequest, MessageAnalyzeResponse
 from app.scoring.risk_engine import fuse
+from app.sender_history.loader import load_sender_history
 
 router = APIRouter(prefix="/api/messages", tags=["messages"])
 
@@ -53,7 +54,8 @@ async def analyze_message(
         date=body.timestamp.isoformat() if body.timestamp else None,
     )
 
-    indicators = run_indicators(message)
+    history = load_sender_history(db, current_user.account_id)
+    indicators = run_indicators(message, history)
     score, verdict = fuse(indicators)
     framework_mappings = map_indicators([i.id for i in indicators])
 

@@ -168,6 +168,10 @@ class Case(Base):
     __tablename__ = "cases"
     __table_args__ = (
         Index("ix_cases_account_content_hash", "account_id", "content_hash"),
+        # Supports app.sender_history.loader's bounded per-account, per-window scan over
+        # from_addr/created_at (M8 Stage 3a) — the index above doesn't help a created_at
+        # range query since content_hash isn't part of it.
+        Index("ix_cases_account_created_at", "account_id", "created_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -733,4 +737,33 @@ class SimulationTrainingRecommendation(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
+    )
+
+
+class TrustedVendorDomain(Base):
+    """A customer-supplied domain explicitly trusted as an established vendor/partner (M8
+    Stage 3a) — separate from and independent of history-derived "established" senders
+    (app.sender_history.aggregation.classify_sender): this bypasses the cold-start entirely,
+    so a known vendor an admin adds on day one is never flagged FIRST_CONTACT_SENDER /
+    UNKNOWN_VENDOR_CLAIM, and becomes part of the comparison basis for
+    LOOKALIKE_OF_KNOWN_SENDER even with zero prior Case history for it. Shaped like
+    SimulationDomain (a zero-to-many per-account list), not AutonomyPolicy (one row per
+    account)."""
+
+    __tablename__ = "trusted_vendor_domains"
+    __table_args__ = (
+        UniqueConstraint("account_id", "domain", name="uq_trusted_vendor_domains_account_domain"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    domain: Mapped[str] = mapped_column(String, nullable=False)
+    label: Mapped[str | None] = mapped_column(String, nullable=True)
+    added_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )

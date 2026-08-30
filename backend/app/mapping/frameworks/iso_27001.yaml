@@ -1,4 +1,4 @@
-version: "1.4"
+version: "1.5"
 framework: "ISO/IEC 27001:2022 Annex A"
 framework_key: iso_27001
 source: "https://www.iso.org/standard/27001"
@@ -72,6 +72,13 @@ mappings:
   CROSS_ACTOR_PASSWORD_SPRAY: [A.5.15, A.8.16, A.8.15]
   COORDINATED_ATTACK_CORRELATION: [A.5.15, A.8.16]
   CUMULATIVE_EXFIL_VOLUME: [A.8.16, A.8.15]
+
+  # Stage 3a detection hardening — per-account sender-history-aware phishing detection.
+  FIRST_CONTACT_SENDER: [A.5.7]
+  UNKNOWN_VENDOR_CLAIM: [A.6.3, A.5.7]
+  LOOKALIKE_OF_KNOWN_SENDER: [A.5.7, A.8.23]
+  LINK_KNOWN_PHISHING_HOST: [A.8.23]
+  DOMAIN_LOOKS_RANDOMLY_GENERATED: [A.5.7, A.8.23]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions.
   QUARANTINE_EMAIL: [A.5.26]

@@ -24,13 +24,20 @@ def test_rejects_whitespace_only_text(authed_client):
         "benign_legit_password_reset.eml",
     ],
 )
-def test_pasted_full_raw_email_matches_file_upload_verdict(authed_client, load_eml, filename):
+def test_pasted_full_raw_email_matches_file_upload_verdict(
+    authed_client, other_account_authed_client, load_eml, filename
+):
     raw = load_eml(filename)
 
+    # Two independent accounts (both starting with zero sender history) rather than the
+    # same account twice — sequential analyses from the SAME account would otherwise see
+    # different sender history between the two calls (M8 Stage 3a: the first call's Case
+    # becomes history for the second), which is a real, intentional behavior change, not a
+    # reason for these two entry points to disagree on identical raw bytes.
     file_response = authed_client.post(
         "/api/analyze", files={"file": (filename, raw, "message/rfc822")}
     )
-    text_response = authed_client.post(
+    text_response = other_account_authed_client.post(
         "/api/analyze/text", json={"raw_text": raw.decode("utf-8", errors="replace")}
     )
 

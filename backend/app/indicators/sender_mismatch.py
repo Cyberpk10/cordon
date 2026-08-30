@@ -8,6 +8,7 @@ from app.indicators.base import make_indicator
 from app.indicators.domain_utils import registrable_domain
 from app.models.schemas import Indicator, Severity
 from app.channels.message import Message
+from app.sender_history.aggregation import SenderHistorySnapshot
 
 _EMAIL_IN_TEXT_RE = re.compile(r"[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}")
 
@@ -18,7 +19,9 @@ def _domain(address: str | None) -> str | None:
     return address.rsplit("@", 1)[-1].lower()
 
 
-def evaluate(email: Message) -> list[Indicator]:
+def evaluate(
+    email: Message, sender_history: SenderHistorySnapshot | None = None
+) -> list[Indicator]:
     indicators: list[Indicator] = []
 
     from_domain = _domain(email.from_address)

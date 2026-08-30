@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.db.models import Case, User
 from app.db.session import get_db
 from app.models.schemas import AnalyzeResponse, AnalyzeTextRequest, EmailSummary
+from app.sender_history.loader import load_sender_history
 from app.storage.raw_email_store import save_raw_email
 
 router = APIRouter(prefix="/api", tags=["analyze"])
@@ -102,8 +103,9 @@ async def analyze_email(
     if len(raw_bytes) > settings.max_upload_bytes:
         raise HTTPException(status_code=400, detail="Uploaded file exceeds the maximum allowed size.")
 
+    history = load_sender_history(db, current_user.account_id)
     try:
-        result = run_email_pipeline(raw_bytes)
+        result = run_email_pipeline(raw_bytes, history)
     except Exception as exc:  # noqa: BLE001 - surface parse failures as a 400, not a 500
         raise HTTPException(status_code=400, detail=f"Failed to parse .eml file: {exc}") from exc
 
@@ -123,8 +125,9 @@ async def analyze_pasted_text(
     if len(raw_bytes) > settings.max_upload_bytes:
         raise HTTPException(status_code=400, detail="Pasted content exceeds the maximum allowed size.")
 
+    history = load_sender_history(db, current_user.account_id)
     try:
-        result = run_email_pipeline(raw_bytes)
+        result = run_email_pipeline(raw_bytes, history)
     except Exception as exc:  # noqa: BLE001 - surface parse failures as a 400, not a 500
         raise HTTPException(status_code=400, detail=f"Failed to parse pasted email content: {exc}") from exc
 

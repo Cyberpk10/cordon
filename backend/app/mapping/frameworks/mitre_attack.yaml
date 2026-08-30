@@ -1,4 +1,4 @@
-version: "1.3"
+version: "1.4"
 framework: "MITRE ATT&CK"
 framework_key: mitre_attack
 source: "https://attack.mitre.org"
@@ -91,3 +91,14 @@ mappings:
   CROSS_ACTOR_PASSWORD_SPRAY: [T1110, T1110.003]
   COORDINATED_ATTACK_CORRELATION: [T1078]
   CUMULATIVE_EXFIL_VOLUME: [T1030, T1048, T1567]
+
+  # Stage 3a detection hardening — per-account sender-history-aware phishing detection.
+  FIRST_CONTACT_SENDER: [T1566]
+  # No exact ATT&CK technique for "claims a relationship that doesn't exist" as a standalone
+  # concept (same precedent as AI_AUTHORED_SUSPECTED above) — mapped to the phishing family
+  # this framing is used to scale, plus Phishing for Information since a false vendor-claim
+  # is frequently the setup for a follow-on information/credential request.
+  UNKNOWN_VENDOR_CLAIM: [T1566, T1598]
+  LOOKALIKE_OF_KNOWN_SENDER: [T1583.001, T1656, T1566.002]
+  LINK_KNOWN_PHISHING_HOST: [T1566.002]
+  DOMAIN_LOOKS_RANDOMLY_GENERATED: [T1583.001, T1566.002]

@@ -180,6 +180,48 @@ class Settings:
         default_factory=lambda: int(os.environ.get("EXFIL_CUMULATIVE_MIN_TRANSFERS", "2"))
     )
 
+    # Per-account sender-history-aware phishing detection (M8 Stage 3a). How far back
+    # app.sender_history.loader looks at an account's own past Case rows to build its
+    # correspondence-history snapshot.
+    sender_history_lookback_days: int = field(
+        default_factory=lambda: int(os.environ.get("SENDER_HISTORY_LOOKBACK_DAYS", "180"))
+    )
+    # A domain must appear in at least this many past cases...
+    sender_history_established_min_occurrences: int = field(
+        default_factory=lambda: int(
+            os.environ.get("SENDER_HISTORY_ESTABLISHED_MIN_OCCURRENCES", "3")
+        )
+    )
+    # ...spanning at least this many real days (not all in one burst) before it counts as
+    # ESTABLISHED — the comparison basis for LOOKALIKE_OF_KNOWN_SENDER. Guards against a
+    # single prior email (possibly the attacker's own reconnaissance message) seeding a
+    # trusted baseline for a later look-alike attack against itself.
+    sender_history_established_min_span_days: int = field(
+        default_factory=lambda: int(
+            os.environ.get("SENDER_HISTORY_ESTABLISHED_MIN_SPAN_DAYS", "1")
+        )
+    )
+
+    # Known-bad-URL cross-reference against a static PhishTank hostname snapshot (M8 Stage
+    # 3a) — see app.indicators.known_bad_urls. Zero-network, on by default like every other
+    # purely-offline indicator (LINK_SUSPICIOUS_TLD, lookalike_domain, ...).
+    enable_known_bad_url_list: bool = field(
+        default_factory=lambda: _env_bool("ENABLE_KNOWN_BAD_URL_LIST", True)
+    )
+
+    # Newly-registered-domain heuristic proxy (M8 Stage 3a) — a zero-network domain-entropy
+    # signal, NOT a real WHOIS/RDAP registration-age check (that would require a live
+    # outbound call the analyzer deliberately never makes). See
+    # app.indicators.domain_age_heuristic.
+    enable_newly_registered_domain_heuristic: bool = field(
+        default_factory=lambda: _env_bool("ENABLE_NEWLY_REGISTERED_DOMAIN_HEURISTIC", True)
+    )
+    newly_registered_domain_entropy_threshold: float = field(
+        default_factory=lambda: float(
+            os.environ.get("NEWLY_REGISTERED_DOMAIN_ENTROPY_THRESHOLD", "3.0")
+        )
+    )
+
     # Behavioral baselines / UEBA (M5 Stage 2). Cold-start gates: an actor's baseline isn't
     # trusted over the Stage 1 static thresholds until it has this much history.
     baseline_min_events_for_hours: int = field(

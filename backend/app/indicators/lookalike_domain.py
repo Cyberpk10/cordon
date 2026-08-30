@@ -16,6 +16,7 @@ from app.indicators.base import make_indicator
 from app.indicators.domain_utils import levenshtein, registrable_domain
 from app.models.schemas import Indicator, Severity
 from app.channels.message import Message
+from app.sender_history.aggregation import SenderHistorySnapshot
 
 _BRANDS_PATH = Path(__file__).parent / "data" / "brands.yaml"
 
@@ -60,7 +61,9 @@ def _candidate_domains(email: Message) -> set[str]:
     return domains
 
 
-def evaluate(email: Message) -> list[Indicator]:
+def evaluate(
+    email: Message, sender_history: SenderHistorySnapshot | None = None
+) -> list[Indicator]:
     indicators: list[Indicator] = []
     brands = _load_brands()
     brand_domains = {domain for _, domain in brands}

@@ -739,6 +739,24 @@ class UserRoleUpdateRequest(BaseModel):
 # ---- Phishing simulation (M9 Stage 1) --------------------------------------------------
 
 
+class TrustedVendorDomainCreateRequest(BaseModel):
+    domain: str
+    label: str | None = None
+
+
+class TrustedVendorDomainResponse(BaseModel):
+    id: UUID
+    domain: str
+    label: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class TrustedVendorDomainListResponse(BaseModel):
+    items: list[TrustedVendorDomainResponse]
+
+
 class SimulationDomainStatus(str, Enum):
     PENDING = "pending"
     VERIFIED = "verified"

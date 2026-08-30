@@ -11,6 +11,7 @@ from app.indicators.base import make_indicator
 from app.indicators.domain_utils import is_ip_literal_host
 from app.indicators.link_analysis import _KNOWN_SHORTENERS, _SUSPICIOUS_TLDS, _tld_of
 from app.channels.message import Channel, Message
+from app.sender_history.aggregation import SenderHistorySnapshot
 from app.models.schemas import Indicator, Severity
 
 
@@ -32,7 +33,9 @@ def _matches_protected_name(display_name: str, protected: str) -> bool:
     return a == b or a in b or b in a
 
 
-def evaluate(message: Message) -> list[Indicator]:
+def evaluate(
+    message: Message, sender_history: SenderHistorySnapshot | None = None
+) -> list[Indicator]:
     if message.channel == Channel.EMAIL:
         return []
 

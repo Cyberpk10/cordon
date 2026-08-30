@@ -7,6 +7,7 @@ import re
 from app.indicators.base import make_indicator
 from app.models.schemas import Indicator, Severity
 from app.channels.message import Message
+from app.sender_history.aggregation import SenderHistorySnapshot
 
 _CREDENTIAL_PHRASES = [
     r"verify your (?:password|account|identity|login|credentials)",
@@ -52,7 +53,9 @@ def _build_indicator(id_: str, title: str, description: str, matches: list[str])
     )
 
 
-def evaluate(email: Message) -> list[Indicator]:
+def evaluate(
+    email: Message, sender_history: SenderHistorySnapshot | None = None
+) -> list[Indicator]:
     text = " ".join(filter(None, [email.subject, email.body_text]))
     indicators: list[Indicator] = []
 

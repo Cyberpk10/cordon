@@ -17,6 +17,7 @@ from app.models.schemas import FrameworkControlRef, Indicator, Verdict
 from app.parsing.eml_parser import ParsedEmail, parse_eml
 from app.reasoning.llm_analyst import generate_analyst_narrative
 from app.scoring.risk_engine import fuse
+from app.sender_history.aggregation import SenderHistorySnapshot
 
 
 @dataclass(frozen=True)
@@ -32,13 +33,17 @@ class PipelineResult:
     ml_model_version: str | None
 
 
-def run_email_pipeline(raw_bytes: bytes) -> PipelineResult:
+def run_email_pipeline(
+    raw_bytes: bytes, sender_history: SenderHistorySnapshot | None = None
+) -> PipelineResult:
     """Parses raw .eml bytes and runs the full rule-based + optional ML + optional LLM analysis.
     Raises whatever parse_eml raises on malformed input — callers translate that into their own
-    error response (a 400 for a direct upload, a quiet reject for a webhook)."""
+    error response (a 400 for a direct upload, a quiet reject for a webhook). `sender_history`
+    is the caller's pre-loaded per-account correspondence history (M8 Stage 3a,
+    app.sender_history.aggregation) — None for callers with no account context."""
     parsed = parse_eml(raw_bytes)
 
-    indicators = run_indicators(parsed)
+    indicators = run_indicators(parsed, sender_history)
 
     ml_probability: float | None = None
     ml_model_version: str | None = None

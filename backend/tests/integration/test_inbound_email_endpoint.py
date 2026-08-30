@@ -189,3 +189,51 @@ def test_per_account_rate_limit_returns_429(client, db_session, monkeypatch, loa
         _URL, data=_mailgun_form(recipient=recipient, body_mime=_variant(2), token="tok-2-final")
     )
     assert third.status_code == 429
+
+
+def test_established_sender_history_applies_via_inbound_webhook(
+    client, db_session, monkeypatch, test_account
+):
+    """M8 Stage 3a: the inbound webhook path loads sender history the same way the
+    direct-upload/paste-text routes do — a sender this account already regularly
+    corresponds with must not be flagged FIRST_CONTACT_SENDER just because it arrived via
+    forwarding instead of upload."""
+    from datetime import datetime, timedelta, timezone
+
+    monkeypatch.setattr(settings, "mailgun_webhook_signing_key", _SIGNING_KEY)
+    recipient = f"pilot-{test_account.account.inbound_token}@{settings.inbound_email_domain}"
+
+    now = datetime.now(timezone.utc)
+    for i in range(4):
+        db_session.add(
+            Case(
+                id=uuid.uuid4(),
+                account_id=test_account.account.id,
+                filename=f"prior-{i}.eml",
+                verdict="safe",
+                score=0,
+                from_addr="billing@acme-vendor.example",
+                to_addresses=[],
+                indicators=[],
+                framework_mappings={},
+                created_at=now - timedelta(days=10 - i),
+            )
+        )
+    db_session.commit()
+
+    raw = (
+        b'From: "Acme Vendor" <billing@acme-vendor.example>\r\n'
+        b"To: ap-team@ourcompany.example\r\n"
+        b"Subject: Invoice\r\n"
+        b"MIME-Version: 1.0\r\n"
+        b'Content-Type: text/plain; charset="utf-8"\r\n'
+        b"\r\n"
+        b"As discussed, invoice attached.\r\n"
+    )
+    response = client.post(_URL, data=_mailgun_form(recipient=recipient, body_mime=raw))
+    assert response.status_code == 200
+
+    case = db_session.query(Case).filter(Case.id == uuid.UUID(response.json()["case_id"])).first()
+    ids = {i["id"] for i in case.indicators}
+    assert "FIRST_CONTACT_SENDER" not in ids
+    assert "UNKNOWN_VENDOR_CLAIM" not in ids

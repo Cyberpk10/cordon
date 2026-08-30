@@ -73,8 +73,13 @@ def test_safe_sample_has_no_indicators(authed_client, load_eml):
         "/api/analyze", files={"file": ("benign_newsletter.eml", raw, "message/rfc822")}
     )
     body = response.json()
-    assert body["indicators"] == []
-    assert body["score"] == 0
+    # A brand-new account has no sender history yet, so its very first analysis of any
+    # sender legitimately raises FIRST_CONTACT_SENDER (M8 Stage 3a) — low-weight by design,
+    # verdict stays safe either way.
+    ids = {i["id"] for i in body["indicators"]}
+    assert ids == {"FIRST_CONTACT_SENDER"}
+    assert body["score"] == 8
+    assert body["verdict"] == "safe"
 
 
 def test_response_summary_reflects_auth_results(authed_client, load_eml):

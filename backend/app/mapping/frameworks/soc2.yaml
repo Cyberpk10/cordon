@@ -1,4 +1,4 @@
-version: "1.5"
+version: "1.6"
 framework: "SOC 2 (Trust Services Criteria)"
 framework_key: soc2
 source: "https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services"
@@ -83,6 +83,13 @@ mappings:
   CROSS_ACTOR_PASSWORD_SPRAY: [CC6.1, CC7.2]
   COORDINATED_ATTACK_CORRELATION: [CC7.1, CC7.2]
   CUMULATIVE_EXFIL_VOLUME: [CC6.6, CC6.7, CC7.2]
+
+  # Stage 3a detection hardening — per-account sender-history-aware phishing detection.
+  FIRST_CONTACT_SENDER: [CC6.6]
+  UNKNOWN_VENDOR_CLAIM: [CC2.2, CC6.1]
+  LOOKALIKE_OF_KNOWN_SENDER: [CC6.6, CC7.2]
+  LINK_KNOWN_PHISHING_HOST: [CC6.6, CC7.2]
+  DOMAIN_LOOKS_RANDOMLY_GENERATED: [CC6.6, CC7.2]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions.
   QUARANTINE_EMAIL: [CC7.4]

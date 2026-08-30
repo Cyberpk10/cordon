@@ -1,4 +1,4 @@
-version: "1.4"
+version: "1.5"
 framework: "NIST Cybersecurity Framework 2.0"
 framework_key: nist_csf
 source: "https://www.nist.gov/cyberframework"
@@ -79,6 +79,13 @@ mappings:
   CROSS_ACTOR_PASSWORD_SPRAY: [DE.CM-03, PR.AA-03, DE.AE-08, DE.AE-03]
   COORDINATED_ATTACK_CORRELATION: [DE.AE-03, DE.AE-08]
   CUMULATIVE_EXFIL_VOLUME: [DE.CM-01, DE.AE-08]
+
+  # Stage 3a detection hardening — per-account sender-history-aware phishing detection.
+  FIRST_CONTACT_SENDER: [DE.AE-02]
+  UNKNOWN_VENDOR_CLAIM: [PR.AT-01, DE.AE-02]
+  LOOKALIKE_OF_KNOWN_SENDER: [ID.RA-05, DE.AE-02]
+  LINK_KNOWN_PHISHING_HOST: [DE.CM-01, ID.RA-05]
+  DOMAIN_LOOKS_RANDOMLY_GENERATED: [ID.RA-05, DE.CM-01]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions,
   # not detections — mapped by action type, same map_indicators mechanism.

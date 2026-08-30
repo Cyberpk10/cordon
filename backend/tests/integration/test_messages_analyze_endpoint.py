@@ -89,3 +89,21 @@ def test_analyzed_message_persists_as_a_case_with_channel_and_is_filterable(auth
     email_only_response = authed_client.get("/api/cases", params={"channel": "email"})
     assert email_only_response.status_code == 200
     assert all(item["id"] != case_id for item in email_only_response.json()["items"])
+
+
+def test_sender_history_self_skips_for_chat_channel(authed_client):
+    """M8 Stage 3a: sender_history.evaluate self-guards on channel != EMAIL, so wiring
+    real per-account history into the chat pipeline must never produce
+    FIRST_CONTACT_SENDER/UNKNOWN_VENDOR_CLAIM/LOOKALIKE_OF_KNOWN_SENDER for a chat message."""
+    response = authed_client.post(
+        "/api/messages/analyze",
+        json={
+            "channel": "slack",
+            "from_display": "bob",
+            "from_address": "bob@corp.com",
+            "text": "As discussed, here's the invoice.",
+        },
+    )
+    assert response.status_code == 200
+    ids = {i["id"] for i in response.json()["indicators"]}
+    assert not ids & {"FIRST_CONTACT_SENDER", "UNKNOWN_VENDOR_CLAIM", "LOOKALIKE_OF_KNOWN_SENDER"}
