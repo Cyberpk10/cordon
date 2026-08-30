@@ -483,6 +483,12 @@ class Finding(BaseModel):
     severity: Severity
     points: float
     evidence_event_ids: list[UUID] = Field(default_factory=list)
+    # Stage 1 cross-actor correlation: which actor this specific finding is about. None for
+    # every finding produced by the single-actor engine (app.detections.engine) — those
+    # already live inside a single-actor Incident and don't need self-description. Only set
+    # (via .model_copy(update={"actor": ...})) when a finding is copied into a merged
+    # multi-actor incident's unioned findings list.
+    actor: str | None = None
 
 
 class IncidentSummary(BaseModel):
@@ -495,6 +501,8 @@ class IncidentSummary(BaseModel):
     detection_types: list[str]
     window_start: datetime
     window_end: datetime
+    # Populated only for a merged coordinated-attack or cross-actor-spray incident (Stage 1).
+    related_actors: list[str] | None = None
 
     model_config = {"from_attributes": True}
 
@@ -520,6 +528,8 @@ class IncidentDetailResponse(BaseModel):
     window_end: datetime
     evidence_events: list[ActivityEvent]
     latest_label: LabelResponse | None = None
+    # Populated only for a merged coordinated-attack or cross-actor-spray incident (Stage 1).
+    related_actors: list[str] | None = None
 
 
 class EventBatchResponse(BaseModel):

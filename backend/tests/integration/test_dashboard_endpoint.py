@@ -139,8 +139,8 @@ def test_dashboard_summary_aggregates_seeded_cases_and_labels(authed_client, db_
     coverage = {c["framework_key"]: c for c in body["framework_coverage"]}
     mitre = coverage["mitre_attack"]
     assert mitre["covered_controls"] == 2
-    assert mitre["total_controls"] == 13
-    assert mitre["coverage_pct"] == round(100 * 2 / 13, 2)
+    assert mitre["total_controls"] == 14
+    assert mitre["coverage_pct"] == round(100 * 2 / 14, 2)
 
 
 def test_dashboard_summary_defaults_to_last_30_days_when_no_range_given(authed_client, db_session, test_account):

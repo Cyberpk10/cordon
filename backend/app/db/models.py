@@ -365,6 +365,10 @@ class Incident(Base):
     framework_mappings: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
     window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Populated only for a merged multi-actor incident (Stage 1 cross-actor correlation:
+    # coordinated-campaign merge or cross-actor password-spray) — sorted, deduplicated actor
+    # names. None/unused for every ordinary single-actor incident.
+    related_actors: Mapped[list[str] | None] = mapped_column(_JSONVariant, nullable=True)
 
     events: Mapped[list["Event"]] = relationship(back_populates="incident")
     labels: Mapped[list["Label"]] = relationship(

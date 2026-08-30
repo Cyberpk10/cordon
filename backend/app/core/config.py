@@ -137,6 +137,49 @@ class Settings:
         ]
     )
 
+    # Cross-actor / coordinated-campaign correlation (Stage 1 detection hardening). See
+    # app.detections.cross_actor. Distinct from brute_force's own per-actor sub-window —
+    # this counts distinct ACTORS sharing a source-IP /24 subnet, not one actor's own
+    # failures.
+    cross_actor_spray_window_minutes: int = field(
+        default_factory=lambda: int(os.environ.get("CROSS_ACTOR_SPRAY_WINDOW_MINUTES", "15"))
+    )
+    # Minimum distinct actors failing auth from the same /24 subnet within the window above
+    # before this is treated as a spray rather than a handful of ordinary users mistyping a
+    # password from a shared office/VPN NAT IP.
+    cross_actor_spray_min_actors: int = field(
+        default_factory=lambda: int(os.environ.get("CROSS_ACTOR_SPRAY_MIN_ACTORS", "8"))
+    )
+    # Minimum number of independently non-safe actors, correlated via a shared source-IP /24
+    # subnet drawn only from each actor's own triggering evidence events (never their
+    # incidental/benign traffic), within the same ingestion batch, before their individual
+    # incidents are merged into one coordinated-attack incident.
+    coordinated_attack_min_actors: int = field(
+        default_factory=lambda: int(os.environ.get("COORDINATED_ATTACK_MIN_ACTORS", "3"))
+    )
+
+    # Cumulative-volume exfiltration (Stage 1 detection hardening). Rolling window,
+    # meaningfully longer than intrusion_lookback_hours (24h), that a "low and slow" exfil
+    # spread across many small transfers/downloads would otherwise evade entirely (each
+    # daily ingest batch's 24h window never overlaps the previous day's).
+    exfil_cumulative_window_days: int = field(
+        default_factory=lambda: int(os.environ.get("EXFIL_CUMULATIVE_WINDOW_DAYS", "7"))
+    )
+    # Total data_transfer/file_download bytes to non-allowlisted destinations within the
+    # rolling window above before this fires — well under exfil_large_transfer_bytes (500MB)
+    # since the whole point is catching volume that never crosses that single-event bar.
+    exfil_cumulative_volume_bytes: int = field(
+        default_factory=lambda: int(
+            os.environ.get("EXFIL_CUMULATIVE_VOLUME_BYTES", str(250_000_000))
+        )
+    )
+    # Requires at least this many qualifying transfers before firing — a single moderately
+    # large (but sub-500MB) transfer isn't "low and slow structuring," it's just one
+    # transfer; DATA_EXFIL_LARGE_TRANSFER already covers genuinely large single events.
+    exfil_cumulative_min_transfers: int = field(
+        default_factory=lambda: int(os.environ.get("EXFIL_CUMULATIVE_MIN_TRANSFERS", "2"))
+    )
+
     # Behavioral baselines / UEBA (M5 Stage 2). Cold-start gates: an actor's baseline isn't
     # trusted over the Stage 1 static thresholds until it has this much history.
     baseline_min_events_for_hours: int = field(

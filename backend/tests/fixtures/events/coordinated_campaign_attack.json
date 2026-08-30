@@ -1,0 +1,230 @@
+[
+  {
+    "timestamp": "2026-01-06T09:00:00",
+    "actor": "concurrent-1@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.10",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:01:00",
+    "actor": "concurrent-1@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.10",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:02:00",
+    "actor": "concurrent-1@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.10",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:03:00",
+    "actor": "concurrent-1@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.10",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:04:00",
+    "actor": "concurrent-1@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.10",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:05:00",
+    "actor": "concurrent-1@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.10",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:06:00",
+    "actor": "concurrent-1@corp.com",
+    "action": "login",
+    "source_ip": "203.0.113.10",
+    "outcome": "success",
+    "geo": {
+      "country": "US",
+      "region": "NY",
+      "lat": 40.7128,
+      "lon": -74.006
+    }
+  },
+  {
+    "timestamp": "2026-01-06T09:36:00",
+    "actor": "concurrent-1@corp.com",
+    "action": "login",
+    "source_ip": "91.198.174.10",
+    "outcome": "success",
+    "geo": {
+      "country": "RU",
+      "region": "Moscow",
+      "lat": 55.7558,
+      "lon": 37.6173
+    }
+  },
+  {
+    "timestamp": "2026-01-06T09:41:00",
+    "actor": "concurrent-1@corp.com",
+    "action": "data_transfer",
+    "target": "unknown-host.example.net",
+    "bytes": 700000000,
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T09:02:00",
+    "actor": "concurrent-2@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.11",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:03:00",
+    "actor": "concurrent-2@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.11",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:04:00",
+    "actor": "concurrent-2@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.11",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:05:00",
+    "actor": "concurrent-2@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.11",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:06:00",
+    "actor": "concurrent-2@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.11",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:07:00",
+    "actor": "concurrent-2@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.11",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:08:00",
+    "actor": "concurrent-2@corp.com",
+    "action": "login",
+    "source_ip": "203.0.113.11",
+    "outcome": "success",
+    "geo": {
+      "country": "US",
+      "region": "NY",
+      "lat": 40.7128,
+      "lon": -74.006
+    }
+  },
+  {
+    "timestamp": "2026-01-06T09:38:00",
+    "actor": "concurrent-2@corp.com",
+    "action": "login",
+    "source_ip": "91.198.174.11",
+    "outcome": "success",
+    "geo": {
+      "country": "RU",
+      "region": "Moscow",
+      "lat": 55.7558,
+      "lon": 37.6173
+    }
+  },
+  {
+    "timestamp": "2026-01-06T09:43:00",
+    "actor": "concurrent-2@corp.com",
+    "action": "data_transfer",
+    "target": "unknown-host.example.net",
+    "bytes": 700000000,
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T09:04:00",
+    "actor": "concurrent-3@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.12",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:05:00",
+    "actor": "concurrent-3@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.12",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:06:00",
+    "actor": "concurrent-3@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.12",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:07:00",
+    "actor": "concurrent-3@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.12",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:08:00",
+    "actor": "concurrent-3@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.12",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:09:00",
+    "actor": "concurrent-3@corp.com",
+    "action": "auth_fail",
+    "source_ip": "203.0.113.12",
+    "outcome": "failure"
+  },
+  {
+    "timestamp": "2026-01-06T09:10:00",
+    "actor": "concurrent-3@corp.com",
+    "action": "login",
+    "source_ip": "203.0.113.12",
+    "outcome": "success",
+    "geo": {
+      "country": "US",
+      "region": "NY",
+      "lat": 40.7128,
+      "lon": -74.006
+    }
+  },
+  {
+    "timestamp": "2026-01-06T09:40:00",
+    "actor": "concurrent-3@corp.com",
+    "action": "login",
+    "source_ip": "91.198.174.12",
+    "outcome": "success",
+    "geo": {
+      "country": "RU",
+      "region": "Moscow",
+      "lat": 55.7558,
+      "lon": 37.6173
+    }
+  },
+  {
+    "timestamp": "2026-01-06T09:45:00",
+    "actor": "concurrent-3@corp.com",
+    "action": "data_transfer",
+    "target": "unknown-host.example.net",
+    "bytes": 700000000,
+    "outcome": "success"
+  }
+]

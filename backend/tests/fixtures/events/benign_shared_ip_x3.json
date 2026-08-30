@@ -1,0 +1,113 @@
+[
+  {
+    "timestamp": "2026-01-06T15:00:00",
+    "actor": "benign-1@corp.com",
+    "action": "login",
+    "source_ip": "198.51.100.20",
+    "outcome": "success",
+    "geo": {
+      "country": "US",
+      "region": "NY",
+      "lat": 40.7128,
+      "lon": -74.006
+    }
+  },
+  {
+    "timestamp": "2026-01-06T15:05:00",
+    "actor": "benign-1@corp.com",
+    "action": "file_access",
+    "source_ip": "198.51.100.20",
+    "target": "shared/team-project/doc-0.docx",
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T15:08:00",
+    "actor": "benign-1@corp.com",
+    "action": "file_access",
+    "source_ip": "198.51.100.20",
+    "target": "shared/team-project/doc-1.docx",
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T15:11:00",
+    "actor": "benign-1@corp.com",
+    "action": "file_access",
+    "source_ip": "198.51.100.20",
+    "target": "shared/team-project/doc-2.docx",
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T15:01:00",
+    "actor": "benign-2@corp.com",
+    "action": "login",
+    "source_ip": "198.51.100.20",
+    "outcome": "success",
+    "geo": {
+      "country": "US",
+      "region": "NY",
+      "lat": 40.7128,
+      "lon": -74.006
+    }
+  },
+  {
+    "timestamp": "2026-01-06T15:06:00",
+    "actor": "benign-2@corp.com",
+    "action": "file_access",
+    "source_ip": "198.51.100.20",
+    "target": "shared/team-project/doc-0.docx",
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T15:09:00",
+    "actor": "benign-2@corp.com",
+    "action": "file_access",
+    "source_ip": "198.51.100.20",
+    "target": "shared/team-project/doc-1.docx",
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T15:12:00",
+    "actor": "benign-2@corp.com",
+    "action": "file_access",
+    "source_ip": "198.51.100.20",
+    "target": "shared/team-project/doc-2.docx",
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T15:02:00",
+    "actor": "benign-3@corp.com",
+    "action": "login",
+    "source_ip": "198.51.100.20",
+    "outcome": "success",
+    "geo": {
+      "country": "US",
+      "region": "NY",
+      "lat": 40.7128,
+      "lon": -74.006
+    }
+  },
+  {
+    "timestamp": "2026-01-06T15:07:00",
+    "actor": "benign-3@corp.com",
+    "action": "file_access",
+    "source_ip": "198.51.100.20",
+    "target": "shared/team-project/doc-0.docx",
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T15:10:00",
+    "actor": "benign-3@corp.com",
+    "action": "file_access",
+    "source_ip": "198.51.100.20",
+    "target": "shared/team-project/doc-1.docx",
+    "outcome": "success"
+  },
+  {
+    "timestamp": "2026-01-06T15:13:00",
+    "actor": "benign-3@corp.com",
+    "action": "file_access",
+    "source_ip": "198.51.100.20",
+    "target": "shared/team-project/doc-2.docx",
+    "outcome": "success"
+  }
+]

@@ -73,6 +73,7 @@ def _to_incident_detail(
         window_end=incident.window_end,
         evidence_events=[_to_activity_event(e) for e in evidence_events],
         latest_label=LabelResponse.model_validate(latest_label) if latest_label else None,
+        related_actors=incident.related_actors,
     )
 
 

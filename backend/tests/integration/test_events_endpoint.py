@@ -31,6 +31,10 @@ def test_ingest_attack_batch_creates_incident_with_findings_and_mappings(
     assert "mitre_attack" in detail_body["framework_mappings"]
     assert len(detail_body["evidence_events"]) >= 5
     assert all(e["action"] == "auth_fail" for e in detail_body["evidence_events"][:5])
+    # Backward-compatibility pin (Stage 1 detection hardening): an ordinary single-actor
+    # incident's related_actors stays unset.
+    assert created["related_actors"] is None
+    assert detail_body["related_actors"] is None
 
 
 def test_ingest_benign_batch_creates_no_incident(authed_client, db_session, load_events_fixture):
@@ -154,3 +158,146 @@ def test_incidents_are_isolated_per_account(
 
     detail = other_account_authed_client.get(f"/api/incidents/{incident_id}")
     assert detail.status_code == 404
+
+
+# --------------------------------------------------------------------------------------
+# Stage 1 detection hardening — cross-actor correlation + cumulative exfiltration.
+# --------------------------------------------------------------------------------------
+
+
+def test_cross_actor_spray_from_one_ip_raises_one_incident(
+    authed_client, db_session, load_events_fixture
+):
+    events = load_events_fixture("cross_actor_spray_attack.json")
+
+    response = authed_client.post("/api/events", json={"events": events})
+
+    assert response.status_code == 200
+    body = response.json()
+    incidents = body["incidents_created"]
+    assert len(incidents) == 1
+    assert "CROSS_ACTOR_PASSWORD_SPRAY" in incidents[0]["detection_types"]
+    assert len(incidents[0]["related_actors"]) == 15
+
+    # No individual per-actor incidents — exactly one row for the whole spray.
+    assert db_session.query(Incident).count() == 1
+
+
+def test_coordinated_compromise_merges_into_one_incident(
+    authed_client, db_session, load_events_fixture
+):
+    events = load_events_fixture("coordinated_campaign_attack.json")
+
+    response = authed_client.post("/api/events", json={"events": events})
+
+    assert response.status_code == 200
+    body = response.json()
+    incidents = body["incidents_created"]
+    assert len(incidents) == 1
+
+    incident = incidents[0]
+    assert sorted(incident["related_actors"]) == [
+        "concurrent-1@corp.com",
+        "concurrent-2@corp.com",
+        "concurrent-3@corp.com",
+    ]
+    for detection in ("BRUTE_FORCE_PASSWORD_SPRAY", "IMPOSSIBLE_TRAVEL", "DATA_EXFIL_LARGE_TRANSFER", "COORDINATED_ATTACK_CORRELATION"):
+        assert detection in incident["detection_types"]
+
+    # Exactly one Incident row — not three.
+    assert db_session.query(Incident).count() == 1
+
+    detail = authed_client.get(f"/api/incidents/{incident['id']}")
+    assert detail.status_code == 200
+    findings = detail.json()["findings"]
+    non_correlation = [f for f in findings if f["id"] != "COORDINATED_ATTACK_CORRELATION"]
+    assert non_correlation  # sanity: constituent findings were unioned in
+    assert all(f["actor"] in incident["related_actors"] for f in non_correlation)
+
+
+def test_benign_activity_across_shared_ip_stays_safe(
+    authed_client, db_session, load_events_fixture
+):
+    events = load_events_fixture("benign_shared_ip_x3.json")
+
+    response = authed_client.post("/api/events", json={"events": events})
+
+    assert response.status_code == 200
+    assert response.json()["incidents_created"] == []
+    assert db_session.query(Incident).count() == 0
+
+
+def test_cumulative_exfil_over_rolling_window_raises_incident(authed_client, db_session):
+    actor = "lowslow@corp.com"
+    days = [
+        "2026-01-06T15:00:00Z",
+        "2026-01-07T15:00:00Z",
+        "2026-01-08T15:00:00Z",
+        "2026-01-09T15:00:00Z",
+        "2026-01-12T15:00:00Z",
+    ]
+
+    any_incident = False
+    for day in days:
+        events = [
+            {
+                "timestamp": day,
+                "actor": actor,
+                "action": "data_transfer",
+                "source_ip": "198.51.100.20",
+                "target": "unfamiliar-storage-relay.example.net",
+                "bytes": 90_000_000,
+                "outcome": "success",
+            },
+            {
+                "timestamp": day,
+                "actor": actor,
+                "action": "data_transfer",
+                "source_ip": "198.51.100.20",
+                "target": "unfamiliar-storage-relay.example.net",
+                "bytes": 90_000_000,
+                "outcome": "success",
+            },
+        ]
+        response = authed_client.post("/api/events", json={"events": events})
+        assert response.status_code == 200
+        incidents = response.json()["incidents_created"]
+        for incident in incidents:
+            assert "DATA_EXFIL_LARGE_TRANSFER" not in incident["detection_types"]
+            if "CUMULATIVE_EXFIL_VOLUME" in incident["detection_types"]:
+                any_incident = True
+
+    assert any_incident
+    assert db_session.query(Incident).count() >= 1
+
+
+def test_spray_incident_is_not_duplicated_by_a_later_unrelated_batch(
+    authed_client, db_session, load_events_fixture
+):
+    """Regression test: Pass 3 (cross-actor spray) deliberately re-scans the whole
+    account's auth_fail history every request (so a spray split across many small
+    batches isn't missed) — a later, unrelated request that merely contains its own
+    auth_fail events must not re-detect the FIRST spray's still-in-window evidence and
+    raise a second, duplicate incident for the same 15 accounts."""
+    spray_events = load_events_fixture("cross_actor_spray_attack.json")
+    first = authed_client.post("/api/events", json={"events": spray_events})
+    assert len(first.json()["incidents_created"]) == 1
+
+    # An unrelated actor with a small, sub-threshold auth_fail burst of its own — not a
+    # spray by itself, but its presence is what re-triggers Pass 3's account-wide query.
+    unrelated_events = [
+        {
+            "timestamp": "2026-01-06T09:20:00Z",
+            "actor": "someone-else@corp.com",
+            "action": "auth_fail",
+            "source_ip": "203.0.113.99",
+            "outcome": "failure",
+        }
+    ]
+    second = authed_client.post("/api/events", json={"events": unrelated_events})
+    assert second.json()["incidents_created"] == []
+
+    spray_incidents = [
+        i for i in db_session.query(Incident).all() if i.detection_types == ["CROSS_ACTOR_PASSWORD_SPRAY"]
+    ]
+    assert len(spray_incidents) == 1

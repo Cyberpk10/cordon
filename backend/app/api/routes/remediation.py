@@ -313,17 +313,25 @@ async def get_incident_remediation_playbook(
     if incident is None or incident.account_id != current_user.account_id:
         raise HTTPException(status_code=404, detail="Incident not found.")
 
-    _run_autonomy_evaluation(
-        db,
-        account_id=current_user.account_id,
-        case_id=None,
-        incident_id=incident.id,
-        raw_findings=incident.findings,
-        score_field="points",
-        scope="activity",
-        resolve_target=lambda action_type: incident.actor,
-    )
-    db.commit()
+    # A merged multi-actor incident (Stage 1 cross-actor correlation — related_actors is
+    # populated) has a synthetic, non-actionable `actor` label, not a real account
+    # identity. Auto-executing a containment action (e.g. DISABLE_SESSION) against that
+    # via a real connector would target nothing real. Skip autonomy evaluation entirely
+    # for these — a human analyst can act per-account manually using each finding's own
+    # `actor` field. Full per-member autonomy is a later stage (would need
+    # AutonomyAction's idempotency key to include the actor, not just incident_id+action).
+    if not incident.related_actors:
+        _run_autonomy_evaluation(
+            db,
+            account_id=current_user.account_id,
+            case_id=None,
+            incident_id=incident.id,
+            raw_findings=incident.findings,
+            score_field="points",
+            scope="activity",
+            resolve_target=lambda action_type: incident.actor,
+        )
+        db.commit()
 
     return _build_incident_playbook_response(incident, db)
 

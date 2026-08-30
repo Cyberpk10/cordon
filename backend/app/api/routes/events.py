@@ -25,12 +25,20 @@ from app.core.config import settings
 from app.core.time import to_naive_utc
 from app.db.models import ActorBaseline, Event, Incident, User
 from app.db.session import get_db
+from app.detections import cumulative_exfiltration
 from app.detections.base import ActorEventWindow
+from app.detections.cross_actor import (
+    ActorOutcome,
+    detect_coordinated_campaign,
+    detect_password_spray,
+)
 from app.detections.engine import run_detections
 from app.events.schema import ActivityEvent, EventBatchRequest
 from app.mapping.framework_mapper import map_indicators
-from app.models.schemas import EventBatchResponse, Finding, IncidentSummary
+from app.models.schemas import EventBatchResponse, Finding, IncidentSummary, Verdict
 from app.scoring.intrusion_risk_engine import fuse
+
+_CUMULATIVE_ACTIONS = frozenset({"data_transfer", "file_download"})
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 
@@ -85,6 +93,84 @@ def _incident_title(actor: str, findings: list[Finding]) -> str:
     # Findings are already in deterministic order (app.detections.engine's fixed _RULES
     # order) — the first is treated as the "primary" detection for the incident title.
     return f"{findings[0].title} — {actor}"
+
+
+def _query_actor_window(
+    db: Session, account_id: UUID, actor: str, start, end
+) -> list[Event]:
+    return (
+        db.query(Event)
+        .filter(
+            Event.account_id == account_id,
+            Event.actor == actor,
+            Event.timestamp >= start,
+            Event.timestamp <= end,
+        )
+        .order_by(Event.timestamp)
+        .all()
+    )
+
+
+def _persist_incident(
+    db: Session,
+    account_id: UUID,
+    *,
+    title: str,
+    actor: str,
+    findings: list[Finding],
+    score: int,
+    verdict: Verdict,
+    window_start,
+    window_end,
+    related_actors: list[str] | None = None,
+) -> Incident:
+    framework_mappings = map_indicators(sorted({f.id for f in findings}))
+
+    incident = Incident(
+        id=uuid.uuid4(),
+        account_id=account_id,
+        title=title,
+        actor=actor,
+        verdict=verdict.value,
+        score=score,
+        detection_types=sorted({f.id for f in findings}),
+        findings=[f.model_dump(mode="json") for f in findings],
+        framework_mappings={
+            key: [ref.model_dump(mode="json") for ref in refs]
+            for key, refs in framework_mappings.items()
+        },
+        window_start=window_start,
+        window_end=window_end,
+        related_actors=related_actors,
+    )
+    db.add(incident)
+    db.flush()
+    db.refresh(incident)
+
+    evidence_ids = {eid for f in findings for eid in f.evidence_event_ids}
+    if evidence_ids:
+        db.query(Event).filter(
+            Event.account_id == account_id, Event.id.in_(evidence_ids)
+        ).update({"incident_id": incident.id}, synchronize_session=False)
+
+    return incident
+
+
+def _to_summary(
+    incident: Incident, score: int, verdict: Verdict, window_start, window_end
+) -> IncidentSummary:
+    return IncidentSummary(
+        id=incident.id,
+        created_at=incident.created_at,
+        title=incident.title,
+        actor=incident.actor,
+        verdict=verdict,
+        score=score,
+        detection_types=incident.detection_types,
+        window_start=window_start,
+        window_end=window_end,
+        related_actors=incident.related_actors,
+    )
 
 
 def _load_baseline_snapshot(db: Session, account_id: UUID, actor: str) -> BaselineSnapshot:
@@ -145,25 +231,20 @@ async def ingest_events(
 
     actors = sorted({row.actor for row in persisted_rows})
     lookback = timedelta(hours=settings.intrusion_lookback_hours)
-    incidents_created: list[IncidentSummary] = []
+
+    # ---- Pass 1: existing per-actor engine (+ new cumulative-exfiltration check), but
+    # incident creation is DEFERRED — collect an ActorOutcome per actor so Pass 2 can see
+    # every actor's result before any incident is persisted (needed to merge correlated
+    # actors into one incident instead of N).
+    outcomes: dict[str, ActorOutcome] = {}
+    per_actor_context: dict[str, dict] = {}
 
     for actor in actors:
         actor_batch_rows = [row for row in persisted_rows if row.actor == actor]
         window_end = max(row.timestamp for row in actor_batch_rows)
         window_start = window_end - lookback
 
-        window_rows = (
-            db.query(Event)
-            .filter(
-                Event.account_id == account_id,
-                Event.actor == actor,
-                Event.timestamp >= window_start,
-                Event.timestamp <= window_end,
-            )
-            .order_by(Event.timestamp)
-            .all()
-        )
-
+        window_rows = _query_actor_window(db, account_id, actor, window_start, window_end)
         window = ActorEventWindow(
             actor=actor, events=[_to_activity_event(row) for row in window_rows]
         )
@@ -175,55 +256,156 @@ async def ingest_events(
         # is exactly what should be learned as normal.
         baseline = _load_baseline_snapshot(db, account_id, actor)
         findings = run_detections(window, baseline)
+
+        # Cumulative exfiltration needs a much wider window than the standard 24h lookback
+        # (see app.core.config.exfil_cumulative_window_days), so it can't live in the
+        # _RULES registry above — query separately, only when this batch is even relevant
+        # (cheap short-circuit: if it didn't add a transfer/download, the actor's
+        # cumulative total didn't change since it was last evaluated).
+        if any(row.action in _CUMULATIVE_ACTIONS for row in actor_batch_rows):
+            wide_start = window_end - timedelta(days=settings.exfil_cumulative_window_days)
+            wide_rows = _query_actor_window(db, account_id, actor, wide_start, window_end)
+            wide_window = ActorEventWindow(
+                actor=actor, events=[_to_activity_event(row) for row in wide_rows]
+            )
+            findings = findings + cumulative_exfiltration.evaluate(wide_window, baseline)
+
         score, verdict = fuse(findings)
 
         batch_events = [_to_activity_event(row) for row in actor_batch_rows]
         _persist_baseline(db, account_id, update_baseline(baseline, batch_events))
 
-        if verdict.value == "safe":
-            continue
+        # suspicious_source_ips: only from events actually cited as evidence by this
+        # actor's own findings — feeds the coordinated-campaign correlation below, and
+        # deliberately excludes incidental/benign traffic (see ActorOutcome's docstring).
+        evidence_ids = {eid for f in findings for eid in f.evidence_event_ids}
+        events_by_id = {e.id: e for e in window.events}
+        suspicious_ips = sorted(
+            {
+                events_by_id[eid].source_ip
+                for eid in evidence_ids
+                if eid in events_by_id and events_by_id[eid].source_ip
+            }
+        )
 
-        framework_mappings = map_indicators([f.id for f in findings])
-
-        incident = Incident(
-            id=uuid.uuid4(),
-            account_id=account_id,
-            title=_incident_title(actor, findings),
+        outcomes[actor] = ActorOutcome(
             actor=actor,
-            verdict=verdict.value,
-            score=score,
-            detection_types=sorted({f.id for f in findings}),
-            findings=[f.model_dump(mode="json") for f in findings],
-            framework_mappings={
-                key: [ref.model_dump(mode="json") for ref in refs]
-                for key, refs in framework_mappings.items()
-            },
+            verdict_is_safe=(verdict == Verdict.SAFE),
+            findings=findings,
+            suspicious_source_ips=suspicious_ips,
             window_start=window_start,
             window_end=window_end,
         )
-        db.add(incident)
-        db.flush()
-        db.refresh(incident)
+        per_actor_context[actor] = {
+            "score": score,
+            "verdict": verdict,
+            "window_start": window_start,
+            "window_end": window_end,
+        }
 
-        evidence_ids = {eid for f in findings for eid in f.evidence_event_ids}
-        if evidence_ids:
-            db.query(Event).filter(
-                Event.account_id == account_id, Event.id.in_(evidence_ids)
-            ).update({"incident_id": incident.id}, synchronize_session=False)
+    # ---- Pass 2: coordinated-campaign correlation, scoped to this batch's actors only
+    # (Stage 1 boundary — cross-batch correlation would need a background reconciliation
+    # job). Actors absorbed into a qualifying group get ONE merged incident instead of
+    # their own individual one; every other actor's behavior is completely unchanged.
+    groups = detect_coordinated_campaign(list(outcomes.values()))
+    merged_actors: set[str] = {a for g in groups for a in g.actors}
 
-        incidents_created.append(
-            IncidentSummary(
-                id=incident.id,
-                created_at=incident.created_at,
-                title=incident.title,
-                actor=incident.actor,
-                verdict=verdict,
-                score=score,
-                detection_types=incident.detection_types,
-                window_start=window_start,
-                window_end=window_end,
-            )
+    incidents_created: list[IncidentSummary] = []
+
+    for actor in actors:
+        if actor in merged_actors:
+            continue
+        outcome = outcomes[actor]
+        if outcome.verdict_is_safe:
+            continue
+        ctx = per_actor_context[actor]
+        incident = _persist_incident(
+            db,
+            account_id,
+            title=_incident_title(actor, outcome.findings),
+            actor=actor,
+            findings=outcome.findings,
+            score=ctx["score"],
+            verdict=ctx["verdict"],
+            window_start=ctx["window_start"],
+            window_end=ctx["window_end"],
         )
+        incidents_created.append(
+            _to_summary(incident, ctx["score"], ctx["verdict"], ctx["window_start"], ctx["window_end"])
+        )
+
+    for group in groups:
+        union_findings = [group.finding] + [
+            f.model_copy(update={"actor": a}) for a in group.actors for f in outcomes[a].findings
+        ]
+        score, verdict = fuse(union_findings)
+        incident = _persist_incident(
+            db,
+            account_id,
+            title=f"{group.finding.title} — {len(group.actors)} accounts",
+            actor=f"{len(group.actors)} accounts (coordinated attack)",
+            findings=union_findings,
+            score=score,
+            verdict=verdict,
+            window_start=group.window_start,
+            window_end=group.window_end,
+            related_actors=group.actors,
+        )
+        incidents_created.append(
+            _to_summary(incident, score, verdict, group.window_start, group.window_end)
+        )
+
+    # ---- Pass 3: cross-actor password spray. Re-queries the whole account's auth_fail
+    # events over the standard lookback window (not batch-only — splitting a spray across
+    # many small batches must not evade it, same reasoning as the per-actor re-query
+    # above), excluding any actor who already got an incident in passes 1-2.
+    already_incidented = merged_actors | {
+        a for a in actors if a not in merged_actors and not outcomes[a].verdict_is_safe
+    }
+    batch_auth_fail_rows = [row for row in persisted_rows if row.action == "auth_fail"]
+    if batch_auth_fail_rows:
+        outer_end = max(row.timestamp for row in batch_auth_fail_rows)
+        outer_start = outer_end - lookback
+        auth_fail_rows = (
+            db.query(Event)
+            .filter(
+                Event.account_id == account_id,
+                Event.action == "auth_fail",
+                Event.timestamp >= outer_start,
+                Event.timestamp <= outer_end,
+            )
+            .order_by(Event.timestamp)
+            .all()
+        )
+        # Excludes events already linked to an incident (from this pass or an earlier
+        # request) in addition to already_incidented actors — Pass 3 deliberately re-scans
+        # the whole account's auth_fail history every request (so a spray split across many
+        # small batches isn't missed), which means the SAME still-in-window evidence would
+        # otherwise be re-detected and raise a duplicate incident on every later, unrelated
+        # request that merely happens to touch any auth_fail event within the lookback
+        # window. Once an event is cited as evidence for an incident, it never is again.
+        candidate_events = [
+            _to_activity_event(row)
+            for row in auth_fail_rows
+            if row.actor not in already_incidented and row.incident_id is None
+        ]
+        for spray in detect_password_spray(candidate_events):
+            score, verdict = fuse([spray.finding])
+            incident = _persist_incident(
+                db,
+                account_id,
+                title=f"{spray.finding.title} — {len(spray.actors)} accounts",
+                actor=f"{len(spray.actors)} accounts (password spray)",
+                findings=[spray.finding],
+                score=score,
+                verdict=verdict,
+                window_start=spray.window_start,
+                window_end=spray.window_end,
+                related_actors=spray.actors,
+            )
+            incidents_created.append(
+                _to_summary(incident, score, verdict, spray.window_start, spray.window_end)
+            )
 
     db.commit()
 

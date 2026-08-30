@@ -193,7 +193,7 @@ def test_framework_coverage_question_routes_and_reflects_seeded_data(authed_clie
     assert response.status_code == 200
     result = response.json()["result"]
     assert result["operating_controls"] == 1
-    assert result["total_controls"] == 13
+    assert result["total_controls"] == 14
 
 
 def test_unsupported_question_routes_cleanly(authed_client, db_session, monkeypatch):

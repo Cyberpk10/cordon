@@ -627,11 +627,14 @@ def run_scenario_4_insider_threat(client: AegisClient, run_id: str, t0: datetime
 # Scenario 6 — Concurrent compromised accounts
 # --------------------------------------------------------------------------------------------
 #
-# Targets: app/db/models.py's Incident is scoped to exactly one (account_id, actor) — there is
-# no multi-actor "campaign"/correlation concept anywhere in the schema. This scenario is
-# deliberately LOUD per-actor (unlike scenario 2/3) since the point isn't evasion, it's
-# checking whether 3 simultaneous compromises are each still caught correctly under load, and
-# confirming (not assuming) that nothing links them together.
+# Originally targeted app/db/models.py's Incident being scoped to exactly one
+# (account_id, actor) with no multi-actor "campaign"/correlation concept anywhere in the
+# schema — closed by Stage 1 detection hardening (app.detections.cross_actor,
+# Incident.related_actors): correlated actors sharing a source-IP subnet now merge into
+# ONE linked incident. This scenario is deliberately LOUD per-actor (unlike scenario 2/3)
+# since the point isn't evasion, it's checking whether 3 simultaneous compromises are each
+# still caught correctly under load, and confirming (not assuming) whether anything links
+# them together.
 
 _CONCURRENT_ACTOR_COUNT = 3
 
@@ -692,20 +695,47 @@ def run_scenario_6_concurrent_compromise(client: AegisClient, run_id: str, t0: d
     fired, incidents = post_events_and_check(client, events)
     by_actor = {inc["actor"]: inc for inc in incidents}
 
-    for actor in actors:
-        inc = by_actor.get(actor)
-        if inc:
-            cordon(f"{actor}: incident {inc['id']} -> {inc['verdict'].upper()} risk={inc['score']}/100")
-            dim("detections: " + ", ".join(inc["detection_types"]))
-        else:
-            cordon(_c(_BOLD + _RED, f"{actor}: NO INCIDENT RAISED"))
+    # A Stage 1 coordinated-attack merge gives all 3 actors ONE incident whose `actor`
+    # field is a synthetic multi-account label (not any real actor's own name) — so the
+    # real per-actor identities only ever show up in `related_actors`, never as a key in
+    # by_actor. Check for that merge explicitly rather than assuming the old
+    # one-incident-per-actor shape.
+    merged = next(
+        (inc for inc in incidents if set(actors).issubset(set(inc.get("related_actors") or []))),
+        None,
+    )
 
-    all_caught = len(by_actor) == len(actors)
+    if merged:
+        cordon(
+            f"ONE linked incident covers all {len(actors)} accounts: {merged['id']} -> "
+            f"{_c(_BOLD + _GREEN, merged['verdict'].upper())} risk={merged['score']}/100"
+        )
+        dim("detections: " + ", ".join(merged["detection_types"]))
+        dim("related_actors: " + ", ".join(merged["related_actors"]))
+        caught = True
+        evidence = (
+            f"ONE linked incident ({merged['verdict'].upper()} risk={merged['score']}/100, "
+            f"{', '.join(merged['detection_types'])}) covers all {len(actors)} accounts via "
+            f"related_actors"
+        )
+    else:
+        for actor in actors:
+            inc = by_actor.get(actor)
+            if inc:
+                cordon(f"{actor}: incident {inc['id']} -> {inc['verdict'].upper()} risk={inc['score']}/100")
+                dim("detections: " + ", ".join(inc["detection_types"]))
+            else:
+                cordon(_c(_BOLD + _RED, f"{actor}: NO INCIDENT RAISED"))
+        caught = False
+        evidence = (
+            f"{len(by_actor)}/{len(actors)} actors individually caught; "
+            f"no unified multi-actor incident was raised"
+        )
+
     sc.record(
-        6, "Concurrent compromised accounts", "no cross-actor campaign correlation exists — every incident is scoped to one (account, actor)",
-        all_caught,
-        f"{len(by_actor)}/{len(actors)} actors individually caught; "
-        f"no unified multi-actor incident exists (architecturally impossible today)",
+        6, "Concurrent compromised accounts",
+        "closed by Stage 1 detection hardening: correlated actors sharing a source-IP subnet now merge into one linked incident (app.detections.cross_actor, Incident.related_actors)",
+        caught, evidence,
     )
     time.sleep(pace)
 
