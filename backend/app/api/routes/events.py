@@ -273,9 +273,12 @@ async def ingest_events(
         # (see app.core.config.exfil_cumulative_window_days), so it can't live in the
         # _RULES registry above — query separately, only when this batch is even relevant
         # (cheap short-circuit: if it didn't add a transfer/download, the actor's
-        # cumulative total didn't change since it was last evaluated).
+        # cumulative total didn't change since it was last evaluated). Queries the LONGEST
+        # of cumulative_exfiltration's three tiers (Stage C) — evaluate() slices this one
+        # wide window into short/medium/long sub-windows internally, so one query covers
+        # all three rather than querying per-tier.
         if any(row.action in _CUMULATIVE_ACTIONS for row in actor_batch_rows):
-            wide_start = window_end - timedelta(days=settings.exfil_cumulative_window_days)
+            wide_start = window_end - timedelta(days=settings.exfil_cumulative_window_days_long)
             wide_rows = _query_actor_window(db, account_id, actor, wide_start, window_end)
             wide_window = ActorEventWindow(
                 actor=actor, events=[_to_activity_event(row) for row in wide_rows]

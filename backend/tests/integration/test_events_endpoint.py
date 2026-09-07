@@ -465,3 +465,102 @@ def test_benign_organic_growth_stays_safe_across_the_whole_ramp(authed_client):
         response = authed_client.post("/api/events", json={"events": events})
         assert response.status_code == 200
         assert response.json()["incidents_created"] == []
+
+
+# --------------------------------------------------------------------------------------
+# Detection max-out Stage C — multi-window cumulative exfiltration.
+# --------------------------------------------------------------------------------------
+
+
+def _weekday_snap_exfil(dt: datetime) -> datetime:
+    while dt.weekday() >= 5:
+        dt += timedelta(days=1)
+    return dt
+
+
+def test_medium_window_catches_phase3_scenario2_cadence_end_to_end(authed_client, db_session):
+    """Replays phase 3 #2's exact cadence (280MB every 12 days) through POST /api/events —
+    no single batch ever contains 2 transfers, so the endpoint's own short-window path never
+    fires, but the medium (30-day) tier does once enough cycles accumulate."""
+    actor = "windowspread@corp.com"
+    t0 = datetime(2026, 6, 1, 15, 0, tzinfo=timezone.utc)
+    any_incident = False
+
+    for cycle in range(7):
+        day = _weekday_snap_exfil(t0 + timedelta(days=12 * cycle))
+        events = [
+            {
+                "timestamp": day.isoformat(),
+                "actor": actor,
+                "action": "data_transfer",
+                "target": f"unfamiliar-host-{cycle % 2}.example.net",
+                "bytes": 280_000_000,
+                "outcome": "success",
+            }
+        ]
+        response = authed_client.post("/api/events", json={"events": events})
+        assert response.status_code == 200
+        if response.json()["incidents_created"]:
+            any_incident = True
+
+    assert any_incident
+    incidents = [
+        i for i in db_session.query(Incident).all() if "CUMULATIVE_EXFIL_VOLUME" in i.detection_types
+    ]
+    assert len(incidents) >= 1
+
+
+def test_long_window_catches_phase4_scenario4_cadence_end_to_end(authed_client, db_session):
+    """Replays phase 4 #4's exact cadence (150MB every 12 days across 4 destinations) — the
+    medium tier never fires for this quieter cadence, but the long (90-day) tier does."""
+    actor = "distributed@corp.com"
+    t0 = datetime(2026, 6, 1, 15, 0, tzinfo=timezone.utc)
+    hosts = [
+        "unfamiliar-cdn-node.example.net",
+        "partner-backup-relay.example.net",
+        "unfamiliar-storage-relay.example.net",
+        "edge-cache-mirror.example.net",
+    ]
+    any_incident = False
+
+    for cycle in range(9):
+        day = _weekday_snap_exfil(t0 + timedelta(days=12 * cycle))
+        events = [
+            {
+                "timestamp": day.isoformat(),
+                "actor": actor,
+                "action": "data_transfer",
+                "target": hosts[cycle % len(hosts)],
+                "bytes": 150_000_000,
+                "outcome": "success",
+            }
+        ]
+        response = authed_client.post("/api/events", json={"events": events})
+        assert response.status_code == 200
+        if response.json()["incidents_created"]:
+            any_incident = True
+
+    assert any_incident
+
+
+def test_benign_multi_month_low_volume_transfers_stay_safe(authed_client):
+    """Zero-false-positive control: modest, spread-out non-allowlisted transfers over
+    months, staying under every tier's threshold."""
+    actor = "routine-vendor-sync@corp.com"
+    t0 = datetime(2026, 6, 1, 15, 0, tzinfo=timezone.utc)
+
+    for i in range(5):
+        day = _weekday_snap_exfil(t0 + timedelta(days=18 * i))
+        events = [
+            {
+                "timestamp": day.isoformat(),
+                "actor": actor,
+                "action": "data_transfer",
+                "target": f"partner-{i}.example.net",
+                "bytes": 80_000_000,
+                "outcome": "success",
+            }
+        ]
+        response = authed_client.post("/api/events", json={"events": events})
+        assert response.status_code == 200
+        assert response.json()["incidents_created"] == []

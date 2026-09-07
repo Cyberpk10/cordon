@@ -180,6 +180,45 @@ class Settings:
         default_factory=lambda: int(os.environ.get("EXFIL_CUMULATIVE_MIN_TRANSFERS", "2"))
     )
 
+    # Detection max-out Stage C — multi-window cumulative exfiltration
+    # (app.detections.cumulative_exfiltration). The settings above (7 days / 250MB) are the
+    # "short" tier, unchanged. These add two longer tiers evaluated at the same time so
+    # pacing transfers beyond the short window's reach (e.g. every 12 days) still gets
+    # caught once enough of them accumulate over a month or a quarter — exfil_cumulative_
+    # min_transfers is shared across all three tiers (window length differentiates
+    # strictness, not transfer count).
+    exfil_cumulative_window_days_medium: int = field(
+        default_factory=lambda: int(os.environ.get("EXFIL_CUMULATIVE_WINDOW_DAYS_MEDIUM", "30"))
+    )
+    exfil_cumulative_volume_bytes_medium: int = field(
+        default_factory=lambda: int(
+            os.environ.get("EXFIL_CUMULATIVE_VOLUME_BYTES_MEDIUM", str(600_000_000))
+        )
+    )
+    exfil_cumulative_window_days_long: int = field(
+        default_factory=lambda: int(os.environ.get("EXFIL_CUMULATIVE_WINDOW_DAYS_LONG", "90"))
+    )
+    exfil_cumulative_volume_bytes_long: int = field(
+        default_factory=lambda: int(
+            os.environ.get("EXFIL_CUMULATIVE_VOLUME_BYTES_LONG", str(1_000_000_000))
+        )
+    )
+    # Ratio weighting: heavy but mostly-legitimate data movement (most of it to allowlisted
+    # destinations) shouldn't score at full strength just because a wide window is large
+    # enough to also see a smaller non-allowlisted side-channel. Weight reaches 1.0 once
+    # non-allowlisted transfers make up at least this share of the actor's total transfer
+    # volume in the firing window...
+    exfil_cumulative_ratio_full_weight_at: float = field(
+        default_factory=lambda: float(
+            os.environ.get("EXFIL_CUMULATIVE_RATIO_FULL_WEIGHT_AT", "0.5")
+        )
+    )
+    # ...and never drops below this floor — a low-ratio actor still surfaces the finding at
+    # reduced confidence, rather than being suppressed outright.
+    exfil_cumulative_ratio_min_weight: float = field(
+        default_factory=lambda: float(os.environ.get("EXFIL_CUMULATIVE_RATIO_MIN_WEIGHT", "0.4"))
+    )
+
     # Per-account sender-history-aware phishing detection (M8 Stage 3a). How far back
     # app.sender_history.loader looks at an account's own past Case rows to build its
     # correspondence-history snapshot.
