@@ -9,6 +9,7 @@ from app.baselines.aggregation import (
     is_sensitive_class_first_seen,
     is_typical_hour,
     is_volume_anomalous,
+    project_suspicious_pattern_score,
     update_baseline,
 )
 from app.core.config import settings
@@ -297,3 +298,147 @@ def test_evaluate_ramp_anomaly_long_term_drift_requires_data_older_than_recent_w
     result_after = evaluate_ramp_anomaly(baseline)
     assert result_after is not None
     assert result_after.long_term_drift_detected is True
+
+
+# --------------------------------------------------------------------------------------
+# Detection max-out Stage D — long-dwell / low-signal correlation.
+# --------------------------------------------------------------------------------------
+
+
+def _ls_event(
+    ts: datetime,
+    action: EventAction,
+    *,
+    bytes_: int | None = None,
+    target: str | None = None,
+    outcome: str | None = "success",
+    source_ip: str | None = None,
+) -> ActivityEvent:
+    return ActivityEvent(
+        timestamp=ts,
+        actor="alice@corp.com",
+        action=action,
+        outcome=outcome,
+        target=target,
+        bytes=bytes_,
+        source_ip=source_ip,
+    )
+
+
+_LS_BASE = datetime(2026, 3, 1, 15, 0, tzinfo=timezone.utc)
+
+
+def test_weak_signal_auth_category_fires_below_brute_force_floor():
+    events = [_ls_event(_LS_BASE, EventAction.AUTH_FAIL, outcome="failure") for _ in range(2)]
+    score, contribution = project_suspicious_pattern_score(
+        0.0, None, events, empty_baseline("alice@corp.com"), now=_LS_BASE
+    )
+    assert contribution.categories == frozenset({"auth"})
+    assert contribution.raw_points == settings.low_signal_points_auth_fail
+    assert contribution.chronic_points == 0.0  # single category — gated out of the chronic score
+    assert score == 0.0
+
+
+def test_weak_signal_auth_category_does_not_fire_at_or_above_brute_force_floor(monkeypatch):
+    monkeypatch.setattr(settings, "low_signal_auth_fail_ceiling", 4)
+    events = [_ls_event(_LS_BASE, EventAction.AUTH_FAIL, outcome="failure") for _ in range(5)]
+    _, contribution = project_suspicious_pattern_score(
+        0.0, None, events, empty_baseline("alice@corp.com"), now=_LS_BASE
+    )
+    assert "auth" not in contribution.categories
+
+
+def test_weak_signal_transfer_category_fires_below_large_transfer_floor(monkeypatch):
+    monkeypatch.setattr(settings, "exfil_large_transfer_bytes", 500_000_000)
+    events = [_ls_event(_LS_BASE, EventAction.DATA_TRANSFER, bytes_=10_000_000, target="unfamiliar.example.net")]
+    _, contribution = project_suspicious_pattern_score(
+        0.0, None, events, empty_baseline("alice@corp.com"), now=_LS_BASE
+    )
+    assert contribution.categories == frozenset({"transfer"})
+
+
+def test_weak_signal_transfer_category_ignores_allowlisted_destination(monkeypatch):
+    monkeypatch.setattr(settings, "exfil_allowlisted_destinations", ["trusted.example.com"])
+    events = [_ls_event(_LS_BASE, EventAction.DATA_TRANSFER, bytes_=10_000_000, target="trusted.example.com")]
+    _, contribution = project_suspicious_pattern_score(
+        0.0, None, events, empty_baseline("alice@corp.com"), now=_LS_BASE
+    )
+    assert contribution.categories == frozenset()
+
+
+def test_weak_signal_sensitive_category_only_during_cold_start(monkeypatch):
+    monkeypatch.setattr(settings, "sensitive_resource_prefixes_finance", ["finance/"])
+    monkeypatch.setattr(settings, "baseline_min_events_for_resource_class", 5)
+    cold_baseline = empty_baseline("alice@corp.com")  # event_count == 0
+    events = [_ls_event(_LS_BASE, EventAction.FILE_ACCESS, target="finance/report.xlsx")]
+    _, contribution = project_suspicious_pattern_score(0.0, None, events, cold_baseline, now=_LS_BASE)
+    assert contribution.categories == frozenset({"sensitive"})
+
+    mature_baseline = update_baseline(
+        cold_baseline,
+        [_ls_event(_LS_BASE, EventAction.FILE_ACCESS, target=f"shared/doc-{i}.docx") for i in range(6)],
+    )
+    _, contribution_mature = project_suspicious_pattern_score(
+        0.0, None, events, mature_baseline, now=_LS_BASE
+    )
+    assert "sensitive" not in contribution_mature.categories  # this is SENSITIVE_RESOURCE_FIRST_ACCESS's job now
+
+
+def test_weak_signal_hour_category_requires_mature_baseline_and_atypical_hour(monkeypatch):
+    monkeypatch.setattr(settings, "low_signal_min_events_for_hour_check", 20)
+    monkeypatch.setattr(settings, "baseline_min_hour_occurrences", 2)
+    baseline = empty_baseline("alice@corp.com")
+    for i in range(25):
+        baseline = update_baseline(
+            baseline, [_ls_event(_LS_BASE + timedelta(days=i), EventAction.LOGIN)]
+        )
+    atypical_event = [_ls_event(_LS_BASE + timedelta(days=25, hours=-12), EventAction.LOGIN)]  # hour 3, never seen
+    _, contribution = project_suspicious_pattern_score(0.0, None, atypical_event, baseline, now=_LS_BASE)
+    assert contribution.categories == frozenset({"hour"})
+
+
+def test_weak_signal_hour_category_disabled_under_cold_start():
+    baseline = empty_baseline("alice@corp.com")  # event_count == 0, far below the maturity gate
+    events = [_ls_event(_LS_BASE, EventAction.LOGIN)]
+    _, contribution = project_suspicious_pattern_score(0.0, None, events, baseline, now=_LS_BASE)
+    assert "hour" not in contribution.categories
+
+
+def test_chronic_score_requires_two_co_occurring_categories_in_one_batch():
+    events_one_category = [_ls_event(_LS_BASE, EventAction.AUTH_FAIL, outcome="failure")]
+    score_one, contribution_one = project_suspicious_pattern_score(
+        0.0, None, events_one_category, empty_baseline("alice@corp.com"), now=_LS_BASE
+    )
+    assert contribution_one.chronic_points == 0.0
+    assert score_one == 0.0
+
+    events_two_categories = events_one_category + [
+        _ls_event(_LS_BASE, EventAction.DATA_TRANSFER, bytes_=10_000_000, target="unfamiliar.example.net")
+    ]
+    score_two, contribution_two = project_suspicious_pattern_score(
+        0.0, None, events_two_categories, empty_baseline("alice@corp.com"), now=_LS_BASE
+    )
+    assert contribution_two.chronic_points > 0.0
+    assert score_two == contribution_two.chronic_points
+
+
+def test_decay_score_halves_after_one_half_life(monkeypatch):
+    monkeypatch.setattr(settings, "low_signal_half_life_days", 45.0)
+    later = _LS_BASE + timedelta(days=45)
+    score, _ = project_suspicious_pattern_score(20.0, _LS_BASE, [], empty_baseline("alice@corp.com"), now=later)
+    assert abs(score - 10.0) < 0.01
+
+
+def test_suspicious_pattern_score_caps_at_configured_ceiling(monkeypatch):
+    monkeypatch.setattr(settings, "low_signal_score_cap", 100.0)
+    monkeypatch.setattr(settings, "low_signal_batch_cap", 12.0)
+    events = [
+        _ls_event(_LS_BASE, EventAction.AUTH_FAIL, outcome="failure"),
+        _ls_event(_LS_BASE, EventAction.DATA_TRANSFER, bytes_=10_000_000, target="unfamiliar.example.net"),
+    ]
+    score = 95.0
+    for _ in range(5):
+        score, _ = project_suspicious_pattern_score(
+            score, _LS_BASE, events, empty_baseline("alice@corp.com"), now=_LS_BASE
+        )
+    assert score <= 100.0

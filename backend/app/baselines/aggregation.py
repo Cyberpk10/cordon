@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import statistics
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from app.baselines.resource_sensitivity import classify_resource_sensitivity
 from app.core.config import settings
@@ -59,6 +60,13 @@ class BaselineSnapshot:
     # it ages out of a window measured in months, not weeks.
     long_term_daily_volume: dict[str, int] = field(default_factory=dict)
     long_term_daily_sensitive_count: dict[str, int] = field(default_factory=dict)
+    # Detection max-out Stage D additions below. suspicious_pattern_score is the persisted,
+    # already-decayed-as-of-last_updated chronic score (see project_suspicious_pattern_score);
+    # last_updated is carried through from ActorBaseline.last_updated purely as decay math
+    # input, never recomputed here — the DB column's own onupdate is what actually advances
+    # it on persist.
+    suspicious_pattern_score: float = 0.0
+    last_updated: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -156,6 +164,11 @@ def update_baseline(existing: BaselineSnapshot, new_events: list[ActivityEvent])
         daily_sensitive_count=daily_sensitive_count,
         long_term_daily_volume=long_term_daily_volume,
         long_term_daily_sensitive_count=long_term_daily_sensitive_count,
+        # Stage D's chronic score is projected/persisted separately by the route layer
+        # (app.api.routes.events, via project_suspicious_pattern_score) — carried through
+        # unchanged here so update_baseline stays a pure fold over new_events alone.
+        suspicious_pattern_score=existing.suspicious_pattern_score,
+        last_updated=existing.last_updated,
     )
 
 
@@ -280,3 +293,143 @@ def evaluate_ramp_anomaly(snapshot: BaselineSnapshot) -> RampResult | None:
     if not any_checked:
         return None
     return result
+
+
+# --------------------------------------------------------------------------------------
+# Detection max-out Stage D — long-dwell / low-signal correlation.
+#
+# HONEST LIMIT: this closes the case where an actor's individual weak signals are too small
+# for any existing detector but genuinely accumulate over months. It does NOT catch a
+# disciplined attacker who never trips two of the categories below in the same ingestion
+# batch, or who paces slowly enough that decay outruns accumulation — pure living-off-the-
+# land within otherwise-normal patterns needs endpoint telemetry this system doesn't have.
+# --------------------------------------------------------------------------------------
+
+# Mirrors app.detections.data_exfiltration._TRANSFER_ACTIONS — duplicated, not imported,
+# for the same reason _HOUR_TRACKED_ACTIONS above duplicates off_hours_access's constant:
+# app.baselines must never depend on app.detections, only the other way around.
+_LOW_SIGNAL_TRANSFER_ACTIONS = frozenset({"data_transfer", "file_download"})
+
+
+def _is_allowlisted_destination(target: str | None) -> bool:
+    """Mirrors app.detections.data_exfiltration._is_allowlisted — see
+    _LOW_SIGNAL_TRANSFER_ACTIONS above for why this is duplicated rather than imported."""
+    if target is None:
+        return False
+    return target in settings.exfil_allowlisted_destinations
+
+
+@dataclass(frozen=True)
+class WeakSignalContribution:
+    """One batch's weak-signal read: which categories tripped, the raw point sum (used for
+    cross-actor candidacy — see app.detections.cross_actor — regardless of co-occurrence),
+    and chronic_points — the amount that actually feeds the long-lived decayed score, which
+    is nonzero ONLY when 2+ distinct categories co-occur in the same batch (the anti-false-
+    positive gate: a single recurring benign habit, however frequent, never reaches this by
+    itself — see the Stage D plan's calibration section for the numeric justification)."""
+
+    categories: frozenset[str] = field(default_factory=frozenset)
+    raw_points: float = 0.0
+    chronic_points: float = 0.0
+    evidence_event_ids: list = field(default_factory=list)
+
+
+def _compute_weak_signal_contribution(
+    batch_events: list[ActivityEvent], baseline: BaselineSnapshot
+) -> WeakSignalContribution:
+    """Four independent checks, each structurally incapable of ALSO satisfying an existing
+    detector's own firing condition (not just "below threshold by coincidence") — see the
+    Stage D plan for why each boundary was chosen this way:
+      - auth: 1..low_signal_auth_fail_ceiling auth_fail events in the batch — strictly below
+        brute_force's 5-event burst floor.
+      - transfer: a non-allowlisted transfer/download whose bytes are >0 but at or below
+        exfil_large_transfer_bytes — below DATA_EXFIL_LARGE_TRANSFER's own floor.
+      - sensitive: a first-ever touch of a sensitivity class, but ONLY while the baseline is
+        still too new for app.detections.sensitive_resource_access's own cold-start gate —
+        filling that detector's documented gap, not duplicating it.
+      - hour: an atypical-hour event, but only once the baseline has enough history overall
+        to make "atypical" meaningful (guards a brand-new baseline from flagging every hour).
+    """
+    categories: set[str] = set()
+    evidence_ids: list = []
+
+    auth_fails = [e for e in batch_events if e.action == "auth_fail"]
+    if 1 <= len(auth_fails) <= settings.low_signal_auth_fail_ceiling:
+        categories.add("auth")
+        evidence_ids.extend(e.id for e in auth_fails if e.id is not None)
+
+    for event in batch_events:
+        if (
+            event.action in _LOW_SIGNAL_TRANSFER_ACTIONS
+            and (event.bytes or 0) > 0
+            and (event.bytes or 0) <= settings.exfil_large_transfer_bytes
+            and not _is_allowlisted_destination(event.target)
+        ):
+            categories.add("transfer")
+            if event.id is not None:
+                evidence_ids.append(event.id)
+
+    if baseline.event_count < settings.baseline_min_events_for_resource_class:
+        for event in batch_events:
+            sensitivity_class = classify_resource_sensitivity(event.target)
+            if sensitivity_class is not None and is_sensitive_class_first_seen(
+                baseline, sensitivity_class
+            ):
+                categories.add("sensitive")
+                if event.id is not None:
+                    evidence_ids.append(event.id)
+
+    if baseline.event_count >= settings.low_signal_min_events_for_hour_check:
+        for event in batch_events:
+            if event.action in _HOUR_TRACKED_ACTIONS and not is_typical_hour(
+                baseline, event.timestamp.hour
+            ):
+                categories.add("hour")
+                if event.id is not None:
+                    evidence_ids.append(event.id)
+
+    points_by_category = {
+        "auth": settings.low_signal_points_auth_fail,
+        "transfer": settings.low_signal_points_transfer,
+        "sensitive": settings.low_signal_points_sensitive,
+        "hour": settings.low_signal_points_hour,
+    }
+    raw_points = sum(points_by_category[c] for c in categories)
+    chronic_points = (
+        min(settings.low_signal_batch_cap, raw_points) if len(categories) >= 2 else 0.0
+    )
+
+    return WeakSignalContribution(
+        categories=frozenset(categories),
+        raw_points=raw_points,
+        chronic_points=chronic_points,
+        evidence_event_ids=evidence_ids,
+    )
+
+
+def decay_score(score: float, last_updated: datetime | None, now: datetime) -> float:
+    """Exponential half-life decay — score * 0.5 ** (elapsed_days / half_life). No decay for
+    a fresh baseline (last_updated is None) or a non-positive score."""
+    if last_updated is None or score <= 0:
+        return score
+    elapsed_days = max(0.0, (now - last_updated).total_seconds() / 86400.0)
+    return score * (0.5 ** (elapsed_days / settings.low_signal_half_life_days))
+
+
+def project_suspicious_pattern_score(
+    existing_score: float,
+    last_updated: datetime | None,
+    batch_events: list[ActivityEvent],
+    baseline: BaselineSnapshot,
+    now: datetime,
+) -> tuple[float, WeakSignalContribution]:
+    """Decays existing_score to `now`, then folds in this batch's contribution (if the
+    co-occurrence gate passes), clipped at low_signal_score_cap. Deliberately a single pure
+    function called identically by both the persistence path (app.api.routes.events, to
+    compute the value it stores) and the firing decision
+    (app.detections.low_signal_accumulation.evaluate) — both given the same baseline/batch
+    inputs, so there is no one-batch lag between what's stored and what's evaluated."""
+    decayed = decay_score(existing_score, last_updated, now)
+    contribution = _compute_weak_signal_contribution(batch_events, baseline)
+    new_score = min(settings.low_signal_score_cap, decayed + contribution.chronic_points)
+    return new_score, contribution

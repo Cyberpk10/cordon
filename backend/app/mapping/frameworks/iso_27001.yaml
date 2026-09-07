@@ -1,4 +1,4 @@
-version: "1.7"
+version: "1.8"
 framework: "ISO/IEC 27001:2022 Annex A"
 framework_key: iso_27001
 source: "https://www.iso.org/standard/27001"
@@ -86,6 +86,11 @@ mappings:
   # Detection max-out Stage B — behavioral baselines with anti-poisoning.
   SENSITIVE_RESOURCE_FIRST_ACCESS: [A.5.15, A.8.16]
   BASELINE_RAMP_ANOMALY: [A.5.15, A.8.16]
+
+  # Detection max-out Stage D — long-dwell/low-signal correlation. Reuses the same
+  # controls as BASELINE_RAMP_ANOMALY above (a trend/pattern detected across many days
+  # of history via an already-trusted account, not a single event).
+  LOW_SIGNAL_PATTERN_ACCUMULATION: [A.5.15, A.8.16]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions.
   QUARANTINE_EMAIL: [A.5.26]

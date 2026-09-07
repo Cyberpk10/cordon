@@ -109,6 +109,55 @@ def test_coordinated_campaign_ignores_safe_actors_sharing_subnet():
     assert detect_coordinated_campaign(outcomes) == []
 
 
+# --------------------------------------------------------------------------------------
+# Detection max-out Stage D — weak-signal candidacy (relaxed filter).
+# --------------------------------------------------------------------------------------
+
+
+def _weak_signal_outcome(actor: str, *, ips: list[str]) -> ActorOutcome:
+    """A SAFE actor (no firing finding at all) who is nonetheless a weak-signal candidate —
+    models a coordinated campaign where every participant stays individually sub-threshold."""
+    return ActorOutcome(
+        actor=actor, verdict_is_safe=True, findings=[], suspicious_source_ips=ips,
+        window_start=_BASE, window_end=_BASE + timedelta(minutes=30), weak_signal_candidate=True,
+    )
+
+
+def test_coordinated_campaign_now_groups_sub_threshold_weak_signal_actors_sharing_a_subnet():
+    """The real capability Stage D adds: before, three individually-safe actors sharing
+    infrastructure produced zero candidates (old filter was verdict_is_safe-only)."""
+    outcomes = [
+        _weak_signal_outcome("a@corp.com", ips=["203.0.113.10"]),
+        _weak_signal_outcome("b@corp.com", ips=["203.0.113.11"]),
+        _weak_signal_outcome("c@corp.com", ips=["203.0.113.12"]),
+    ]
+    groups = detect_coordinated_campaign(outcomes)
+    assert len(groups) == 1
+    assert groups[0].actors == ["a@corp.com", "b@corp.com", "c@corp.com"]
+    assert groups[0].finding.id == "COORDINATED_ATTACK_CORRELATION"
+
+
+def test_coordinated_campaign_still_ignores_plain_safe_actors_without_weak_signal():
+    outcomes = [
+        _outcome("a@corp.com", safe=True, ips=["203.0.113.10"]),
+        _outcome("b@corp.com", safe=True, ips=["203.0.113.11"]),
+        _outcome("c@corp.com", safe=True, ips=["203.0.113.12"]),
+    ]
+    assert detect_coordinated_campaign(outcomes) == []
+
+
+def test_coordinated_campaign_honest_limit_does_not_group_unrelated_infrastructure():
+    """Phase 4 #6's exact construction: sub-threshold weak-signal actors, but each on a
+    genuinely DIFFERENT /24 subnet — candidacy relaxation alone does not close this, since
+    grouping still requires shared-subnet evidence. Documented, by-design remaining miss."""
+    outcomes = [
+        _weak_signal_outcome("a@corp.com", ips=["203.0.113.10"]),
+        _weak_signal_outcome("b@corp.com", ips=["198.51.100.11"]),
+        _weak_signal_outcome("c@corp.com", ips=["91.198.174.12"]),
+    ]
+    assert detect_coordinated_campaign(outcomes) == []
+
+
 def test_coordinated_campaign_ignores_incidental_ip_not_in_evidence():
     # All non-safe, but each actor's own suspicious evidence points at an unrelated
     # subnet — models "shares a benign IP incidentally, but that IP was never cited as

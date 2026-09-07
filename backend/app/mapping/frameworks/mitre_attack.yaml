@@ -1,4 +1,4 @@
-version: "1.6"
+version: "1.7"
 framework: "MITRE ATT&CK"
 framework_key: mitre_attack
 source: "https://attack.mitre.org"
@@ -122,3 +122,8 @@ mappings:
   # behavior: collecting data from internal repositories via a valid, already-trusted account.
   SENSITIVE_RESOURCE_FIRST_ACCESS: [T1213, T1078]
   BASELINE_RAMP_ANOMALY: [T1213, T1078]
+
+  # Detection max-out Stage D — long-dwell/low-signal correlation. Reuses the same
+  # controls as BASELINE_RAMP_ANOMALY above (a trend/pattern detected across many days
+  # of history via an already-trusted account, not a single event).
+  LOW_SIGNAL_PATTERN_ACCUMULATION: [T1213, T1078]

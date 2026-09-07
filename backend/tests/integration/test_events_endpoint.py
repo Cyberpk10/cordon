@@ -563,4 +563,110 @@ def test_benign_multi_month_low_volume_transfers_stay_safe(authed_client):
         ]
         response = authed_client.post("/api/events", json={"events": events})
         assert response.status_code == 200
+
+
+# --------------------------------------------------------------------------------------
+# Detection max-out Stage D — long-dwell / low-signal correlation.
+# --------------------------------------------------------------------------------------
+
+
+def test_low_signal_accumulation_fires_after_weekly_co_occurring_cycles_end_to_end(
+    authed_client, db_session
+):
+    """A weekly co-occurring pair (sub-floor auth-fail blip + small non-allowlisted
+    transfer, 6 raw points/week) numerically crosses the default 40-point chronic
+    threshold at week 11 (half_life=45d) — not before. Neither category alone would ever
+    trip an existing detector."""
+    actor = "patient@corp.com"
+    t0 = datetime(2026, 6, 1, 15, 0, tzinfo=timezone.utc)
+    any_incident = False
+
+    for week in range(11):
+        day = t0 + timedelta(weeks=week)
+        events = [
+            {"timestamp": day.isoformat(), "actor": actor, "action": "auth_fail", "outcome": "failure"},
+            {
+                "timestamp": day.isoformat(),
+                "actor": actor,
+                "action": "data_transfer",
+                "target": f"unfamiliar-host-{week % 4}.example.net",
+                "bytes": 10_000_000,
+                "outcome": "success",
+            },
+        ]
+        response = authed_client.post("/api/events", json={"events": events})
+        assert response.status_code == 200
+        if response.json()["incidents_created"]:
+            any_incident = True
+
+    assert any_incident
+    incidents = [
+        i for i in db_session.query(Incident).all()
+        if "LOW_SIGNAL_PATTERN_ACCUMULATION" in i.detection_types
+    ]
+    assert len(incidents) >= 1
+
+
+def test_coordinated_sub_threshold_campaign_sharing_subnet_correlates_end_to_end(
+    authed_client, db_session
+):
+    """Stage D's real cross-actor capability: 3 actors, each individually SAFE (one batch's
+    worth of co-occurring weak signal is nowhere near the chronic threshold), but sharing a
+    /24 subnet in the same ingestion batch — closes the adjacent gap to Phase 4 #6 (which
+    stays open only because its actors deliberately avoid shared infrastructure)."""
+    t0 = datetime(2026, 6, 1, 15, 0, tzinfo=timezone.utc)
+    events = []
+    for i, actor in enumerate(["camp-a@corp.com", "camp-b@corp.com", "camp-c@corp.com"]):
+        ip = f"203.0.113.{10 + i}"
+        events.append(
+            {
+                "timestamp": t0.isoformat(), "actor": actor, "action": "auth_fail",
+                "outcome": "failure", "source_ip": ip,
+            }
+        )
+        events.append(
+            {
+                "timestamp": t0.isoformat(), "actor": actor, "action": "data_transfer",
+                "target": "unfamiliar-shared-relay.example.net", "bytes": 10_000_000,
+                "outcome": "success", "source_ip": ip,
+            }
+        )
+
+    response = authed_client.post("/api/events", json={"events": events})
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["incidents_created"]) == 1
+    created = body["incidents_created"][0]
+    assert "COORDINATED_ATTACK_CORRELATION" in created["detection_types"]
+    assert created["related_actors"] is not None
+    assert len(created["related_actors"]) == 3
+
+
+def test_benign_multi_month_occasional_weak_signals_stay_safe(authed_client, db_session):
+    """Zero-false-positive control: a normal employee occasionally mistypes their password
+    OR sends one odd transfer — never both in the same batch — spread over 90+ days. The
+    co-occurrence gate means none of this ever reaches the chronic accumulator."""
+    actor = "normal@corp.com"
+    t0 = datetime(2026, 6, 1, 15, 0, tzinfo=timezone.utc)
+
+    for week in range(14):  # ~98 days
+        day = t0 + timedelta(weeks=week)
+        if week % 3 == 0:
+            events = [
+                {"timestamp": day.isoformat(), "actor": actor, "action": "auth_fail", "outcome": "failure"}
+            ]
+        elif week % 5 == 0:
+            events = [
+                {
+                    "timestamp": day.isoformat(), "actor": actor, "action": "data_transfer",
+                    "target": "occasional-partner.example.net", "bytes": 8_000_000, "outcome": "success",
+                }
+            ]
+        else:
+            events = [{"timestamp": day.isoformat(), "actor": actor, "action": "login", "outcome": "success"}]
+
+        response = authed_client.post("/api/events", json={"events": events})
+        assert response.status_code == 200
         assert response.json()["incidents_created"] == []
+
+    assert db_session.query(Incident).count() == 0

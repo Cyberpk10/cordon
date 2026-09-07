@@ -57,6 +57,14 @@ class ActorOutcome:
     suspicious_source_ips: list[str]
     window_start: datetime
     window_end: datetime
+    # Detection max-out Stage D: true if this actor's current batch tripped 2+ co-occurring
+    # weak-signal categories (the same gate app.baselines.aggregation.
+    # WeakSignalContribution.chronic_points uses), even if verdict_is_safe. A single-category
+    # bar was tried and rejected: it made this pass swallow ordinary single-mechanism
+    # patterns (e.g. a plain password spray, already well-handled by detect_password_spray)
+    # before their purpose-built detector ran. Requiring co-occurrence keeps this targeted at
+    # genuinely multi-signal sub-threshold actors.
+    weak_signal_candidate: bool = False
 
 
 def detect_password_spray(auth_fail_events: list[ActivityEvent]) -> list[CrossActorFinding]:
@@ -125,10 +133,18 @@ def detect_password_spray(auth_fail_events: list[ActivityEvent]) -> list[CrossAc
 def detect_coordinated_campaign(outcomes: list[ActorOutcome]) -> list[CrossActorFinding]:
     """Batch-scoped only (Stage 1 boundary — cross-batch/cross-request correlation would
     need a materially different design, e.g. a background reconciliation job). Groups
-    already-non-safe actors into connected components by shared source-IP /24 subnet
-    (drawn only from each actor's own suspicious evidence IPs), then keeps components with
-    at least coordinated_attack_min_actors members."""
-    candidates = [o for o in outcomes if not o.verdict_is_safe]
+    candidate actors into connected components by shared source-IP /24 subnet (drawn only
+    from each actor's own suspicious evidence IPs), then keeps components with at least
+    coordinated_attack_min_actors members.
+
+    Candidates are non-safe actors OR weak-signal candidates (Detection max-out Stage D) —
+    the latter closes the case where every participating actor in a coordinated campaign
+    stays individually sub-threshold, so none would ever appear here under the old
+    non-safe-only filter. This does NOT by itself catch a campaign spread across genuinely
+    unrelated infrastructure — the grouping below still requires a shared subnet; see the
+    Stage D plan for why that boundary was kept (a weaker time-coincidence-only fallback was
+    considered and rejected for false-positive risk)."""
+    candidates = [o for o in outcomes if not o.verdict_is_safe or o.weak_signal_candidate]
     subnet_sets = {
         o.actor: {key for ip in o.suspicious_source_ips if (key := _subnet_key(ip)) is not None}
         for o in candidates

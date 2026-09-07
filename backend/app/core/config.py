@@ -365,6 +365,58 @@ class Settings:
         )
     )
 
+    # Detection max-out Stage D — long-dwell / low-signal correlation (app.baselines.
+    # aggregation.project_suspicious_pattern_score, app.detections.low_signal_accumulation).
+    # Half-life (days) for the decayed per-actor "suspicious pattern" score — chosen after
+    # numeric calibration (see the Stage D plan) so a genuine multi-category attacker
+    # pacing every ~12 days clears the chronic threshold with room, while even a rare
+    # (~60-day) benign co-occurrence stays far under it.
+    low_signal_half_life_days: float = field(
+        default_factory=lambda: float(os.environ.get("LOW_SIGNAL_HALF_LIFE_DAYS", "45.0"))
+    )
+    # Per-category point values for one batch. Each category is only counted when it is
+    # structurally incapable of ALSO satisfying an existing detector's own firing condition
+    # (see low_signal_accumulation's module docstring) — these are not "below threshold by
+    # coincidence," they're a disjoint, deliberately-weak residue.
+    low_signal_points_auth_fail: float = field(
+        default_factory=lambda: float(os.environ.get("LOW_SIGNAL_POINTS_AUTH_FAIL", "3.0"))
+    )
+    low_signal_points_transfer: float = field(
+        default_factory=lambda: float(os.environ.get("LOW_SIGNAL_POINTS_TRANSFER", "3.0"))
+    )
+    low_signal_points_sensitive: float = field(
+        default_factory=lambda: float(os.environ.get("LOW_SIGNAL_POINTS_SENSITIVE", "5.0"))
+    )
+    low_signal_points_hour: float = field(
+        default_factory=lambda: float(os.environ.get("LOW_SIGNAL_POINTS_HOUR", "2.0"))
+    )
+    # Cap on how much a single batch can add to the chronic score, even if every category
+    # fires at once — bounds how fast one unusually noisy batch can move the needle.
+    low_signal_batch_cap: float = field(
+        default_factory=lambda: float(os.environ.get("LOW_SIGNAL_BATCH_CAP", "12.0"))
+    )
+    # Absolute ceiling on the persisted decayed score — prevents unbounded growth from a
+    # pathological run of back-to-back multi-category batches.
+    low_signal_score_cap: float = field(
+        default_factory=lambda: float(os.environ.get("LOW_SIGNAL_SCORE_CAP", "100.0"))
+    )
+    # LOW_SIGNAL_PATTERN_ACCUMULATION fires once the projected decayed score crosses this.
+    low_signal_chronic_threshold: float = field(
+        default_factory=lambda: float(os.environ.get("LOW_SIGNAL_CHRONIC_THRESHOLD", "40.0"))
+    )
+    # A batch's auth_fail count counts as the weak "auth" category only up to this many —
+    # strictly below brute_force's 5-event burst floor, so the same events can never trip
+    # both.
+    low_signal_auth_fail_ceiling: int = field(
+        default_factory=lambda: int(os.environ.get("LOW_SIGNAL_AUTH_FAIL_CEILING", "4"))
+    )
+    # Minimum overall baseline event_count before an atypical hour counts as a weak "hour"
+    # signal — without this gate, a brand-new baseline (every hour still atypical) would
+    # flag constantly.
+    low_signal_min_events_for_hour_check: int = field(
+        default_factory=lambda: int(os.environ.get("LOW_SIGNAL_MIN_EVENTS_FOR_HOUR_CHECK", "20"))
+    )
+
     # Continuous Control Monitoring (M7 Stage A). How far back evidence queries look when
     # computing per-control freshness and drift.
     monitoring_lookback_days: int = field(

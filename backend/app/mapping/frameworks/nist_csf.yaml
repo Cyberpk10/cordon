@@ -1,4 +1,4 @@
-version: "1.7"
+version: "1.8"
 framework: "NIST Cybersecurity Framework 2.0"
 framework_key: nist_csf
 source: "https://www.nist.gov/cyberframework"
@@ -95,6 +95,11 @@ mappings:
   # detected across many days of history, not just a single event.
   SENSITIVE_RESOURCE_FIRST_ACCESS: [DE.AE-03, PR.AA-05]
   BASELINE_RAMP_ANOMALY: [DE.AE-03, PR.AA-05]
+
+  # Detection max-out Stage D — long-dwell/low-signal correlation. Reuses the same
+  # controls as BASELINE_RAMP_ANOMALY above (a trend/pattern detected across many days
+  # of history via an already-trusted account, not a single event).
+  LOW_SIGNAL_PATTERN_ACCUMULATION: [DE.AE-03, PR.AA-05]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions,
   # not detections — mapped by action type, same map_indicators mechanism.

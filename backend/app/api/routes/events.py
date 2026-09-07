@@ -13,6 +13,7 @@ identically-named actor never share a baseline or a detection window.
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from datetime import timedelta
 from uuid import UUID
 
@@ -20,12 +21,17 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
-from app.baselines.aggregation import BaselineSnapshot, empty_baseline, update_baseline
+from app.baselines.aggregation import (
+    BaselineSnapshot,
+    empty_baseline,
+    project_suspicious_pattern_score,
+    update_baseline,
+)
 from app.core.config import settings
 from app.core.time import to_naive_utc
 from app.db.models import ActorBaseline, Event, Incident, User
 from app.db.session import get_db
-from app.detections import cumulative_exfiltration
+from app.detections import cumulative_exfiltration, low_signal_accumulation
 from app.detections.base import ActorEventWindow
 from app.detections.cross_actor import (
     ActorOutcome,
@@ -192,6 +198,8 @@ def _load_baseline_snapshot(db: Session, account_id: UUID, actor: str) -> Baseli
         daily_sensitive_count=dict(row.daily_sensitive_count),
         long_term_daily_volume=dict(row.long_term_daily_volume),
         long_term_daily_sensitive_count=dict(row.long_term_daily_sensitive_count),
+        suspicious_pattern_score=row.suspicious_pattern_score,
+        last_updated=to_naive_utc(row.last_updated) if row.last_updated is not None else None,
     )
 
 
@@ -216,6 +224,7 @@ def _persist_baseline(db: Session, account_id: UUID, snapshot: BaselineSnapshot)
                 daily_sensitive_count=snapshot.daily_sensitive_count,
                 long_term_daily_volume=snapshot.long_term_daily_volume,
                 long_term_daily_sensitive_count=snapshot.long_term_daily_sensitive_count,
+                suspicious_pattern_score=snapshot.suspicious_pattern_score,
             )
         )
         return
@@ -229,6 +238,7 @@ def _persist_baseline(db: Session, account_id: UUID, snapshot: BaselineSnapshot)
     row.daily_sensitive_count = snapshot.daily_sensitive_count
     row.long_term_daily_volume = snapshot.long_term_daily_volume
     row.long_term_daily_sensitive_count = snapshot.long_term_daily_sensitive_count
+    row.suspicious_pattern_score = snapshot.suspicious_pattern_score
 
 
 @router.post("", response_model=EventBatchResponse)
@@ -285,31 +295,68 @@ async def ingest_events(
             )
             findings = findings + cumulative_exfiltration.evaluate(wide_window, baseline)
 
+        batch_events = [_to_activity_event(row) for row in actor_batch_rows]
+
+        # Detection max-out Stage D — long-dwell/low-signal accumulation. Projected once
+        # here against the just-ingested batch (not the standard lookback window, to match
+        # exactly what update_baseline below consumes), then reused both for the finding
+        # itself and for cross-actor weak-signal candidacy — see
+        # app.baselines.aggregation.project_suspicious_pattern_score's docstring for why a
+        # single shared computation avoids any one-batch lag.
+        low_signal_score, low_signal_contribution = project_suspicious_pattern_score(
+            baseline.suspicious_pattern_score,
+            baseline.last_updated,
+            batch_events,
+            baseline,
+            now=window_end,
+        )
+        findings = findings + low_signal_accumulation.evaluate(
+            ActorEventWindow(actor=actor, events=batch_events), baseline
+        )
+
         score, verdict = fuse(findings)
 
-        batch_events = [_to_activity_event(row) for row in actor_batch_rows]
-        _persist_baseline(db, account_id, update_baseline(baseline, batch_events))
+        updated_baseline = replace(
+            update_baseline(baseline, batch_events), suspicious_pattern_score=low_signal_score
+        )
+        _persist_baseline(db, account_id, updated_baseline)
 
         # suspicious_source_ips: only from events actually cited as evidence by this
         # actor's own findings — feeds the coordinated-campaign correlation below, and
         # deliberately excludes incidental/benign traffic (see ActorOutcome's docstring).
         evidence_ids = {eid for f in findings for eid in f.evidence_event_ids}
         events_by_id = {e.id: e for e in window.events}
-        suspicious_ips = sorted(
-            {
-                events_by_id[eid].source_ip
-                for eid in evidence_ids
-                if eid in events_by_id and events_by_id[eid].source_ip
-            }
+        suspicious_ips = set(
+            events_by_id[eid].source_ip
+            for eid in evidence_ids
+            if eid in events_by_id and events_by_id[eid].source_ip
         )
+
+        # Stage D: candidacy requires 2+ co-occurring categories (the SAME gate as the
+        # chronic score), not just any single category. A single-category auth blip alone
+        # is already comprehensively handled by brute_force (per-actor) and
+        # detect_password_spray (cross-actor, Pass 3 below) — a lower bar here was tried and
+        # rejected: it made detect_coordinated_campaign swallow ordinary password-spray
+        # fixtures before Pass 3 ever ran, replacing a purpose-built, better-scored finding
+        # with a generic one. Requiring co-occurrence keeps this pass targeted at genuinely
+        # multi-signal sub-threshold actors instead.
+        weak_signal_candidate = len(low_signal_contribution.categories) >= 2
+        if weak_signal_candidate:
+            batch_events_by_id = {e.id: e for e in batch_events}
+            suspicious_ips |= {
+                batch_events_by_id[eid].source_ip
+                for eid in low_signal_contribution.evidence_event_ids
+                if eid in batch_events_by_id and batch_events_by_id[eid].source_ip
+            }
 
         outcomes[actor] = ActorOutcome(
             actor=actor,
             verdict_is_safe=(verdict == Verdict.SAFE),
             findings=findings,
-            suspicious_source_ips=suspicious_ips,
+            suspicious_source_ips=sorted(suspicious_ips),
             window_start=window_start,
             window_end=window_end,
+            weak_signal_candidate=weak_signal_candidate,
         )
         per_actor_context[actor] = {
             "score": score,

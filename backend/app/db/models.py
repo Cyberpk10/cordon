@@ -448,6 +448,11 @@ class ActorBaseline(Base):
     long_term_daily_sensitive_count: Mapped[dict] = mapped_column(
         _JSONVariant, nullable=False, default=dict
     )
+    # Detection max-out Stage D — decayed long-dwell/low-signal accumulator (see
+    # app.baselines.aggregation.project_suspicious_pattern_score). Decay is computed against
+    # `last_updated` below, which already exists and already advances on every persist —
+    # no separate timestamp column needed for this.
+    suspicious_pattern_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     first_seen: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
