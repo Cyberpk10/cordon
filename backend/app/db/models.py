@@ -439,6 +439,15 @@ class ActorBaseline(Base):
     ip_counts: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
     daily_volume: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
     event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Detection max-out Stage B — resource-sensitivity + anti-poisoning ramp detection (see
+    # app.baselines.aggregation.BaselineSnapshot). All default to empty so every pre-Stage-B
+    # row round-trips unchanged.
+    sensitive_classes_seen: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    daily_sensitive_count: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
+    long_term_daily_volume: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
+    long_term_daily_sensitive_count: Mapped[dict] = mapped_column(
+        _JSONVariant, nullable=False, default=dict
+    )
     first_seen: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )

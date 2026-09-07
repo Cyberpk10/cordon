@@ -1,4 +1,4 @@
-version: "1.6"
+version: "1.7"
 framework: "NIST Cybersecurity Framework 2.0"
 framework_key: nist_csf
 source: "https://www.nist.gov/cyberframework"
@@ -89,6 +89,12 @@ mappings:
 
   # Detection max-out Stage A — trusted-sender content anomaly.
   TRUSTED_SENDER_ANOMALY: [DE.AE-02, PR.AT-01]
+
+  # Detection max-out Stage B — behavioral baselines with anti-poisoning. DE.AE-03
+  # ("information is correlated from multiple sources") is a literal fit for a trend
+  # detected across many days of history, not just a single event.
+  SENSITIVE_RESOURCE_FIRST_ACCESS: [DE.AE-03, PR.AA-05]
+  BASELINE_RAMP_ANOMALY: [DE.AE-03, PR.AA-05]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions,
   # not detections — mapped by action type, same map_indicators mechanism.

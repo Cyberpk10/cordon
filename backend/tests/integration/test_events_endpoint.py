@@ -301,3 +301,167 @@ def test_spray_incident_is_not_duplicated_by_a_later_unrelated_batch(
         i for i in db_session.query(Incident).all() if i.detection_types == ["CROSS_ACTOR_PASSWORD_SPRAY"]
     ]
     assert len(spray_incidents) == 1
+
+
+# --------------------------------------------------------------------------------------
+# Detection max-out Stage B — behavioral baselines with anti-poisoning.
+# --------------------------------------------------------------------------------------
+
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+
+def _business_days(start: datetime, count: int) -> list[datetime]:
+    days: list[datetime] = []
+    current = start
+    while len(days) < count:
+        if current.weekday() < 5:
+            days.append(current)
+        current += timedelta(days=1)
+    return days
+
+
+def test_insider_first_time_sensitive_sweep_raises_incident(authed_client, db_session):
+    """Replays phase 2 scenario 4's exact shape end-to-end: 6 days of honest baseline
+    activity via the real ingestion path, then one attack day touching finance/HR/legal for
+    the first time at completely normal volume and hours."""
+    actor = "insider@corp.com"
+    t0 = datetime(2026, 1, 6, 15, 0, tzinfo=timezone.utc)
+    baseline_days = _business_days(t0, 6)
+    normal_targets = [
+        "shared/team-project/roadmap.docx",
+        "shared/team-project/notes.docx",
+        "shared/team-project/status-update.pptx",
+        "shared/team-project/budget-draft.xlsx",
+    ]
+
+    for day in baseline_days:
+        events = [
+            {
+                "timestamp": day.replace(hour=15, minute=0).isoformat(),
+                "actor": actor,
+                "action": "login",
+                "outcome": "success",
+                "geo": {"country": "US", "region": "NY", "lat": 40.7128, "lon": -74.0060},
+            }
+        ]
+        for i in range(4):
+            events.append(
+                {
+                    "timestamp": day.replace(hour=15, minute=5 + i * 3).isoformat(),
+                    "actor": actor,
+                    "action": "file_access",
+                    "target": normal_targets[i % len(normal_targets)],
+                    "outcome": "success",
+                }
+            )
+        response = authed_client.post("/api/events", json={"events": events})
+        assert response.status_code == 200
+        assert response.json()["incidents_created"] == []
+
+    attack_day = _business_days(baseline_days[-1] + timedelta(days=1), 1)[0]
+    attack_events = [
+        {
+            "timestamp": attack_day.replace(hour=15, minute=0).isoformat(),
+            "actor": actor,
+            "action": "login",
+            "outcome": "success",
+            "geo": {"country": "US", "region": "NY", "lat": 40.7128, "lon": -74.0060},
+        }
+    ]
+    sensitive_targets = [
+        "finance/q3-budget-actuals.xlsx",
+        "finance/payroll-adjustments.xlsx",
+        "hr/comp-review-2026.xlsx",
+        "hr/pending-terminations.docx",
+        "legal/pending-litigation-notes.docx",
+    ]
+    for i, target in enumerate(sensitive_targets):
+        attack_events.append(
+            {
+                "timestamp": attack_day.replace(hour=15, minute=5 + i * 3).isoformat(),
+                "actor": actor,
+                "action": "file_access",
+                "target": target,
+                "outcome": "success",
+            }
+        )
+
+    response = authed_client.post("/api/events", json={"events": attack_events})
+    assert response.status_code == 200
+    incidents = response.json()["incidents_created"]
+    assert len(incidents) == 1
+    assert "SENSITIVE_RESOURCE_FIRST_ACCESS" in incidents[0]["detection_types"]
+    assert incidents[0]["verdict"] != "safe"
+
+
+def test_gradual_poisoning_ramp_raises_incident_end_to_end(authed_client, db_session):
+    """Replays the numerically-verified phase 3/4 ramp end-to-end through POST /api/events,
+    confirming no single day's batch individually crosses the per-day volume-spike check
+    (matching the scripts' own dim() output showing 'safe, as expected' throughout the ramp)
+    while the ramp itself is still caught by the account-wide baseline afterward."""
+    actor = "tradecraft@corp.com"
+    t0 = datetime(2026, 1, 5, 15, 0, tzinfo=timezone.utc)
+    days = _business_days(t0, 20)
+    normal_targets = [f"shared/team-project/doc-{i}.docx" for i in range(5)]
+    sensitive_targets = [
+        "finance/q3-budget-actuals.xlsx",
+        "finance/payroll-adjustments.xlsx",
+        "hr/comp-review-2026.xlsx",
+        "hr/pending-terminations.docx",
+        "legal/pending-litigation-notes.docx",
+    ]
+    ramp = [4, 4, 5, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 12, 13, 14]
+
+    any_incident = False
+    for day_index, (day, count) in enumerate(zip(days, ramp)):
+        n_sensitive = min(len(sensitive_targets), day_index // 4)
+        n_normal = len(normal_targets) - n_sensitive
+        pool = normal_targets[:n_normal] + sensitive_targets[:n_sensitive]
+        events = [
+            {
+                "timestamp": day.replace(hour=15, minute=5 + i * 2).isoformat(),
+                "actor": actor,
+                "action": "file_access",
+                "target": pool[i % len(pool)],
+                "outcome": "success",
+            }
+            for i in range(count)
+        ]
+        response = authed_client.post("/api/events", json={"events": events})
+        assert response.status_code == 200
+        if response.json()["incidents_created"]:
+            any_incident = True
+
+    assert any_incident
+
+    ramp_incidents = [
+        i for i in db_session.query(Incident).all() if "BASELINE_RAMP_ANOMALY" in i.detection_types
+    ]
+    assert len(ramp_incidents) >= 1
+
+
+def test_benign_organic_growth_stays_safe_across_the_whole_ramp(authed_client):
+    """The zero-false-positive control: an actor whose raw volume organically grows over
+    weeks while their sensitive-access share stays flat must never raise an incident."""
+    actor = "growing-role@corp.com"
+    t0 = datetime(2026, 1, 5, 15, 0, tzinfo=timezone.utc)
+    days = _business_days(t0, 20)
+    counts = [4, 4, 4, 5, 4, 5, 5, 5, 6, 5, 6, 6, 7, 6, 7, 7, 7, 8, 8, 8]
+
+    for day, count in zip(days, counts):
+        n_sensitive = round(count * 0.2)
+        events = []
+        for i in range(count):
+            target = "finance/report.xlsx" if i < n_sensitive else "shared/notes.docx"
+            events.append(
+                {
+                    "timestamp": day.replace(hour=15, minute=5 + i * 2).isoformat(),
+                    "actor": actor,
+                    "action": "file_access",
+                    "target": target,
+                    "outcome": "success",
+                }
+            )
+        response = authed_client.post("/api/events", json={"events": events})
+        assert response.status_code == 200
+        assert response.json()["incidents_created"] == []

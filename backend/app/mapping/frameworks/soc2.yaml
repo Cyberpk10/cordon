@@ -1,4 +1,4 @@
-version: "1.7"
+version: "1.8"
 framework: "SOC 2 (Trust Services Criteria)"
 framework_key: soc2
 source: "https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services"
@@ -93,6 +93,10 @@ mappings:
 
   # Detection max-out Stage A — trusted-sender content anomaly.
   TRUSTED_SENDER_ANOMALY: [CC2.2, CC6.1]
+
+  # Detection max-out Stage B — behavioral baselines with anti-poisoning.
+  SENSITIVE_RESOURCE_FIRST_ACCESS: [CC6.1, CC7.2]
+  BASELINE_RAMP_ANOMALY: [CC6.1, CC7.2]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions.
   QUARANTINE_EMAIL: [CC7.4]

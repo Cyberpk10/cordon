@@ -1,4 +1,4 @@
-version: "1.6"
+version: "1.7"
 framework: "ISO/IEC 27001:2022 Annex A"
 framework_key: iso_27001
 source: "https://www.iso.org/standard/27001"
@@ -82,6 +82,10 @@ mappings:
 
   # Detection max-out Stage A — trusted-sender content anomaly.
   TRUSTED_SENDER_ANOMALY: [A.6.3, A.5.7]
+
+  # Detection max-out Stage B — behavioral baselines with anti-poisoning.
+  SENSITIVE_RESOURCE_FIRST_ACCESS: [A.5.15, A.8.16]
+  BASELINE_RAMP_ANOMALY: [A.5.15, A.8.16]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions.
   QUARANTINE_EMAIL: [A.5.26]

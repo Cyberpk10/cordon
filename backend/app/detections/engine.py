@@ -5,12 +5,14 @@ from __future__ import annotations
 from app.baselines.aggregation import BaselineSnapshot
 from app.detections import (
     anomalous_location,
+    baseline_ramp,
     brute_force,
     data_exfiltration,
     impossible_travel,
     mass_file_access,
     off_hours_access,
     privilege_escalation,
+    sensitive_resource_access,
 )
 from app.detections.base import ActorEventWindow, DetectionRule
 from app.models.schemas import Finding
@@ -23,6 +25,8 @@ _RULES: list[DetectionRule] = [
     mass_file_access.evaluate,
     data_exfiltration.evaluate,
     privilege_escalation.evaluate,
+    sensitive_resource_access.evaluate,
+    baseline_ramp.evaluate,
 ]
 
 

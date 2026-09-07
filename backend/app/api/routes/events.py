@@ -188,6 +188,10 @@ def _load_baseline_snapshot(db: Session, account_id: UUID, actor: str) -> Baseli
         ip_counts=dict(row.ip_counts),
         daily_volume=dict(row.daily_volume),
         event_count=row.event_count,
+        sensitive_classes_seen=frozenset(row.sensitive_classes_seen),
+        daily_sensitive_count=dict(row.daily_sensitive_count),
+        long_term_daily_volume=dict(row.long_term_daily_volume),
+        long_term_daily_sensitive_count=dict(row.long_term_daily_sensitive_count),
     )
 
 
@@ -208,6 +212,10 @@ def _persist_baseline(db: Session, account_id: UUID, snapshot: BaselineSnapshot)
                 ip_counts=snapshot.ip_counts,
                 daily_volume=snapshot.daily_volume,
                 event_count=snapshot.event_count,
+                sensitive_classes_seen=sorted(snapshot.sensitive_classes_seen),
+                daily_sensitive_count=snapshot.daily_sensitive_count,
+                long_term_daily_volume=snapshot.long_term_daily_volume,
+                long_term_daily_sensitive_count=snapshot.long_term_daily_sensitive_count,
             )
         )
         return
@@ -217,6 +225,10 @@ def _persist_baseline(db: Session, account_id: UUID, snapshot: BaselineSnapshot)
     row.ip_counts = snapshot.ip_counts
     row.daily_volume = snapshot.daily_volume
     row.event_count = snapshot.event_count
+    row.sensitive_classes_seen = sorted(snapshot.sensitive_classes_seen)
+    row.daily_sensitive_count = snapshot.daily_sensitive_count
+    row.long_term_daily_volume = snapshot.long_term_daily_volume
+    row.long_term_daily_sensitive_count = snapshot.long_term_daily_sensitive_count
 
 
 @router.post("", response_model=EventBatchResponse)

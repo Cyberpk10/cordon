@@ -250,6 +250,82 @@ class Settings:
         default_factory=lambda: int(os.environ.get("BASELINE_DAILY_VOLUME_WINDOW_DAYS", "30"))
     )
 
+    # Detection max-out Stage B — resource-sensitivity tagging (app.baselines.
+    # resource_sensitivity). Comma-separated path prefixes (case-insensitive) per class;
+    # a target matching any prefix in a class counts as that class for baseline/detection
+    # purposes. Empty by default would mean nothing is ever sensitive — each has a sensible
+    # default matching this codebase's own event-fixture convention (finance/, hr/, legal/
+    # top-level folders).
+    sensitive_resource_prefixes_finance: list[str] = field(
+        default_factory=lambda: [
+            p.strip().lower()
+            for p in os.environ.get("SENSITIVE_RESOURCE_PREFIXES_FINANCE", "finance/").split(",")
+            if p.strip()
+        ]
+    )
+    sensitive_resource_prefixes_hr: list[str] = field(
+        default_factory=lambda: [
+            p.strip().lower()
+            for p in os.environ.get("SENSITIVE_RESOURCE_PREFIXES_HR", "hr/").split(",")
+            if p.strip()
+        ]
+    )
+    sensitive_resource_prefixes_legal: list[str] = field(
+        default_factory=lambda: [
+            p.strip().lower()
+            for p in os.environ.get("SENSITIVE_RESOURCE_PREFIXES_LEGAL", "legal/").split(",")
+            if p.strip()
+        ]
+    )
+
+    # Detection max-out Stage B — first-time sensitive-class access
+    # (app.detections.sensitive_resource_access). Cold-start gate: an actor's baseline isn't
+    # trusted to say "this class is new for them" until it has this much history — otherwise
+    # a brand-new actor's very first activity (which is trivially "new" in every class) would
+    # flag constantly.
+    baseline_min_events_for_resource_class: int = field(
+        default_factory=lambda: int(os.environ.get("BASELINE_MIN_EVENTS_FOR_RESOURCE_CLASS", "5"))
+    )
+
+    # Detection max-out Stage B — anti-poisoning ramp detection (app.baselines.aggregation.
+    # evaluate_ramp_anomaly, app.detections.baseline_ramp). Closes the gap where a gradual,
+    # multi-week increase never crosses the single-day mean+stddev check because the TREND
+    # itself, not any one day, is the anomaly.
+    baseline_min_days_for_ramp: int = field(
+        default_factory=lambda: int(os.environ.get("BASELINE_MIN_DAYS_FOR_RAMP", "10"))
+    )
+    # Raw daily-volume ramp fires if the recent half of the window's mean is at least this
+    # many times the early half's mean. Weighted low on its own (see baseline_ramp.py) since
+    # organic volume growth is common and often benign.
+    baseline_ramp_ratio_threshold: float = field(
+        default_factory=lambda: float(os.environ.get("BASELINE_RAMP_RATIO_THRESHOLD", "1.5"))
+    )
+    # Sensitive-access-ratio ramp fires if the recent half's mean sensitive-share is at least
+    # this many percentage points (0-1 scale) above the early half's. Weighted higher than the
+    # raw-volume ramp — a rising SHARE of sensitive touches specifically is rare and sharply
+    # suspicious, unlike raw volume alone.
+    baseline_ramp_sensitive_ratio_increase_threshold: float = field(
+        default_factory=lambda: float(
+            os.environ.get("BASELINE_RAMP_SENSITIVE_RATIO_INCREASE_THRESHOLD", "0.15")
+        )
+    )
+    # Long-term anchor window (days) — deliberately much longer than
+    # baseline_daily_volume_window_days (30) so a ramp patient enough to outlast the recent
+    # rolling window still has an older, harder-to-poison reference point to be compared
+    # against (see app.baselines.aggregation's long_term_daily_volume/
+    # long_term_daily_sensitive_count fields).
+    baseline_long_term_window_days: int = field(
+        default_factory=lambda: int(os.environ.get("BASELINE_LONG_TERM_WINDOW_DAYS", "180"))
+    )
+    # Minimum days of long-term history OLDER than the current recent window before the
+    # long-term anchor is trusted — this is what makes it poison-resistant: only history the
+    # recent window has already rolled past counts toward this gate.
+    baseline_min_days_for_long_term_anchor: int = field(
+        default_factory=lambda: int(
+            os.environ.get("BASELINE_MIN_DAYS_FOR_LONG_TERM_ANCHOR", "20")
+        )
+    )
+
     # Continuous Control Monitoring (M7 Stage A). How far back evidence queries look when
     # computing per-control freshness and drift.
     monitoring_lookback_days: int = field(
