@@ -1,4 +1,4 @@
-version: "1.5"
+version: "1.6"
 framework: "ISO/IEC 27001:2022 Annex A"
 framework_key: iso_27001
 source: "https://www.iso.org/standard/27001"
@@ -79,6 +79,9 @@ mappings:
   LOOKALIKE_OF_KNOWN_SENDER: [A.5.7, A.8.23]
   LINK_KNOWN_PHISHING_HOST: [A.8.23]
   DOMAIN_LOOKS_RANDOMLY_GENERATED: [A.5.7, A.8.23]
+
+  # Detection max-out Stage A — trusted-sender content anomaly.
+  TRUSTED_SENDER_ANOMALY: [A.6.3, A.5.7]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions.
   QUARANTINE_EMAIL: [A.5.26]

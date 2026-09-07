@@ -1,4 +1,4 @@
-version: "1.4"
+version: "1.5"
 framework: "MITRE ATT&CK"
 framework_key: mitre_attack
 source: "https://attack.mitre.org"
@@ -47,6 +47,10 @@ controls:
   - id: T1030
     name: "Data Transfer Size Limits"
     url: "https://attack.mitre.org/techniques/T1030/"
+  # Detection max-out Stage A — trusted-sender content anomaly.
+  - id: T1586.002
+    name: "Compromise Accounts: Email Accounts"
+    url: "https://attack.mitre.org/techniques/T1586/002/"
 
 mappings:
   SENDER_REPLYTO_MISMATCH: [T1656]
@@ -102,3 +106,8 @@ mappings:
   LOOKALIKE_OF_KNOWN_SENDER: [T1583.001, T1656, T1566.002]
   LINK_KNOWN_PHISHING_HOST: [T1566.002]
   DOMAIN_LOOKS_RANDOMLY_GENERATED: [T1583.001, T1566.002]
+
+  # Detection max-out Stage A — trusted-sender content anomaly. T1586.002 is the precise fit
+  # for this indicator's actual thesis: a legitimately-trusted account being abused, not an
+  # attacker-controlled lookalike.
+  TRUSTED_SENDER_ANOMALY: [T1586.002, T1566.002, T1598]

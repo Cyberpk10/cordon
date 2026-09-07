@@ -14,6 +14,7 @@ from app.indicators import (
     lookalike_domain,
     sender_history,
     sender_mismatch,
+    trusted_sender_anomaly,
     urgency_language,
 )
 from app.indicators.base import IndicatorRule
@@ -32,6 +33,7 @@ _RULES: list[IndicatorRule] = [
     ai_authored.evaluate,
     chat_context.evaluate,
     sender_history.evaluate,
+    trusted_sender_anomaly.evaluate,
     known_bad_urls.evaluate,
     domain_age_heuristic.evaluate,
 ]

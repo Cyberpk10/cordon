@@ -102,3 +102,42 @@ You can find it here: https://meridian-compliance-portal.example/reviews/q3-2026
     ids = {i["id"] for i in body["indicators"]}
     assert {"FIRST_CONTACT_SENDER", "UNKNOWN_VENDOR_CLAIM"} <= ids
     assert body["verdict"] != "safe"
+
+
+def test_trusted_sender_anomaly_flags_via_full_pipeline_after_single_prior_email(
+    authed_client, db_session, test_account
+):
+    """Stage A: closes the Phase 4 gap where a single prior email (not full ESTABLISHED
+    trust) was enough to blind Stage 3a's content checks. Seeding just ONE prior case, then
+    sending a bank-detail-change lure with an off-pattern link from the same domain, must
+    still flip the verdict via TRUSTED_SENDER_ANOMALY end-to-end."""
+    _seed_prior_cases(db_session, test_account.account.id, "billing@acme-vendor.example", 1, 0)
+
+    raw = _RAW_TEMPLATE.format(
+        subject="Urgent: updated payment details",
+        body=(
+            "We have a change of bank details effective immediately - act now to avoid "
+            "payment delays. Update here: https://acme-payment-update.info/x"
+        ),
+    )
+    response = authed_client.post("/api/analyze/text", json={"raw_text": raw})
+    body = response.json()
+    ids = {i["id"] for i in body["indicators"]}
+    assert "TRUSTED_SENDER_ANOMALY" in ids
+    assert body["verdict"] != "safe"
+
+
+def test_established_vendor_routine_invoice_stays_safe_via_full_pipeline(
+    authed_client, db_session, test_account
+):
+    _seed_prior_cases(db_session, test_account.account.id, "billing@acme-vendor.example", 5, 30)
+
+    raw = _RAW_TEMPLATE.format(
+        subject="Invoice #4471",
+        body="Please find attached invoice for services rendered this month, payable within 30 days.",
+    )
+    response = authed_client.post("/api/analyze/text", json={"raw_text": raw})
+    body = response.json()
+    ids = {i["id"] for i in body["indicators"]}
+    assert "TRUSTED_SENDER_ANOMALY" not in ids
+    assert body["verdict"] == "safe"

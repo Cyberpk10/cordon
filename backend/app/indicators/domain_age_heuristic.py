@@ -12,25 +12,12 @@ told apart in evidence, not because they measure independent things.
 
 from __future__ import annotations
 
-import math
-from collections import Counter
-
 from app.core.config import settings
 from app.indicators.base import make_indicator
-from app.indicators.domain_utils import registrable_domain
+from app.indicators.domain_utils import _shannon_entropy, looks_randomly_generated, registrable_domain
 from app.channels.message import Message
 from app.models.schemas import Indicator, Severity
 from app.sender_history.aggregation import SenderHistorySnapshot
-
-_MIN_LABEL_LENGTH_FOR_ENTROPY_CHECK = 8
-
-
-def _shannon_entropy(s: str) -> float:
-    if not s:
-        return 0.0
-    counts = Counter(s)
-    length = len(s)
-    return -sum((c / length) * math.log2(c / length) for c in counts.values())
 
 
 def evaluate(
@@ -43,14 +30,12 @@ def evaluate(
 
     domain = registrable_domain(email.from_address.rsplit("@", 1)[-1].lower())
     label = domain.split(".")[0]
-    if len(label) < _MIN_LABEL_LENGTH_FOR_ENTROPY_CHECK:
+    if not looks_randomly_generated(
+        label, entropy_threshold=settings.newly_registered_domain_entropy_threshold
+    ):
         return []
 
     entropy = _shannon_entropy(label)
-    has_digit_letter_mix = any(c.isdigit() for c in label) and any(c.isalpha() for c in label)
-    if entropy < settings.newly_registered_domain_entropy_threshold or not has_digit_letter_mix:
-        return []
-
     return [
         make_indicator(
             id="DOMAIN_LOOKS_RANDOMLY_GENERATED",

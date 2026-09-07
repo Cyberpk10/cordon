@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import math
+from collections import Counter
+
 # Common multi-label public suffixes. Not exhaustive (no full Public Suffix List bundled to
 # keep the engine dependency-free and fully offline) — good enough for the common brand/TLD
 # cases M1 targets. Extend as needed in later milestones.
@@ -53,3 +56,31 @@ def is_ip_literal_host(host: str) -> bool:
     if len(parts) != 4:
         return False
     return all(part.isdigit() and 0 <= int(part) <= 255 for part in parts)
+
+
+# Shared by app.indicators.domain_age_heuristic (sender domain) and
+# app.indicators.trusted_sender_anomaly (link domains) — promoted here rather than one
+# module importing the other's private helper, since both need the identical check against
+# different inputs.
+_MIN_LABEL_LENGTH_FOR_ENTROPY_CHECK = 8
+
+
+def _shannon_entropy(s: str) -> float:
+    if not s:
+        return 0.0
+    counts = Counter(s)
+    length = len(s)
+    return -sum((c / length) * math.log2(c / length) for c in counts.values())
+
+
+def looks_randomly_generated(label: str, *, entropy_threshold: float) -> bool:
+    """Zero-network proxy for "this label looks auto-generated" — high character-entropy
+    plus a digit/letter mix, on labels long enough for entropy to be meaningful. Not a real
+    WHOIS/RDAP registration-age check; see app.indicators.domain_age_heuristic's module
+    docstring for why this codebase uses a heuristic instead of a live lookup."""
+    if len(label) < _MIN_LABEL_LENGTH_FOR_ENTROPY_CHECK:
+        return False
+    has_digit_letter_mix = any(c.isdigit() for c in label) and any(c.isalpha() for c in label)
+    if not has_digit_letter_mix:
+        return False
+    return _shannon_entropy(label) >= entropy_threshold

@@ -1,4 +1,4 @@
-version: "1.5"
+version: "1.6"
 framework: "NIST Cybersecurity Framework 2.0"
 framework_key: nist_csf
 source: "https://www.nist.gov/cyberframework"
@@ -86,6 +86,9 @@ mappings:
   LOOKALIKE_OF_KNOWN_SENDER: [ID.RA-05, DE.AE-02]
   LINK_KNOWN_PHISHING_HOST: [DE.CM-01, ID.RA-05]
   DOMAIN_LOOKS_RANDOMLY_GENERATED: [ID.RA-05, DE.CM-01]
+
+  # Detection max-out Stage A — trusted-sender content anomaly.
+  TRUSTED_SENDER_ANOMALY: [DE.AE-02, PR.AT-01]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions,
   # not detections — mapped by action type, same map_indicators mechanism.
