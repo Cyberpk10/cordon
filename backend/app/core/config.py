@@ -417,6 +417,86 @@ class Settings:
         default_factory=lambda: int(os.environ.get("LOW_SIGNAL_MIN_EVENTS_FOR_HOUR_CHECK", "20"))
     )
 
+    # Early-warning sensor Stage 1 — per-actor Threat Level (app.threat_level.aggregation,
+    # app.threat_level.hooks). A live, decayed 0-100 score fed by precursor signals from both
+    # the email and events pipelines, deliberately faster-reacting than Stage D's 90-day
+    # chronic horizon (see the Stage 1 plan for the half-life/chain-window calibration).
+    threat_level_half_life_days: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_HALF_LIFE_DAYS", "14.0"))
+    )
+    # Multiplier applied to a NEW signal's points when the actor already has a signal at an
+    # EARLIER kill-chain stage within threat_level_chain_window_days — this is what makes a
+    # forming chain (delivery -> access -> collection -> exfiltration) escalate faster than
+    # either signal alone. Strictly forward-progressing: a repeat of the same or an earlier
+    # stage never gets this bonus.
+    threat_level_chain_multiplier: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_CHAIN_MULTIPLIER", "1.8"))
+    )
+    threat_level_chain_window_days: int = field(
+        default_factory=lambda: int(os.environ.get("THREAT_LEVEL_CHAIN_WINDOW_DAYS", "21"))
+    )
+    # Bounds recent_signals — same bounded-state discipline as every other per-actor JSON
+    # field in this codebase.
+    threat_level_signal_history_cap: int = field(
+        default_factory=lambda: int(os.environ.get("THREAT_LEVEL_SIGNAL_HISTORY_CAP", "20"))
+    )
+    # How far back in score_history "trend" looks for its comparison point.
+    threat_level_trend_window_days: int = field(
+        default_factory=lambda: int(os.environ.get("THREAT_LEVEL_TREND_WINDOW_DAYS", "7"))
+    )
+    # Level bands — deliberately separate from Verdict's SAFE/SUSPICIOUS/MALICIOUS naming to
+    # avoid confusing a watchlist tier with an actual case/incident verdict.
+    threat_level_elevated_at: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_ELEVATED_AT", "25.0"))
+    )
+    threat_level_high_at: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_HIGH_AT", "50.0"))
+    )
+    threat_level_critical_at: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_CRITICAL_AT", "75.0"))
+    )
+    # Base points per precursor signal type — see the Stage 1 plan's signal catalog for the
+    # numeric calibration behind each value.
+    threat_level_points_phishing_received_suspicious: float = field(
+        default_factory=lambda: float(
+            os.environ.get("THREAT_LEVEL_POINTS_PHISHING_RECEIVED_SUSPICIOUS", "10.0")
+        )
+    )
+    threat_level_points_phishing_received_malicious: float = field(
+        default_factory=lambda: float(
+            os.environ.get("THREAT_LEVEL_POINTS_PHISHING_RECEIVED_MALICIOUS", "18.0")
+        )
+    )
+    threat_level_points_simulation_clicked: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_POINTS_SIMULATION_CLICKED", "12.0"))
+    )
+    threat_level_points_auth_anomaly: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_POINTS_AUTH_ANOMALY", "8.0"))
+    )
+    threat_level_points_sensitive_access_cold_start: float = field(
+        default_factory=lambda: float(
+            os.environ.get("THREAT_LEVEL_POINTS_SENSITIVE_ACCESS_COLD_START", "10.0")
+        )
+    )
+    # Damping factor applied to the REAL SENSITIVE_RESOURCE_FIRST_ACCESS finding's own points
+    # when it fires (mature baseline) — the same signal meaning as the cold-start weak
+    # version above, just observed later, so it shouldn't dominate the sensor on its own.
+    threat_level_finding_weight: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_FINDING_WEIGHT", "0.3"))
+    )
+    threat_level_points_small_transfer: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_POINTS_SMALL_TRANSFER", "8.0"))
+    )
+    threat_level_points_accumulator_signal: float = field(
+        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_POINTS_ACCUMULATOR_SIGNAL", "15.0"))
+    )
+    # New-location auth-anomaly check (app.threat_level.hooks) — gated on the baseline having
+    # at least this many events so a brand-new actor's very first login isn't flagged as
+    # "new location" (everything is new for a cold-start baseline).
+    threat_level_min_events_for_location_check: int = field(
+        default_factory=lambda: int(os.environ.get("THREAT_LEVEL_MIN_EVENTS_FOR_LOCATION_CHECK", "10"))
+    )
+
     # Continuous Control Monitoring (M7 Stage A). How far back evidence queries look when
     # computing per-control freshness and drift.
     monitoring_lookback_days: int = field(

@@ -33,6 +33,7 @@ from app.api.routes.remediation import incidents_router as remediation_incidents
 from app.api.routes.remediation import targets_router as targets_router
 from app.api.routes.risk import router as risk_router
 from app.api.routes.simulation import router as simulation_router
+from app.api.routes.threat_level import router as threat_level_router
 from app.api.routes.vendor_domains import router as vendor_domains_router
 from app.auth.rate_limit import limiter
 from app.core.body_limit import MaxBodySizeMiddleware
@@ -110,6 +111,7 @@ app.include_router(inbound_router)
 app.include_router(simulation_router)
 app.include_router(human_risk_router)
 app.include_router(vendor_domains_router)
+app.include_router(threat_level_router)
 
 
 @app.get("/health")

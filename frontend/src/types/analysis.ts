@@ -256,6 +256,30 @@ export interface TargetsListResponse {
   targets: TargetSummary[];
 }
 
+export interface ThreatLevelSignal {
+  type: string;
+  stage: number;
+  points: number;
+  category: string;
+  timestamp: string;
+  description: string;
+}
+
+export type ThreatLevel = "low" | "elevated" | "high" | "critical";
+export type ThreatTrend = "rising" | "steady" | "falling";
+
+export interface ThreatLevelEntry {
+  actor: string;
+  score: number;
+  level: ThreatLevel;
+  trend: ThreatTrend;
+  contributing_signals: ThreatLevelSignal[];
+}
+
+export interface ThreatLevelListResponse {
+  actors: ThreatLevelEntry[];
+}
+
 export interface CopilotTemplateUsed {
   template: string;
   params: Record<string, unknown>;

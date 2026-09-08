@@ -464,6 +464,35 @@ class ActorBaseline(Base):
     )
 
 
+class ActorThreatLevel(Base):
+    """Early-warning sensor Stage 1 — a live, decayed 0-100 per-actor score fed by precursor
+    signals from BOTH the email pipeline (Case verdicts, simulation clicks) and the events
+    pipeline (Stage D's weak-signal categories, real findings) — see app.threat_level.
+    aggregation/hooks. Upserted like ActorBaseline (one row per actor, not append-only).
+    `last_updated` is the decay clock; `recent_signals`/`score_history` are both bounded,
+    same discipline as every other per-actor JSON field in this codebase."""
+
+    __tablename__ = "actor_threat_levels"
+    __table_args__ = (
+        UniqueConstraint("account_id", "actor", name="uq_actor_threat_levels_account_actor"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    actor: Mapped[str] = mapped_column(String, nullable=False)
+    current_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    recent_signals: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    score_history: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
+    last_updated: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class AutonomyPolicy(Base):
     """An account's autonomy configuration (M6 Stage 1; account-scoped since M8 Stage 2) —
     one row per account, upserted (same pattern as TrainingRecommendation/ActorBaseline),

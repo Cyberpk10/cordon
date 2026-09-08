@@ -43,6 +43,7 @@ from app.events.schema import ActivityEvent, EventBatchRequest
 from app.mapping.framework_mapper import map_indicators
 from app.models.schemas import EventBatchResponse, Finding, IncidentSummary, Verdict
 from app.scoring.intrusion_risk_engine import fuse
+from app.threat_level.hooks import record_event_batch_signals
 
 _CUMULATIVE_ACTIONS = frozenset({"data_transfer", "file_download"})
 
@@ -312,6 +313,14 @@ async def ingest_events(
         )
         findings = findings + low_signal_accumulation.evaluate(
             ActorEventWindow(actor=actor, events=batch_events), baseline
+        )
+
+        # Early-warning sensor Stage 1 — per-actor Threat Level. Reuses everything already
+        # computed above (batch_events, baseline, low_signal_contribution, findings); no new
+        # queries. See app.threat_level.hooks.record_event_batch_signals's docstring for the
+        # exact signal catalog.
+        record_event_batch_signals(
+            db, account_id, actor, batch_events, baseline, low_signal_contribution, findings, window_end
         )
 
         score, verdict = fuse(findings)

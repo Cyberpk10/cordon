@@ -11,6 +11,7 @@ import RepeatTargetsWidget from "./RepeatTargetsWidget";
 import ThreatTrendChart from "./ThreatTrendChart";
 import TopIndicatorsTable from "./TopIndicatorsTable";
 import VerdictDonut from "./VerdictDonut";
+import WatchlistWidget from "./WatchlistWidget";
 
 // Dev-friendly live refresh so newly-created cases/incidents show up on their own — see
 // frontend/src/hooks/useInterval.ts.
@@ -103,6 +104,7 @@ export default function DashboardView() {
           <TopIndicatorsTable indicators={summary.top_indicators} />
           <FrameworkCoveragePanel coverage={summary.framework_coverage} />
           <DriftAlertSummary />
+          <WatchlistWidget />
           <RepeatTargetsWidget />
           <KriTable kris={summary.kris} />
         </>

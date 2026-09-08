@@ -33,6 +33,7 @@ from app.inbound.unwrap import unwrap_forwarded_email
 from app.models.schemas import InboundEmailResponse
 from app.sender_history.loader import load_sender_history
 from app.storage.raw_email_store import save_raw_email
+from app.threat_level.hooks import record_case_signal
 
 router = APIRouter(prefix="/api/inbound", tags=["inbound"])
 
@@ -179,6 +180,7 @@ async def receive_inbound_email(
         content_hash=content_hash,
     )
     db.add(case)
+    record_case_signal(db, account.id, case)
 
     log_event(
         db,

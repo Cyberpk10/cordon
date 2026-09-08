@@ -19,6 +19,7 @@ from app.db.session import get_db
 from app.models.schemas import AnalyzeResponse, AnalyzeTextRequest, EmailSummary
 from app.sender_history.loader import load_sender_history
 from app.storage.raw_email_store import save_raw_email
+from app.threat_level.hooks import record_case_signal
 
 router = APIRouter(prefix="/api", tags=["analyze"])
 
@@ -70,6 +71,7 @@ def _persist_case_and_build_response(
         raw_email_path=raw_email_path,
     )
     db.add(case)
+    record_case_signal(db, current_user.account_id, case)
     db.commit()
     db.refresh(case)
 

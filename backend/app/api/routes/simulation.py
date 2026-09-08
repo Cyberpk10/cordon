@@ -39,6 +39,7 @@ from app.db.models import (
 from app.db.session import get_db
 from app.human_risk.recommendation import decide_training_recommendation
 from app.human_risk.scoring import RecipientCampaignOutcome, RecipientSimulationHistory
+from app.threat_level.hooks import record_simulation_click
 from app.models.schemas import (
     CampaignCreateRequest,
     CampaignDetailResponse,
@@ -556,8 +557,11 @@ async def track(
 
     recipient.status = advance_status(recipient.status, kind)
     if kind == "click":
+        is_first_click = recipient.clicked_at is None
         recipient.clicked_at = recipient.clicked_at or now
         recipient.click_count += 1
+        if is_first_click:
+            record_simulation_click(db, recipient.account_id, recipient.email)
     else:
         recipient.submitted_at = recipient.submitted_at or now
         recipient.submit_count += 1

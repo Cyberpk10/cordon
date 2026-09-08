@@ -28,6 +28,7 @@ import type {
   SimulationTrainingRecommendationsListResponse,
   TargetsListResponse,
   TemplateListResponse,
+  ThreatLevelListResponse,
   Verdict,
 } from "../types/analysis";
 import { apiFetch } from "./authClient";
@@ -258,6 +259,14 @@ export async function submitRemediationAction(
 
 export async function getTargets(): Promise<TargetsListResponse> {
   const response = await apiFetch(`/api/targets`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function getThreatLevels(): Promise<ThreatLevelListResponse> {
+  const response = await apiFetch(`/api/threat-level`);
   if (!response.ok) {
     return parseErrorOrThrow(response);
   }
