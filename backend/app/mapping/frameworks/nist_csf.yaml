@@ -1,4 +1,4 @@
-version: "1.9"
+version: "1.10"
 framework: "NIST Cybersecurity Framework 2.0"
 framework_key: nist_csf
 source: "https://www.nist.gov/cyberframework"
@@ -84,7 +84,6 @@ mappings:
   FIRST_CONTACT_SENDER: [DE.AE-02]
   UNKNOWN_VENDOR_CLAIM: [PR.AT-01, DE.AE-02]
   LOOKALIKE_OF_KNOWN_SENDER: [ID.RA-05, DE.AE-02]
-  LINK_KNOWN_PHISHING_HOST: [DE.CM-01, ID.RA-05]
   DOMAIN_LOOKS_RANDOMLY_GENERATED: [ID.RA-05, DE.CM-01]
 
   # Detection max-out Stage A — trusted-sender content anomaly.
@@ -104,6 +103,13 @@ mappings:
   # Early-warning sensor Stage 2 — corroborated precursor-signal alerts ("attack
   # forming"), distinct from any single finding. Reuses existing controls only.
   EARLY_WARNING_ATTACK_FORMING: [DE.AE-03, DE.CM-01]
+
+  # Threat-intelligence enrichment Stage 1 — multi-feed hostname/URL/IP
+  # cross-reference (app.threat_intel). See app/threat_intel/data/sources.md.
+  LINK_KNOWN_MALICIOUS: [DE.CM-01, ID.RA-05]
+  SENDER_DOMAIN_KNOWN_BAD: [DE.CM-01, ID.RA-05]
+  SENDER_IP_KNOWN_MALICIOUS: [DE.CM-01, DE.AE-02]
+  EVENT_IP_KNOWN_MALICIOUS: [DE.CM-01, DE.AE-02]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions,
   # not detections — mapped by action type, same map_indicators mechanism.

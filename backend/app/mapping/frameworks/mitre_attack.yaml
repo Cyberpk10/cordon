@@ -1,4 +1,4 @@
-version: "1.8"
+version: "1.9"
 framework: "MITRE ATT&CK"
 framework_key: mitre_attack
 source: "https://attack.mitre.org"
@@ -24,6 +24,16 @@ controls:
   - id: T1204.002
     name: "User Execution: Malicious File"
     url: "https://attack.mitre.org/techniques/T1204/002/"
+  # Threat-intelligence enrichment Stage 1. T1204.001 (not .002, which is about malicious
+  # FILES) is the precise sub-technique for a malicious LINK. T1071 covers the IP-based
+  # checks — C2/application-layer-protocol communication is the closest real attacker
+  # behavior a known-malicious-IP match corroborates.
+  - id: T1204.001
+    name: "User Execution: Malicious Link"
+    url: "https://attack.mitre.org/techniques/T1204/001/"
+  - id: T1071
+    name: "Application Layer Protocol"
+    url: "https://attack.mitre.org/techniques/T1071/"
   # M5 Stage 1 — intrusion & data-exfiltration detection (activity-event telemetry).
   - id: T1110
     name: "Brute Force"
@@ -108,7 +118,6 @@ mappings:
   # is frequently the setup for a follow-on information/credential request.
   UNKNOWN_VENDOR_CLAIM: [T1566, T1598]
   LOOKALIKE_OF_KNOWN_SENDER: [T1583.001, T1656, T1566.002]
-  LINK_KNOWN_PHISHING_HOST: [T1566.002]
   DOMAIN_LOOKS_RANDOMLY_GENERATED: [T1583.001, T1566.002]
 
   # Detection max-out Stage A — trusted-sender content anomaly. T1586.002 is the precise fit
@@ -131,3 +140,10 @@ mappings:
   # Early-warning sensor Stage 2 — corroborated precursor-signal alerts ("attack
   # forming"), distinct from any single finding. Reuses existing controls only.
   EARLY_WARNING_ATTACK_FORMING: [T1566, T1078]
+
+  # Threat-intelligence enrichment Stage 1 — multi-feed hostname/URL/IP cross-reference
+  # (app.threat_intel). See app/threat_intel/data/sources.md for feed provenance/licenses.
+  LINK_KNOWN_MALICIOUS: [T1204.001, T1583.001]
+  SENDER_DOMAIN_KNOWN_BAD: [T1583.001]
+  SENDER_IP_KNOWN_MALICIOUS: [T1071]
+  EVENT_IP_KNOWN_MALICIOUS: [T1071]

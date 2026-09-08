@@ -9,6 +9,7 @@ from app.indicators import (
     chat_context,
     credential_payment,
     domain_age_heuristic,
+    known_bad_sender,
     known_bad_urls,
     link_analysis,
     lookalike_domain,
@@ -35,6 +36,7 @@ _RULES: list[IndicatorRule] = [
     sender_history.evaluate,
     trusted_sender_anomaly.evaluate,
     known_bad_urls.evaluate,
+    known_bad_sender.evaluate,
     domain_age_heuristic.evaluate,
 ]
 

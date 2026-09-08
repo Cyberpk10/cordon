@@ -1,4 +1,4 @@
-version: "1.9"
+version: "1.10"
 framework: "ISO/IEC 27001:2022 Annex A"
 framework_key: iso_27001
 source: "https://www.iso.org/standard/27001"
@@ -77,7 +77,6 @@ mappings:
   FIRST_CONTACT_SENDER: [A.5.7]
   UNKNOWN_VENDOR_CLAIM: [A.6.3, A.5.7]
   LOOKALIKE_OF_KNOWN_SENDER: [A.5.7, A.8.23]
-  LINK_KNOWN_PHISHING_HOST: [A.8.23]
   DOMAIN_LOOKS_RANDOMLY_GENERATED: [A.5.7, A.8.23]
 
   # Detection max-out Stage A — trusted-sender content anomaly.
@@ -95,6 +94,13 @@ mappings:
   # Early-warning sensor Stage 2 — corroborated precursor-signal alerts ("attack
   # forming"), distinct from any single finding. Reuses existing controls only.
   EARLY_WARNING_ATTACK_FORMING: [A.5.7, A.8.16]
+
+  # Threat-intelligence enrichment Stage 1 — multi-feed hostname/URL/IP
+  # cross-reference (app.threat_intel). See app/threat_intel/data/sources.md.
+  LINK_KNOWN_MALICIOUS: [A.8.23]
+  SENDER_DOMAIN_KNOWN_BAD: [A.8.23]
+  SENDER_IP_KNOWN_MALICIOUS: [A.8.16]
+  EVENT_IP_KNOWN_MALICIOUS: [A.8.16]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions.
   QUARANTINE_EMAIL: [A.5.26]

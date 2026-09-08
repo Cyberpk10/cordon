@@ -35,5 +35,10 @@ backend/data/
 # since Docker's build context can only see files inside backend/.
 ml/data/
 ml/models/*
+
+# Threat-intelligence enrichment (backend/scripts/refresh_threat_intel.py) — raw downloaded
+# feed data, never committed. The normalized, deduped snapshots this script PRODUCES live in
+# backend/app/threat_intel/data/ instead (committed, small) — same split as ml/data/ above.
+data/raw/threat_intel/
 !ml/models/CARD.md
 !ml/models/metrics.json

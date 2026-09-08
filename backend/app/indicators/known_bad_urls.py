@@ -1,72 +1,58 @@
-"""Cross-references link destinations against a static, one-time-extracted snapshot of
-PhishTank's verified-phishing-URL feed hostnames (M8 Stage 3a — see
-scripts/extract_phishtank_hosts.py and app/indicators/data/phishtank_hosts.txt).
+"""Cross-references link destinations against the multi-feed threat-intel snapshot
+(threat-intelligence enrichment Stage 1 — see app.threat_intel.loader and
+app/threat_intel/data/sources.md for feed provenance/licenses). Generalizes what used to be
+a PhishTank-only hostname check (LINK_KNOWN_PHISHING_HOST, M8 Stage 3a) into a multi-feed
+hostname-OR-full-URL match.
 
-STALENESS LIMITATION (same spirit as lookalike_domain.py's curated-brand-list limitation,
-which this codebase already accepts): PhishTank verifies and takes down reported phishing
-infrastructure quickly, typically within days. This list is a point-in-time snapshot, not a
-live feed — a match is real corroborating evidence when it hits, but the miss rate against
-CURRENT phishing infrastructure grows every day past extraction. No periodic-refresh
-mechanism exists — refresh by re-running scripts/extract_phishtank_hosts.py against a
-freshly re-downloaded CSV (`python3 -m aegis_ml.download.phishtank`).
+STALENESS LIMITATION (same spirit as lookalike_domain.py's curated-brand-list limitation):
+this is a point-in-time snapshot, not a live feed. A match is strong corroborating evidence
+when it hits; the miss rate against infrastructure that appeared after the snapshot date
+grows every day past it. Refresh via scripts/refresh_threat_intel.py.
 
-Purely offline: the hostname list is bundled as a static file, matched exactly (no network
-calls), same architecture as brands.yaml/lookalike_domain.py.
+Purely offline: matched against a static bundled snapshot, no network calls.
 """
 
 from __future__ import annotations
-
-from functools import lru_cache
-from pathlib import Path
 
 from app.core.config import settings
 from app.indicators.base import make_indicator
 from app.channels.message import Message
 from app.models.schemas import Indicator, Severity
 from app.sender_history.aggregation import SenderHistorySnapshot
-
-_HOSTS_PATH = Path(__file__).parent / "data" / "phishtank_hosts.txt"
-
-
-@lru_cache(maxsize=1)
-def _load_known_bad_hosts() -> frozenset[str]:
-    if not _HOSTS_PATH.exists():
-        return frozenset()
-    lines = _HOSTS_PATH.read_text(encoding="utf-8").splitlines()
-    return frozenset(line.strip().lower() for line in lines if line.strip() and not line.startswith("#"))
+from app.threat_intel.loader import match_hostname, match_url
 
 
 def evaluate(
     email: Message, sender_history: SenderHistorySnapshot | None = None
 ) -> list[Indicator]:
-    if not settings.enable_known_bad_url_list:
-        return []
-
-    known_bad = _load_known_bad_hosts()
-    if not known_bad:
+    if not settings.enable_threat_intel_indicators:
         return []
 
     matched: list[str] = []
     for link in email.links:
-        if link.href_domain and link.href_domain.lower() in known_bad:
-            matched.append(f"{link.href_domain} ({link.href})")
+        match = match_hostname(link.href_domain) or match_url(link.href)
+        if match is not None:
+            matched.append(
+                f"{link.href_domain or link.href} — feed={match.feed}, "
+                f"snapshot={match.snapshot_date} ({link.href})"
+            )
 
     if not matched:
         return []
 
     return [
         make_indicator(
-            id="LINK_KNOWN_PHISHING_HOST",
+            id="LINK_KNOWN_MALICIOUS",
             category="link",
-            title="Link matches a previously-reported phishing host",
+            title="Link matches a known-malicious host/URL feed",
             description=(
-                "One or more links point to a hostname previously reported and verified as "
-                "phishing infrastructure by PhishTank. This is a static, point-in-time "
-                "snapshot — a match is strong corroborating evidence, but this list is not a "
-                "live feed and will miss newly-registered attacker infrastructure."
+                "One or more links match a hostname or URL on a bundled threat-intelligence "
+                "feed's known-malicious list. This is a static, point-in-time snapshot — a "
+                "match is strong corroborating evidence, but this list is not a live feed "
+                "and will miss infrastructure that appeared after the snapshot date."
             ),
             evidence=matched,
             severity=Severity.HIGH,
-            score=25,
+            score=60,
         )
     ]

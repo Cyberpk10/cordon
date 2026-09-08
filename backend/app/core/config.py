@@ -241,11 +241,14 @@ class Settings:
         )
     )
 
-    # Known-bad-URL cross-reference against a static PhishTank hostname snapshot (M8 Stage
-    # 3a) — see app.indicators.known_bad_urls. Zero-network, on by default like every other
-    # purely-offline indicator (LINK_SUSPICIOUS_TLD, lookalike_domain, ...).
-    enable_known_bad_url_list: bool = field(
-        default_factory=lambda: _env_bool("ENABLE_KNOWN_BAD_URL_LIST", True)
+    # Threat-intelligence enrichment Stage 1 (app.threat_intel) — multi-feed hostname/URL/IP
+    # cross-reference (LINK_KNOWN_MALICIOUS, SENDER_DOMAIN_KNOWN_BAD,
+    # SENDER_IP_KNOWN_MALICIOUS, EVENT_IP_KNOWN_MALICIOUS). One shared flag covers all four
+    # checks — they all read the same static snapshot, so there's no reason to toggle them
+    # independently. Zero-network, on by default like every other purely-offline indicator.
+    # Replaces the old, narrower enable_known_bad_url_list (M8 Stage 3a, PhishTank-only).
+    enable_threat_intel_indicators: bool = field(
+        default_factory=lambda: _env_bool("ENABLE_THREAT_INTEL_INDICATORS", True)
     )
 
     # Newly-registered-domain heuristic proxy (M8 Stage 3a) — a zero-network domain-entropy

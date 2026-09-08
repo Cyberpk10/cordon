@@ -9,6 +9,7 @@ from app.detections import (
     brute_force,
     data_exfiltration,
     impossible_travel,
+    known_bad_ip,
     mass_file_access,
     off_hours_access,
     privilege_escalation,
@@ -27,6 +28,7 @@ _RULES: list[DetectionRule] = [
     privilege_escalation.evaluate,
     sensitive_resource_access.evaluate,
     baseline_ramp.evaluate,
+    known_bad_ip.evaluate,
 ]
 
 
