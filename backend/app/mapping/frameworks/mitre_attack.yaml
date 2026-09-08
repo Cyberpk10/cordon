@@ -1,4 +1,4 @@
-version: "1.7"
+version: "1.8"
 framework: "MITRE ATT&CK"
 framework_key: mitre_attack
 source: "https://attack.mitre.org"
@@ -127,3 +127,7 @@ mappings:
   # controls as BASELINE_RAMP_ANOMALY above (a trend/pattern detected across many days
   # of history via an already-trusted account, not a single event).
   LOW_SIGNAL_PATTERN_ACCUMULATION: [T1213, T1078]
+
+  # Early-warning sensor Stage 2 — corroborated precursor-signal alerts ("attack
+  # forming"), distinct from any single finding. Reuses existing controls only.
+  EARLY_WARNING_ATTACK_FORMING: [T1566, T1078]

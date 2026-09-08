@@ -51,7 +51,7 @@ def test_chain_forming_progression_reaches_elevated_before_any_incident(authed_c
     assert tl.status_code == 200
     entry = _entry(tl.json(), actor)
     assert entry is not None
-    assert entry["level"] == "elevated"
+    assert entry["level"] == "attack_forming"
     assert round(entry["score"], 1) == 35.3
 
     signal_types = {s["type"] for s in entry["contributing_signals"]}
@@ -74,7 +74,7 @@ def test_benign_actor_with_one_isolated_signal_stays_low(authed_client):
     tl = authed_client.get("/api/threat-level")
     entry = _entry(tl.json(), actor)
     assert entry is not None
-    assert entry["level"] == "low"
+    assert entry["level"] == "normal"
 
 
 def test_decay_reduces_score_on_a_later_read(authed_client, db_session, test_account):
@@ -135,4 +135,4 @@ def test_benign_multi_week_control_never_leaves_low(authed_client):
         tl = authed_client.get("/api/threat-level")
         entry = _entry(tl.json(), actor)
         if entry is not None:
-            assert entry["level"] == "low"
+            assert entry["level"] == "normal"

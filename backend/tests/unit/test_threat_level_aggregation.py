@@ -9,7 +9,7 @@ from app.threat_level.aggregation import (
     STAGE_DELIVERY,
     STAGE_EXFILTRATION,
     Signal,
-    compute_level,
+    compute_band,
     compute_trend,
     decay_score,
     project_threat_level,
@@ -47,28 +47,31 @@ def test_decay_score_no_decay_for_zero_score():
 # --------------------------------------------------------------------------------------
 
 
-def test_isolated_single_signal_stays_low(monkeypatch):
+def test_isolated_single_signal_stays_normal(monkeypatch):
     monkeypatch.setattr(settings, "threat_level_elevated_at", 25.0)
     score, signals = project_threat_level(0.0, None, [], [_signal(STAGE_ACCESS, 8.0, _BASE)], now=_BASE)
     assert score == 8.0
-    assert compute_level(score) == "low"
+    assert compute_band(score, signals) == "normal"
 
-    # A week later, decayed further, still low.
+    # A week later, decayed further, still normal.
     later = _BASE + timedelta(days=7)
     decayed = decay_score(score, _BASE, later)
     assert decayed < 8.0
-    assert compute_level(decayed) == "low"
+    assert compute_band(decayed, signals) == "normal"
 
 
-def test_chain_forming_progression_reaches_elevated_before_any_incident(monkeypatch):
+def test_chain_forming_progression_reaches_attack_forming_before_any_incident(monkeypatch):
     """The exact numerically-verified progression from the Stage 1 plan: auth (day 0) ->
     sensitive-access (day 5, chain bonus) -> transfer (day 8, chain bonus) reaches ~35 by
-    day 8 — crosses ELEVATED (25) — while each individual signal is, by construction, one of
-    Stage D's sub-floor weak categories that never fires a real detector on its own."""
+    day 8 — crosses the elevated floor (25) AND spans 3 distinct kill-chain stages, so Stage
+    2's corroboration gate classifies it as ATTACK_FORMING, not just elevated — while each
+    individual signal is, by construction, one of Stage D's sub-floor weak categories that
+    never fires a real detector on its own."""
     monkeypatch.setattr(settings, "threat_level_half_life_days", 14.0)
     monkeypatch.setattr(settings, "threat_level_chain_multiplier", 1.8)
     monkeypatch.setattr(settings, "threat_level_chain_window_days", 21)
     monkeypatch.setattr(settings, "threat_level_signal_history_cap", 20)
+    monkeypatch.setattr(settings, "early_warning_min_corroborating_stages", 2)
 
     day0 = _BASE
     day5 = _BASE + timedelta(days=5)
@@ -76,17 +79,19 @@ def test_chain_forming_progression_reaches_elevated_before_any_incident(monkeypa
 
     score, signals = project_threat_level(0.0, None, [], [_signal(STAGE_ACCESS, 8.0, day0)], now=day0)
     assert round(score, 1) == 8.0
+    assert compute_band(score, signals) == "normal"
 
     score, signals = project_threat_level(
         score, day0, signals, [_signal(STAGE_COLLECTION, 10.0, day5)], now=day5
     )
     assert round(score, 2) == 24.25  # chain bonus applied: 10 * 1.8 = 18, + decayed 6.25
+    assert compute_band(score, signals) == "normal"  # still just under the elevated floor
 
     score, signals = project_threat_level(
         score, day5, signals, [_signal(STAGE_EXFILTRATION, 8.0, day8)], now=day8
     )
     assert round(score, 1) == 35.3
-    assert compute_level(score) == "elevated"
+    assert compute_band(score, signals) == "attack_forming"
 
 
 def test_chain_bonus_does_not_apply_to_same_or_earlier_stage(monkeypatch):
@@ -116,11 +121,14 @@ def test_coincidental_two_signal_pairing_stays_under_elevated(monkeypatch):
     monkeypatch.setattr(settings, "threat_level_elevated_at", 25.0)
 
     score, signals = project_threat_level(0.0, None, [], [_signal(STAGE_ACCESS, 8.0, _BASE)], now=_BASE)
-    score, _ = project_threat_level(
+    score, signals = project_threat_level(
         score, _BASE, signals, [_signal(STAGE_EXFILTRATION, 8.0, _BASE)], now=_BASE
     )
     assert round(score, 1) == 22.4
-    assert compute_level(score) == "low"
+    # Below the elevated floor even though 2 distinct stages ARE present — the score floor
+    # (itself validated against exactly this worst case) is what screens this out, not the
+    # corroboration gate.
+    assert compute_band(score, signals) == "normal"
 
 
 def test_score_clips_at_one_hundred():
@@ -158,22 +166,49 @@ def test_recent_signals_are_capped_at_configured_size(monkeypatch):
 
 
 # --------------------------------------------------------------------------------------
-# compute_level
+# compute_band — early-warning sensor Stage 2. "Never one signal": attack_forming requires
+# BOTH the score floor AND multi-stage corroboration, never a higher score alone.
 # --------------------------------------------------------------------------------------
 
 
-def test_compute_level_band_boundaries(monkeypatch):
+def _signals_at_stages(*stages: int) -> list[dict]:
+    return [
+        {"type": "TEST", "stage": stage, "points": 1.0, "category": "test",
+         "timestamp": _BASE.isoformat(), "description": "d"}
+        for stage in stages
+    ]
+
+
+def test_compute_band_normal_below_elevated_floor(monkeypatch):
     monkeypatch.setattr(settings, "threat_level_elevated_at", 25.0)
-    monkeypatch.setattr(settings, "threat_level_high_at", 50.0)
-    monkeypatch.setattr(settings, "threat_level_critical_at", 75.0)
-    assert compute_level(0.0) == "low"
-    assert compute_level(24.9) == "low"
-    assert compute_level(25.0) == "elevated"
-    assert compute_level(49.9) == "elevated"
-    assert compute_level(50.0) == "high"
-    assert compute_level(74.9) == "high"
-    assert compute_level(75.0) == "critical"
-    assert compute_level(100.0) == "critical"
+    assert compute_band(0.0, _signals_at_stages(STAGE_ACCESS, STAGE_EXFILTRATION)) == "normal"
+    assert compute_band(24.9, _signals_at_stages(STAGE_ACCESS, STAGE_EXFILTRATION)) == "normal"
+
+
+def test_compute_band_elevated_above_floor_with_single_stage(monkeypatch):
+    """A single, very high-value signal (one stage only) never reaches attack_forming, no
+    matter how high the score — this is the structural "never one signal" bar."""
+    monkeypatch.setattr(settings, "threat_level_elevated_at", 25.0)
+    monkeypatch.setattr(settings, "early_warning_min_corroborating_stages", 2)
+    assert compute_band(30.0, _signals_at_stages(STAGE_ACCESS)) == "elevated"
+    assert compute_band(100.0, _signals_at_stages(STAGE_ACCESS, STAGE_ACCESS)) == "elevated"
+
+
+def test_compute_band_attack_forming_requires_both_floor_and_corroboration(monkeypatch):
+    monkeypatch.setattr(settings, "threat_level_elevated_at", 25.0)
+    monkeypatch.setattr(settings, "early_warning_min_corroborating_stages", 2)
+    assert compute_band(30.0, _signals_at_stages(STAGE_ACCESS, STAGE_COLLECTION)) == "attack_forming"
+    # Multi-stage but under the score floor stays normal — corroboration alone isn't enough.
+    assert compute_band(10.0, _signals_at_stages(STAGE_ACCESS, STAGE_COLLECTION)) == "normal"
+
+
+def test_compute_band_chronic_single_stage_repetition_never_forms(monkeypatch):
+    """Mirrors Stage 1's own zero-FP philosophy: a chronically-repeated SAME-stage pattern
+    can drive the score arbitrarily high without ever corroborating a forming chain."""
+    monkeypatch.setattr(settings, "threat_level_elevated_at", 25.0)
+    monkeypatch.setattr(settings, "early_warning_min_corroborating_stages", 2)
+    many_same_stage = _signals_at_stages(*([STAGE_ACCESS] * 10))
+    assert compute_band(95.0, many_same_stage) == "elevated"
 
 
 # --------------------------------------------------------------------------------------

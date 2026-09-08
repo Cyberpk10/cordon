@@ -11,6 +11,7 @@ import DashboardView from "./components/dashboard/DashboardView";
 import AuditView from "./components/audit/AuditView";
 import CopilotView from "./components/copilot/CopilotView";
 import DetectionsView from "./components/detections/DetectionsView";
+import EarlyWarningsView from "./components/early_warnings/EarlyWarningsView";
 import AutonomyView from "./components/autonomy/AutonomyView";
 import ControlMonitoringView from "./components/monitoring/ControlMonitoringView";
 import SimulationsView from "./components/simulations/SimulationsView";
@@ -32,6 +33,7 @@ type Tab =
   | "audit"
   | "copilot"
   | "detections"
+  | "early-warnings"
   | "autonomy"
   | "monitoring"
   | "simulations"
@@ -113,6 +115,7 @@ function AnalyzerApp() {
           tab === "audit" ||
           tab === "copilot" ||
           tab === "detections" ||
+          tab === "early-warnings" ||
           tab === "autonomy" ||
           tab === "monitoring" ||
           tab === "simulations"
@@ -155,6 +158,7 @@ function AnalyzerApp() {
                 "cases",
                 "dashboard",
                 "detections",
+                "early-warnings",
                 "monitoring",
                 "audit",
                 "copilot",
@@ -172,7 +176,7 @@ function AnalyzerApp() {
                     : "text-slate-500 hover:text-slate-700"
                 }`}
               >
-                {t}
+                {t === "early-warnings" ? "Early Warnings" : t}
               </button>
             ))}
           </nav>
@@ -183,6 +187,8 @@ function AnalyzerApp() {
         {tab === "dashboard" && <DashboardView />}
 
         {tab === "detections" && <DetectionsView />}
+
+        {tab === "early-warnings" && <EarlyWarningsView />}
 
         {tab === "autonomy" && <AutonomyView />}
 

@@ -265,7 +265,7 @@ export interface ThreatLevelSignal {
   description: string;
 }
 
-export type ThreatLevel = "low" | "elevated" | "high" | "critical";
+export type ThreatLevel = "normal" | "elevated" | "attack_forming" | "active_incident";
 export type ThreatTrend = "rising" | "steady" | "falling";
 
 export interface ThreatLevelEntry {
@@ -278,6 +278,29 @@ export interface ThreatLevelEntry {
 
 export interface ThreatLevelListResponse {
   actors: ThreatLevelEntry[];
+}
+
+export interface EarlyWarningAction {
+  step_id: string;
+  title: string;
+  description: string;
+  category: string;
+}
+
+export interface EarlyWarningAlertEntry {
+  id: string;
+  actor: string;
+  band: ThreatLevel;
+  score: number;
+  created_at: string;
+  signal_timeline: ThreatLevelSignal[];
+  timeline_summary: string;
+  recommended_actions: EarlyWarningAction[];
+  framework_mappings: Record<string, FrameworkControlRef[]>;
+}
+
+export interface EarlyWarningListResponse {
+  alerts: EarlyWarningAlertEntry[];
 }
 
 export interface CopilotTemplateUsed {

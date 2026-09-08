@@ -26,10 +26,9 @@ STAGE_ACCESS = 2
 STAGE_COLLECTION = 3
 STAGE_EXFILTRATION = 4
 
-_LEVEL_LOW = "low"
-_LEVEL_ELEVATED = "elevated"
-_LEVEL_HIGH = "high"
-_LEVEL_CRITICAL = "critical"
+_BAND_NORMAL = "normal"
+_BAND_ELEVATED = "elevated"
+_BAND_ATTACK_FORMING = "attack_forming"
 
 _TREND_RISING = "rising"
 _TREND_FALLING = "falling"
@@ -120,14 +119,20 @@ def project_threat_level(
     return new_score, updated_signals
 
 
-def compute_level(score: float) -> str:
-    if score >= settings.threat_level_critical_at:
-        return _LEVEL_CRITICAL
-    if score >= settings.threat_level_high_at:
-        return _LEVEL_HIGH
-    if score >= settings.threat_level_elevated_at:
-        return _LEVEL_ELEVATED
-    return _LEVEL_LOW
+def compute_band(score: float, recent_signals: list[dict]) -> str:
+    """Early-warning sensor Stage 2 band classification. "Never one signal" is enforced
+    structurally, not by a higher score bar: attack_forming requires BOTH score >=
+    threat_level_elevated_at AND at least early_warning_min_corroborating_stages DISTINCT
+    kill-chain stages represented among recent_signals — a chronically-repeated single-stage
+    pattern stays "elevated" forever, however high its score climbs. Does not know about
+    active_incident (a real-Incident-row override) — that needs a DB check, layered on top
+    by the caller (see app.early_warning.hooks.has_active_incident)."""
+    if score < settings.threat_level_elevated_at:
+        return _BAND_NORMAL
+    distinct_stages = {s["stage"] for s in recent_signals}
+    if len(distinct_stages) >= settings.early_warning_min_corroborating_stages:
+        return _BAND_ATTACK_FORMING
+    return _BAND_ELEVATED
 
 
 def _trim_score_history(history: dict[str, float], window_days: int = 30) -> dict[str, float]:

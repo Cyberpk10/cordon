@@ -37,6 +37,7 @@ from app.db.models import (
     User,
 )
 from app.db.session import get_db
+from app.early_warning.hooks import evaluate_actors
 from app.human_risk.recommendation import decide_training_recommendation
 from app.human_risk.scoring import RecipientCampaignOutcome, RecipientSimulationHistory
 from app.threat_level.hooks import record_simulation_click
@@ -562,6 +563,7 @@ async def track(
         recipient.click_count += 1
         if is_first_click:
             record_simulation_click(db, recipient.account_id, recipient.email)
+            evaluate_actors(db, recipient.account_id, [recipient.email], to_naive_utc(now))
     else:
         recipient.submitted_at = recipient.submitted_at or now
         recipient.submit_count += 1

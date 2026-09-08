@@ -493,6 +493,44 @@ class ActorThreatLevel(Base):
     )
 
 
+class EarlyWarningAlert(Base):
+    """Early-warning sensor Stage 2 — a persisted, human-facing alert distinct from a full
+    Incident: raised when an actor's ActorThreatLevel crosses into the "attack_forming" band
+    (app.threat_level.aggregation.compute_band), i.e. multiple CORROBORATING precursor
+    signals at different kill-chain stages, never a single signal (see
+    app.early_warning.hooks.evaluate_actors). Not append-only like RemediationAction/Label:
+    one row per "episode" of attack-forming, upserted while status stays "active" (its
+    score/signal_timeline/recommended_actions snapshot refreshes as the chain keeps
+    evolving) so the analyst never sees duplicate alerts for the same forming chain;
+    `created_at` is set once, at the FIRST crossing, and never reset by later refreshes.
+    Acknowledged rows are kept (not deleted) as historical record, same audit-trail
+    philosophy as RemediationAction/Label."""
+
+    __tablename__ = "early_warning_alerts"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    actor: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="active")  # "active" | "acknowledged"
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    signal_timeline: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    recommended_actions: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Plain email string, not a User FK — same convention as RemediationAction.actor.
+    acknowledged_by: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
 class AutonomyPolicy(Base):
     """An account's autonomy configuration (M6 Stage 1; account-scoped since M8 Stage 2) —
     one row per account, upserted (same pattern as TrainingRecommendation/ActorBaseline),

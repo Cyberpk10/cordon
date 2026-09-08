@@ -3,10 +3,10 @@ import { getThreatLevels } from "../../api/client";
 import type { ThreatLevelEntry } from "../../types/analysis";
 
 const LEVEL_STYLES: Record<string, string> = {
-  low: "border-slate-300 bg-slate-100 text-slate-600",
+  normal: "border-slate-300 bg-slate-100 text-slate-600",
   elevated: "border-amber-300 bg-amber-100 text-amber-800",
-  high: "border-orange-300 bg-orange-100 text-orange-800",
-  critical: "border-red-300 bg-red-100 text-red-800",
+  attack_forming: "border-orange-300 bg-orange-100 text-orange-800",
+  active_incident: "border-red-300 bg-red-100 text-red-800",
 };
 
 const TREND_ARROW: Record<string, string> = {
@@ -69,7 +69,7 @@ export default function WatchlistWidget() {
                 <td className="px-6 py-3 text-slate-600">{entry.score.toFixed(1)}</td>
                 <td className="px-6 py-3">
                   <span
-                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${LEVEL_STYLES[entry.level] ?? LEVEL_STYLES.low}`}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${LEVEL_STYLES[entry.level] ?? LEVEL_STYLES.normal}`}
                   >
                     {entry.level}
                   </span>

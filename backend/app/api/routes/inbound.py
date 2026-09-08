@@ -26,8 +26,10 @@ from app.analysis.email_pipeline import run_email_pipeline
 from app.auth.audit_log import log_event
 from app.auth.rate_limit import limiter
 from app.core.config import settings
+from app.core.time import to_naive_utc
 from app.db.models import Account, Case
 from app.db.session import get_db
+from app.early_warning.hooks import evaluate_actors
 from app.inbound.mailgun import extract_raw_email, verify_signature
 from app.inbound.unwrap import unwrap_forwarded_email
 from app.models.schemas import InboundEmailResponse
@@ -181,6 +183,7 @@ async def receive_inbound_email(
     )
     db.add(case)
     record_case_signal(db, account.id, case)
+    evaluate_actors(db, account.id, case.to_addresses, to_naive_utc(datetime.now(timezone.utc)))
 
     log_event(
         db,

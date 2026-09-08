@@ -7,6 +7,7 @@ account."""
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
@@ -14,8 +15,10 @@ from sqlalchemy.orm import Session
 from app.analysis.email_pipeline import PipelineResult, run_email_pipeline
 from app.auth.dependencies import get_current_user
 from app.core.config import settings
+from app.core.time import to_naive_utc
 from app.db.models import Case, User
 from app.db.session import get_db
+from app.early_warning.hooks import evaluate_actors
 from app.models.schemas import AnalyzeResponse, AnalyzeTextRequest, EmailSummary
 from app.sender_history.loader import load_sender_history
 from app.storage.raw_email_store import save_raw_email
@@ -72,6 +75,9 @@ def _persist_case_and_build_response(
     )
     db.add(case)
     record_case_signal(db, current_user.account_id, case)
+    evaluate_actors(
+        db, current_user.account_id, case.to_addresses, to_naive_utc(datetime.now(timezone.utc))
+    )
     db.commit()
     db.refresh(case)
 

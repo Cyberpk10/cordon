@@ -1,4 +1,4 @@
-version: "1.8"
+version: "1.9"
 framework: "NIST Cybersecurity Framework 2.0"
 framework_key: nist_csf
 source: "https://www.nist.gov/cyberframework"
@@ -100,6 +100,10 @@ mappings:
   # controls as BASELINE_RAMP_ANOMALY above (a trend/pattern detected across many days
   # of history via an already-trusted account, not a single event).
   LOW_SIGNAL_PATTERN_ACCUMULATION: [DE.AE-03, PR.AA-05]
+
+  # Early-warning sensor Stage 2 — corroborated precursor-signal alerts ("attack
+  # forming"), distinct from any single finding. Reuses existing controls only.
+  EARLY_WARNING_ATTACK_FORMING: [DE.AE-03, DE.CM-01]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions,
   # not detections — mapped by action type, same map_indicators mechanism.

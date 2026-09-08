@@ -3,6 +3,7 @@ import { getDashboardSummary } from "../../api/client";
 import { useInterval } from "../../hooks/useInterval";
 import type { DashboardSummary } from "../../types/analysis";
 import DriftAlertSummary from "./DriftAlertSummary";
+import EarlyWarningBanner from "./EarlyWarningBanner";
 import ExposureAvoidedCard from "./ExposureAvoidedCard";
 import FrameworkCoveragePanel from "./FrameworkCoveragePanel";
 import KpiCards from "./KpiCards";
@@ -83,6 +84,8 @@ export default function DashboardView() {
           </label>
         </div>
       </div>
+
+      <EarlyWarningBanner />
 
       {error && (
         <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">{error}</div>

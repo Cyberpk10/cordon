@@ -431,6 +431,29 @@ class ThreatLevelListResponse(BaseModel):
     actors: list[ThreatLevelEntryResponse]
 
 
+class EarlyWarningActionResponse(BaseModel):
+    step_id: str
+    title: str
+    description: str
+    category: str
+
+
+class EarlyWarningAlertResponse(BaseModel):
+    id: UUID
+    actor: str
+    band: str
+    score: float
+    created_at: datetime
+    signal_timeline: list[ThreatLevelSignalResponse]
+    timeline_summary: str
+    recommended_actions: list[EarlyWarningActionResponse]
+    framework_mappings: dict[str, list[FrameworkControlRef]]
+
+
+class EarlyWarningListResponse(BaseModel):
+    alerts: list[EarlyWarningAlertResponse]
+
+
 class CopilotQueryRequest(BaseModel):
     # app.copilot.llm truncates to 500 chars before ever building a prompt; capping here
     # too means an oversized question is rejected with a 422 up front rather than fully

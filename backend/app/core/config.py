@@ -445,15 +445,28 @@ class Settings:
         default_factory=lambda: int(os.environ.get("THREAT_LEVEL_TREND_WINDOW_DAYS", "7"))
     )
     # Level bands — deliberately separate from Verdict's SAFE/SUSPICIOUS/MALICIOUS naming to
-    # avoid confusing a watchlist tier with an actual case/incident verdict.
+    # avoid confusing a watchlist tier with an actual case/incident verdict. Redefined in
+    # early-warning sensor Stage 2 (app.threat_level.aggregation.compute_band): normal below
+    # this floor, elevated at/above it, attack_forming additionally requires corroboration
+    # (see early_warning_min_corroborating_stages below) — NOT a higher score, since "never
+    # one signal" is enforced structurally, not by raising this bar. active_incident is a
+    # separate DB-driven override (app.early_warning.hooks.has_active_incident), not a score
+    # tier at all, so there's no threat_level_critical_at anymore.
     threat_level_elevated_at: float = field(
         default_factory=lambda: float(os.environ.get("THREAT_LEVEL_ELEVATED_AT", "25.0"))
     )
-    threat_level_high_at: float = field(
-        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_HIGH_AT", "50.0"))
+    # Early-warning sensor Stage 2 (app.threat_level.aggregation.compute_band,
+    # app.early_warning). Minimum number of DISTINCT kill-chain stages represented among an
+    # actor's recent_signals before attack_forming can fire — this is the structural
+    # "never one signal" gate: any number of same-stage repeats, however high the resulting
+    # score, stays "elevated" forever without it.
+    early_warning_min_corroborating_stages: int = field(
+        default_factory=lambda: int(os.environ.get("EARLY_WARNING_MIN_CORROBORATING_STAGES", "2"))
     )
-    threat_level_critical_at: float = field(
-        default_factory=lambda: float(os.environ.get("THREAT_LEVEL_CRITICAL_AT", "75.0"))
+    # How far back a real Incident for this actor still counts toward the active_incident
+    # override.
+    early_warning_incident_lookback_days: int = field(
+        default_factory=lambda: int(os.environ.get("EARLY_WARNING_INCIDENT_LOOKBACK_DAYS", "30"))
     )
     # Base points per precursor signal type — see the Stage 1 plan's signal catalog for the
     # numeric calibration behind each value.

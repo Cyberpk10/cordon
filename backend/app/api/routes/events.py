@@ -41,6 +41,7 @@ from app.detections.cross_actor import (
 from app.detections.engine import run_detections
 from app.events.schema import ActivityEvent, EventBatchRequest
 from app.mapping.framework_mapper import map_indicators
+from app.early_warning.hooks import evaluate_actors
 from app.models.schemas import EventBatchResponse, Finding, IncidentSummary, Verdict
 from app.scoring.intrusion_risk_engine import fuse
 from app.threat_level.hooks import record_event_batch_signals
@@ -322,6 +323,7 @@ async def ingest_events(
         record_event_batch_signals(
             db, account_id, actor, batch_events, baseline, low_signal_contribution, findings, window_end
         )
+        evaluate_actors(db, account_id, [actor], window_end)
 
         score, verdict = fuse(findings)
 

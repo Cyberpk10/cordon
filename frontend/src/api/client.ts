@@ -17,6 +17,8 @@ import type {
   DashboardSummary,
   DomainVerifyResponse,
   DriftAlertListResponse,
+  EarlyWarningAlertEntry,
+  EarlyWarningListResponse,
   EventBatchResponse,
   FinancialRiskResponse,
   HumanRiskSummaryResponse,
@@ -267,6 +269,22 @@ export async function getTargets(): Promise<TargetsListResponse> {
 
 export async function getThreatLevels(): Promise<ThreatLevelListResponse> {
   const response = await apiFetch(`/api/threat-level`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function getEarlyWarnings(): Promise<EarlyWarningListResponse> {
+  const response = await apiFetch(`/api/early-warnings`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function acknowledgeEarlyWarning(id: string): Promise<EarlyWarningAlertEntry> {
+  const response = await apiFetch(`/api/early-warnings/${id}/ack`, { method: "POST" });
   if (!response.ok) {
     return parseErrorOrThrow(response);
   }

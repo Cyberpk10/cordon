@@ -17,12 +17,13 @@ from app.auth.dependencies import get_current_user
 from app.core.time import to_naive_utc
 from app.db.models import ActorThreatLevel, User
 from app.db.session import get_db
+from app.early_warning.hooks import has_active_incident
 from app.models.schemas import (
     ThreatLevelEntryResponse,
     ThreatLevelListResponse,
     ThreatLevelSignalResponse,
 )
-from app.threat_level.aggregation import compute_level, compute_trend, decay_score
+from app.threat_level.aggregation import compute_band, compute_trend, decay_score
 
 router = APIRouter(prefix="/api/threat-level", tags=["threat-level"])
 
@@ -46,11 +47,15 @@ async def get_threat_levels(
         if score <= 0:
             continue
 
+        band = compute_band(score, row.recent_signals)
+        if has_active_incident(db, current_user.account_id, row.actor, now):
+            band = "active_incident"
+
         entries.append(
             ThreatLevelEntryResponse(
                 actor=row.actor,
                 score=round(score, 1),
-                level=compute_level(score),
+                level=band,
                 trend=compute_trend(row.score_history, score, now),
                 contributing_signals=[
                     ThreatLevelSignalResponse(**signal) for signal in row.recent_signals

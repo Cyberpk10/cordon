@@ -21,6 +21,7 @@ from app.api.routes.autonomy import router as autonomy_router
 from app.api.routes.cases import router as cases_router
 from app.api.routes.copilot import router as copilot_router
 from app.api.routes.dashboard import router as dashboard_router
+from app.api.routes.early_warning import router as early_warning_router
 from app.api.routes.events import router as events_router
 from app.api.routes.human_risk import router as human_risk_router
 from app.api.routes.inbound import router as inbound_router
@@ -112,6 +113,7 @@ app.include_router(simulation_router)
 app.include_router(human_risk_router)
 app.include_router(vendor_domains_router)
 app.include_router(threat_level_router)
+app.include_router(early_warning_router)
 
 
 @app.get("/health")

@@ -1,4 +1,4 @@
-version: "1.8"
+version: "1.9"
 framework: "ISO/IEC 27001:2022 Annex A"
 framework_key: iso_27001
 source: "https://www.iso.org/standard/27001"
@@ -91,6 +91,10 @@ mappings:
   # controls as BASELINE_RAMP_ANOMALY above (a trend/pattern detected across many days
   # of history via an already-trusted account, not a single event).
   LOW_SIGNAL_PATTERN_ACCUMULATION: [A.5.15, A.8.16]
+
+  # Early-warning sensor Stage 2 — corroborated precursor-signal alerts ("attack
+  # forming"), distinct from any single finding. Reuses existing controls only.
+  EARLY_WARNING_ATTACK_FORMING: [A.5.7, A.8.16]
 
   # M6 Stage 1 — autonomous response (graduated autonomy). Response/containment actions.
   QUARANTINE_EMAIL: [A.5.26]
