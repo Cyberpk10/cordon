@@ -29,6 +29,9 @@ dist/
 backend/aegis.db
 backend/data/
 
+# scripts/daily_redteam.sh output — generated locally every run, never committed
+logs/
+
 # ML training corpus / artifacts (M3) — never commit raw datasets; ml/models/ is ignored except
 # for the committed documentation (CARD.md, metrics.json) carved out below. The actual binary
 # model artifacts live in backend/app/ml/artifacts/ instead (see that directory) — not ignored,
