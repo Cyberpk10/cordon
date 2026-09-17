@@ -28,12 +28,14 @@ than staying a sub-incident precursor signal. Scenarios 3/4 use sub-floor failed
 the "access" stage instead (a channel that IS verified to stay sub-incident), and this gap
 is called out plainly in the closing assessment rather than papered over.
 
-This script only ever talks to --base-url (default http://localhost:8000) — check that value
-before running it. Pointing --base-url at a real deployment means the case/incident/threat-
+This script REFUSES TO RUN unless --base-url resolves to localhost/127.0.0.1/::1 or a host
+explicitly listed in ALLOWED_HOSTS below — enforced at startup (enforce_target_allowlist()),
+not just documented here. Even against an allowlisted staging host, the case/incident/threat-
 level/early-warning data this creates is real, persisted data there — see
 scripts/cleanup_sim.py to delete cases/incidents afterward (it does not currently clean up
 ActorThreatLevel/EarlyWarningAlert rows, same as it doesn't clean up ActorBaseline rows from
-phases 2-4 today — pre-existing scope, not something this script changes).
+phases 2-4 today — pre-existing scope, not something this script changes). NEVER add a
+production host to ALLOWED_HOSTS.
 
 Usage:
     python3 scripts/attack_sim_phase5.py
@@ -55,6 +57,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -84,6 +87,33 @@ def _c(code: str, text: str) -> str:
     if not sys.stdout.isatty():
         return text
     return f"{code}{text}{_RESET}"
+
+
+# Hard allowlist enforced by enforce_target_allowlist() below. Add a hostname here only when
+# you deliberately mean to point this script at it (e.g. the Cordon staging backend) — never
+# add a production host. Anything not on this list is refused before any network call is made.
+ALLOWED_HOSTS = {
+    "localhost",
+    "127.0.0.1",
+    "::1",
+    "cordon-staging-backend.onrender.com",
+}
+
+
+def enforce_target_allowlist(base_url: str) -> None:
+    """Hard refusal, not a warning: this script creates real, persisted case/incident/
+    threat-level/early-warning data on whatever --base-url points at. Exit immediately
+    unless the host is localhost or explicitly listed in ALLOWED_HOSTS, so a mistyped or
+    copy-pasted --base-url can never reach production."""
+    host = urllib.parse.urlsplit(base_url).hostname
+    if host is None or host.lower() not in ALLOWED_HOSTS:
+        print(_c(_RED, f"\n[REFUSED] --base-url host {host!r} is not localhost and is not"), file=sys.stderr)
+        print(_c(_RED, "in ALLOWED_HOSTS (this file). This script writes real, persisted"), file=sys.stderr)
+        print(_c(_RED, "case/incident/threat-level/early-warning data on whatever it talks to —"), file=sys.stderr)
+        print(_c(_RED, "refusing to run against an unrecognized host."), file=sys.stderr)
+        print(_c(_RED, "If this is a legitimate staging target, add its hostname to"), file=sys.stderr)
+        print(_c(_RED, "ALLOWED_HOSTS explicitly. NEVER add a production host."), file=sys.stderr)
+        sys.exit(1)
 
 
 def banner(title: str) -> None:
@@ -916,13 +946,16 @@ def main() -> int:
     parser.add_argument("--no-prompt", action="store_true", help="Skip the 'press Enter to start' gate")
     args = parser.parse_args()
 
+    enforce_target_allowlist(args.base_url)
+
     banner("CORDON PHASE 5 — THREAT-INTEL + EARLY-WARNING STRESS TEST (authorized, synthetic data)")
     print(_c(_DIM, f"Target backend : {args.base_url}"))
     print(_c(_DIM, f"Frontend       : {FRONTEND_URL}  (log in with the same account to watch)"))
     print()
     print("Stress-tests the two newest capabilities: multi-feed threat-intel enrichment and")
-    print("the early-warning sensor's kill-chain corroboration. This script only ever talks")
-    print("to the URL above — double-check it before continuing.")
+    print("the early-warning sensor's kill-chain corroboration. This script refuses to run")
+    print("against any host that isn't localhost or explicitly listed in ALLOWED_HOSTS")
+    print("(enforced above, before any network call was made).")
 
     email, password = resolve_credentials(args)
     print(_c(_DIM, f"\nRunning as     : {email}"))

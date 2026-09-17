@@ -5,12 +5,14 @@ here is deliberately built against a specific, confirmed edge of Cordon's curren
 rules — the point is to find what Cordon MISSES, not to demo what it catches. Each scenario's
 docstring below cites the exact backend module/threshold it targets; nothing here is guessed.
 
-This script only ever talks to --base-url (default http://localhost:8000) — check that value
-before running it. It never sends real email and never performs any real network attack; every
-"attacker" action is a synthetic API call, exactly like phase 1. Pointing --base-url at a real
-deployment means the case/incident data this creates is real, persisted data there — see
-scripts/cleanup_sim.py to delete it afterward (unchanged — it already wipes every case/incident
-for whichever account you log into, regardless of which script created them).
+This script REFUSES TO RUN unless --base-url resolves to localhost/127.0.0.1/::1 or a host
+explicitly listed in ALLOWED_HOSTS below — enforced at startup (enforce_target_allowlist()),
+not just documented here. It never sends real email and never performs any real network
+attack; every "attacker" action is a synthetic API call, exactly like phase 1. Even against an
+allowlisted staging host, the case/incident data this creates is real, persisted data there —
+see scripts/cleanup_sim.py to delete it afterward (unchanged — it already wipes every
+case/incident for whichever account you log into, regardless of which script created them).
+NEVER add a production host to ALLOWED_HOSTS.
 
 Usage:
     python3 scripts/attack_sim_phase2.py
@@ -34,6 +36,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -43,6 +46,33 @@ DEFAULT_ACCOUNT_NAME = "Aegis Demo Account"
 EMAIL_ENV_VAR = "AEGIS_EMAIL"
 PASSWORD_ENV_VAR = "AEGIS_PASSWORD"
 FRONTEND_URL = "http://localhost:5173"
+
+# Hard allowlist enforced by enforce_target_allowlist() below. Add a hostname here only when
+# you deliberately mean to point this script at it (e.g. the Cordon staging backend) — never
+# add a production host. Anything not on this list is refused before any network call is made.
+ALLOWED_HOSTS = {
+    "localhost",
+    "127.0.0.1",
+    "::1",
+    "cordon-staging-backend.onrender.com",
+}
+
+
+def enforce_target_allowlist(base_url: str) -> None:
+    """Hard refusal, not a warning: this script creates real, persisted case/incident data
+    on whatever --base-url points at. Exit immediately unless the host is localhost or
+    explicitly listed in ALLOWED_HOSTS, so a mistyped or copy-pasted --base-url can never
+    reach production."""
+    host = urllib.parse.urlsplit(base_url).hostname
+    if host is None or host.lower() not in ALLOWED_HOSTS:
+        print(_c(_RED, f"\n[REFUSED] --base-url host {host!r} is not localhost and is not"), file=sys.stderr)
+        print(_c(_RED, "in ALLOWED_HOSTS (this file). This script writes real, persisted"), file=sys.stderr)
+        print(_c(_RED, "case/incident data on whatever it talks to — refusing to run against"), file=sys.stderr)
+        print(_c(_RED, "an unrecognized host."), file=sys.stderr)
+        print(_c(_RED, "If this is a legitimate staging target, add its hostname to"), file=sys.stderr)
+        print(_c(_RED, "ALLOWED_HOSTS explicitly. NEVER add a production host."), file=sys.stderr)
+        sys.exit(1)
+
 
 _RESET = "\033[0m"
 _BOLD = "\033[1m"
@@ -821,13 +851,16 @@ def main() -> int:
     parser.add_argument("--no-prompt", action="store_true", help="Skip the 'press Enter to start' gate")
     args = parser.parse_args()
 
+    enforce_target_allowlist(args.base_url)
+
     banner("CORDON PHASE 2 — BRUTAL RED-TEAM STRESS TEST (authorized, synthetic data)")
     print(_c(_DIM, f"Target backend : {args.base_url}"))
     print(_c(_DIM, f"Frontend       : {FRONTEND_URL}  (log in with the same account to watch)"))
     print()
     print("This is an adversarial test of Cordon's own detection engine, not a demo — several")
     print("scenarios are EXPECTED to slip through. That's the point: find the gaps, harden them.")
-    print("This script only ever talks to the URL above — double-check it before continuing.")
+    print("This script refuses to run against any host that isn't localhost or explicitly")
+    print("listed in ALLOWED_HOSTS (enforced above, before any network call was made).")
 
     email, password = resolve_credentials(args)
     print(_c(_DIM, f"\nRunning as     : {email}"))
