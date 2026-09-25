@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import hashlib
 import json
 import os
 import statistics
@@ -753,7 +754,6 @@ def run_scenario_5_low_and_slow_kill_chain(client: AegisClient, run_id: str, t0:
 # expected to still get CAUGHT — a clean pass here is a genuine, informative "noise-blending
 # doesn't help attackers" result, not a forced miss.
 
-_NOISE_SPRAY_IP = "203.0.113.200"
 _NOISE_SPRAY_ACCOUNT_COUNT = 10
 _NOISE_BENIGN_TARGETS = [
     "shared/onboarding/welcome-guide.pdf",
@@ -777,6 +777,13 @@ def run_scenario_6_noise_blended_attack(client: AegisClient, run_id: str, t0: da
     # data, not the backend). Each noise actor also gets its own IP now, belt-and-suspenders
     # against that specific false-merge risk.
     day = _snap_to_weekday(t0)
+    # Salted per run (see _run_salt_octet) — this scenario's spray actors are meant to trip
+    # CROSS_ACTOR_PASSWORD_SPRAY every run, but a fixed IP meant leftover actors from an
+    # earlier run of this same account, still inside the correlation window, would merge
+    # with a later unrelated run's events into a confusing extra finding attributed to
+    # whichever batch happened to be posted next — a harness bug, not a detector bug (same
+    # class of bug as scenario 7's control IP below, and the same fix).
+    noise_spray_ip = f"203.0.113.{_run_salt_octet(run_id)}"
     spray_actors = [f"noisy-{i:02d}.{run_id}@victimcorp.example" for i in range(_NOISE_SPRAY_ACCOUNT_COUNT)]
     noise_actors = [f"noise-cover-{i}.{run_id}@victimcorp.example" for i in range(4)]
 
@@ -794,7 +801,7 @@ def run_scenario_6_noise_blended_attack(client: AegisClient, run_id: str, t0: da
                         "timestamp": _iso(day.replace(hour=10, minute=0) + timedelta(minutes=i, seconds=j * 20)),
                         "actor": actor,
                         "action": "auth_fail",
-                        "source_ip": _NOISE_SPRAY_IP,
+                        "source_ip": noise_spray_ip,
                         "outcome": "failure",
                     }
                 )
@@ -848,7 +855,15 @@ _CONTROL_BENIGN_TARGETS = [
     "shared/handbook/pto-policy.pdf",
 ]
 _CONTROL_SHARED_IP_GROUP_SIZE = 7  # one below cross_actor_spray_min_actors (8)
-_CONTROL_SHARED_IP = "198.51.100.50"
+
+
+def _run_salt_octet(run_id: str) -> int:
+    """A stable per-run byte (0-255) derived from run_id. Used to vary an otherwise-fixed IP
+    octet across runs so cross-actor grouping detectors — which correlate by shared /24
+    subnet or exact IP over a real lookback window that spans the WHOLE account, not just the
+    current batch — never accidentally combine a previous run's leftover events with the
+    current run's just because both runs used the same literal IP. Mirrors phases 4/5."""
+    return int(hashlib.sha256(run_id.encode()).hexdigest()[:2], 16)
 
 
 def run_scenario_7_benign_heavy_control(client: AegisClient, run_id: str, t0: datetime, sc: Scorecard) -> None:
@@ -890,6 +905,7 @@ def run_scenario_7_benign_heavy_control(client: AegisClient, run_id: str, t0: da
             cordon(f"{actor}: varied normal day, correctly stayed safe.")
 
     shared_ip_day = _snap_to_weekday(t0 + timedelta(days=5))
+    control_shared_ip = f"198.51.{_run_salt_octet(run_id)}.50"
     events = []
     for i in range(_CONTROL_SHARED_IP_GROUP_SIZE):
         events.append(
@@ -897,7 +913,7 @@ def run_scenario_7_benign_heavy_control(client: AegisClient, run_id: str, t0: da
                 "timestamp": _iso(shared_ip_day.replace(hour=9, minute=i)),
                 "actor": f"employee-{i}.{run_id}@victimcorp.example",
                 "action": "auth_fail",
-                "source_ip": _CONTROL_SHARED_IP,
+                "source_ip": control_shared_ip,
                 "outcome": "failure",
             }
         )

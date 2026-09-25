@@ -27,7 +27,14 @@ mkdir -p "$LOG_DIR"
 # Synthetic, local-only demo account for this instance's SQLite DB. Never a real credential —
 # the ALLOWED_HOSTS guard in every script below means it can only ever touch localhost. Set
 # AEGIS_EMAIL/AEGIS_PASSWORD in the environment beforehand to use a different local account.
-export AEGIS_EMAIL="${AEGIS_EMAIL:-daily-redteam@cordon.local}"
+#
+# Rotated 2026-09-24 (daily-redteam -> daily-redteam-2): the original account's raw Event
+# history got permanently poisoned by a since-fixed harness bug (unsalted synthetic source
+# IPs in attack_sim_phase3.py caused stale cross-run events to keep merging into spurious
+# CROSS_ACTOR_PASSWORD_SPRAY findings). cleanup_sim.py only deletes Cases/Incidents, never
+# raw Events, so those pre-fix rows would have kept colliding forever on the old account
+# regardless of the code fix. See logs/redteam-daily.log for the full incident writeup.
+export AEGIS_EMAIL="${AEGIS_EMAIL:-daily-redteam-2@cordon.local}"
 export AEGIS_PASSWORD="${AEGIS_PASSWORD:-Daily-RedTeam-Local-Only}"
 
 TMP_DIR="$(mktemp -d)"
