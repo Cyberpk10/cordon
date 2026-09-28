@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import hashlib
 import json
 import os
 import sys
@@ -72,6 +73,16 @@ def enforce_target_allowlist(base_url: str) -> None:
         print(_c(_RED, "If this is a legitimate staging target, add its hostname to"), file=sys.stderr)
         print(_c(_RED, "ALLOWED_HOSTS explicitly. NEVER add a production host."), file=sys.stderr)
         sys.exit(1)
+
+
+def _run_salt_octet(seed: str) -> int:
+    """A stable per-run byte (0-255) derived from a run-unique seed. Used to vary an
+    otherwise-fixed IP octet across runs so cross-actor grouping detectors — which correlate
+    by shared /24 subnet or exact IP over a real lookback window that spans the WHOLE
+    account, not just the current batch — never accidentally combine a previous run's
+    leftover events with the current run's just because both runs used the same literal IP.
+    Mirrors phases 3/4/5."""
+    return int(hashlib.sha256(seed.encode()).hexdigest()[:2], 16)
 
 
 _RESET = "\033[0m"
@@ -505,13 +516,16 @@ def run_scenario_2_low_and_slow_exfiltration(client: AegisClient, run_id: str, t
 # failed attempts each (well under the per-actor floor) is stealthier in real life and
 # invisible to this rule set by construction.
 
-_SPRAY_IP = "198.51.100.77"
 _SPRAY_ACCOUNT_COUNT = 15
 
 
 def run_scenario_3_password_spray(client: AegisClient, run_id: str, t0: datetime, pace: float, sc: Scorecard) -> None:
     scenario(3, "PASSWORD SPRAY AT SCALE")
-    attacker(f"spraying {_SPRAY_ACCOUNT_COUNT} different accounts from {_SPRAY_IP}, only 2-3")
+    # Salted per run (see _run_salt_octet) — a fixed IP would let leftover events from an
+    # earlier run of the same account merge with a later unrelated run's actors into a
+    # spurious CROSS_ACTOR_PASSWORD_SPRAY finding. Same fix as phases 3/4/5.
+    spray_ip = f"198.51.100.{_run_salt_octet(run_id)}"
+    attacker(f"spraying {_SPRAY_ACCOUNT_COUNT} different accounts from {spray_ip}, only 2-3")
     attacker("failed attempts per account — never enough for any single account to look like")
     attacker("brute-forcing...")
     time.sleep(min(pace, 2))
@@ -526,7 +540,7 @@ def run_scenario_3_password_spray(client: AegisClient, run_id: str, t0: datetime
                     "timestamp": _iso(t0 + timedelta(minutes=i, seconds=j * 20)),
                     "actor": actor,
                     "action": "auth_fail",
-                    "source_ip": _SPRAY_IP,
+                    "source_ip": spray_ip,
                     "outcome": "failure",
                 }
             )
@@ -675,6 +689,12 @@ def run_scenario_6_concurrent_compromise(client: AegisClient, run_id: str, t0: d
     attacker("own brute-force -> impossible-travel -> large-exfiltration chain, submitted together...")
     time.sleep(min(pace, 2))
 
+    # Salted per run (see _run_salt_octet), keeping the +idx offset within a run so the 3
+    # actors still land in the SAME /24 subnet as each other (needed for the coordinated-
+    # attack merge this scenario is testing) — only the base shifts across runs, so leftover
+    # events from an earlier run never share an exact IP with a later unrelated run's.
+    # % 250 leaves headroom for the +idx offset without overflowing the octet.
+    concurrent_ip_base = _run_salt_octet(run_id) % 250
     actors = [f"concurrent-{i + 1}.{run_id}@victimcorp.example" for i in range(_CONCURRENT_ACTOR_COUNT)]
     events = []
     for idx, actor in enumerate(actors):
@@ -685,7 +705,7 @@ def run_scenario_6_concurrent_compromise(client: AegisClient, run_id: str, t0: d
                     "timestamp": _iso(actor_t0 + timedelta(minutes=i)),
                     "actor": actor,
                     "action": "auth_fail",
-                    "source_ip": f"203.0.113.{10 + idx}",
+                    "source_ip": f"203.0.113.{concurrent_ip_base + idx}",
                     "outcome": "failure",
                 }
             )
@@ -695,7 +715,7 @@ def run_scenario_6_concurrent_compromise(client: AegisClient, run_id: str, t0: d
                 "timestamp": _iso(success_at),
                 "actor": actor,
                 "action": "login",
-                "source_ip": f"203.0.113.{10 + idx}",
+                "source_ip": f"203.0.113.{concurrent_ip_base + idx}",
                 "outcome": "success",
                 "geo": _NY_GEO,
             }
@@ -706,7 +726,7 @@ def run_scenario_6_concurrent_compromise(client: AegisClient, run_id: str, t0: d
                 "timestamp": _iso(takeover_at),
                 "actor": actor,
                 "action": "login",
-                "source_ip": f"91.198.174.{10 + idx}",
+                "source_ip": f"91.198.174.{concurrent_ip_base + idx}",
                 "outcome": "success",
                 "geo": _MOSCOW_GEO,
             }

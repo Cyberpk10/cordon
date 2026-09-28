@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import hashlib
 import json
 import os
 import sys
@@ -292,6 +293,16 @@ def _iso(dt: datetime) -> str:
     return dt.isoformat()
 
 
+def _run_salt_octet(seed: str) -> int:
+    """A stable per-run byte (0-255) derived from a run-unique seed (here, the actor email,
+    which already embeds run_id). Used to vary an otherwise-fixed IP octet across runs so
+    cross-actor grouping detectors — which correlate by shared /24 subnet or exact IP over a
+    real lookback window that spans the WHOLE account, not just the current batch — never
+    accidentally combine a previous run's leftover events with the current run's just
+    because both runs used the same literal IP. Mirrors phases 3/4/5."""
+    return int(hashlib.sha256(seed.encode()).hexdigest()[:2], 16)
+
+
 def _print_incident_result(resp: dict, label: str) -> str | None:
     created = resp.get("incidents_created") or []
     if not created:
@@ -313,13 +324,17 @@ def run_stage_2_brute_force(client: AegisClient, actor: str, t0: datetime, pace:
     attacker(f"launching a password-spray against {_c(_BOLD, actor)} (6 failed logins in 5 minutes)...")
     time.sleep(min(pace, 2))
 
+    # Salted per run (see _run_salt_octet) — a fixed IP here would let leftover events from
+    # an earlier run of the same account merge with a later unrelated run's actors into a
+    # spurious CROSS_ACTOR_PASSWORD_SPRAY finding. Same fix as phases 3/4/5.
+    brute_force_ip = f"203.0.113.{_run_salt_octet(actor)}"
     success_at = t0 + timedelta(minutes=6)
     events = [
         {
             "timestamp": _iso(t0 + timedelta(minutes=i)),
             "actor": actor,
             "action": "auth_fail",
-            "source_ip": "203.0.113.10",
+            "source_ip": brute_force_ip,
             "outcome": "failure",
         }
         for i in range(6)
@@ -329,7 +344,7 @@ def run_stage_2_brute_force(client: AegisClient, actor: str, t0: datetime, pace:
             "timestamp": _iso(success_at),
             "actor": actor,
             "action": "login",
-            "source_ip": "203.0.113.10",
+            "source_ip": brute_force_ip,
             "outcome": "success",
             "geo": {"country": "US", "region": "NY", "lat": 40.7128, "lon": -74.0060},
         }
