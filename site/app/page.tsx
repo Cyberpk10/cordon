@@ -1,0 +1,48 @@
+import Nav from "@/components/Nav";
+import Hero from "@/components/Hero";
+import FrameworkBar from "@/components/FrameworkBar";
+import VideoDemo from "@/components/VideoDemo";
+import LiveSimulation from "@/components/LiveSimulation";
+import StatStrip from "@/components/StatStrip";
+import PlatformCards from "@/components/PlatformCards";
+import EarlyWarning from "@/components/EarlyWarning";
+import PhishingSimulation from "@/components/PhishingSimulation";
+import ProductTour from "@/components/ProductTour";
+import WhyAegis from "@/components/WhyAegis";
+import AutonomyBand from "@/components/AutonomyBand";
+import AboutFounder from "@/components/AboutFounder";
+import FinalCta from "@/components/FinalCta";
+import Footer from "@/components/Footer";
+import { getScreenshotAvailability } from "@/lib/screenshots";
+
+export default function Home() {
+  const screenshots = getScreenshotAvailability();
+
+  return (
+    <>
+      <Nav />
+      <main className="flex-1">
+        <Hero hasAnalyzeMalicious={screenshots.analyzeMalicious} />
+        <FrameworkBar />
+        <VideoDemo hasWalkthroughVideo={screenshots.walkthroughVideo} />
+        <LiveSimulation
+          hasAnalyzeMalicious={screenshots.analyzeMalicious}
+          hasAnalyzeSafe={screenshots.analyzeSafe}
+        />
+        <StatStrip />
+        <PlatformCards />
+        <EarlyWarning />
+        <PhishingSimulation />
+        <ProductTour
+          hasAnalyzeMalicious={screenshots.analyzeMalicious}
+          hasDashboard={screenshots.dashboard}
+        />
+        <WhyAegis />
+        <AutonomyBand />
+        <AboutFounder />
+        <FinalCta />
+      </main>
+      <Footer />
+    </>
+  );
+}

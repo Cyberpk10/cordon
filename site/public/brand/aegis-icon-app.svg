@@ -1,0 +1,10 @@
+<svg width="256" height="256" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2F6BFF"/>
+      <stop offset="1" stop-color="#6B3FC4"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#tile)"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M32 14L52 54H43L32 32L21 54H12L32 14ZM32 32L36.5 41H27.5L32 32Z" fill="#ffffff"/>
+</svg>
