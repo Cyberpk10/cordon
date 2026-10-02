@@ -362,12 +362,15 @@ def run_stage_3_account_takeover(client: AegisClient, actor: str, prior_login_at
     time.sleep(min(pace, 2))
 
     takeover_at = prior_login_at + timedelta(minutes=30)
+    # Salted per run (see _run_salt_octet) — same rationale as brute_force_ip above: a fixed
+    # IP here would let this actor's takeover IP collide with a later unrelated run's.
+    takeover_ip = f"91.198.174.{_run_salt_octet(actor + '-takeover')}"
     events = [
         {
             "timestamp": _iso(takeover_at),
             "actor": actor,
             "action": "login",
-            "source_ip": "91.198.174.2",
+            "source_ip": takeover_ip,
             "outcome": "success",
             "geo": {"country": "RU", "region": "Moscow", "lat": 55.7558, "lon": 37.6173},
         }

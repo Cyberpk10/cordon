@@ -1,16 +1,32 @@
 #!/usr/bin/env bash
 # Daily red-team regression runner — LOCAL INSTANCE ONLY, never production.
 #
-# Order: start (or reuse) the local backend -> run the security test suite -> run the five
-# attack-sim campaigns against http://localhost:8000 -> clean up synthetic data -> append one
-# dated line to logs/redteam-daily.log, flagging *** REGRESSION *** (and exiting non-zero) if
-# security tests failed, any phase caught fewer scenarios than the last recorded run, or any
-# false positive fired. Offline/deterministic, synthetic data only.
+# Order: start (or reuse) the local backend -> run the security test suite -> run the
+# real-world commodity/criminal attack suite (scripts/attack_sim_realworld.py) against
+# http://localhost:8000 -> append one dated line to logs/redteam-daily.log, flagging
+# *** REGRESSION *** (and exiting non-zero) if security tests failed, the detection rate
+# dropped versus the last recorded run, or any false positive fired (the suite's hard bar is
+# ZERO false positives, not just a rate). Offline/deterministic, synthetic data only.
 #
-# Every attack-sim/cleanup script below enforces its own ALLOWED_HOSTS guard (see
-# scripts/attack_sim.py) and refuses to run against anything but localhost/127.0.0.1/::1 or an
-# explicitly allowlisted staging host — BASE_URL is hardcoded to localhost here as a second,
-# independent safeguard.
+# No shared demo account and no cleanup step here (unlike the old phase1-5 runner this
+# replaced): attack_sim_realworld.py creates its own brand-new, isolated account every run and
+# never reuses one. That's a structural fix, not a convenience — the account-rotation history
+# above this comment in earlier revisions of this file documents two real regressions
+# (2026-09-27, 2026-09-30) caused by a shared account's leftover Events (append-only; see
+# app/api/routes/events.py) getting "rediscovered" into spurious incidents once an old
+# incident covering them was deleted by the since-removed cleanup step. An account this
+# script never deletes anything from, and never revisits, cannot hit that path. See
+# scripts/attack_sim_realworld.py's module docstring for the full isolation rationale and the
+# accepted trade-off (one throwaway account per day, never cleaned up — harmless on a local
+# dev SQLite instance).
+#
+# The nation-state/APT simulation (scripts/attack_sim_phase4.py) is intentionally NOT part of
+# this daily run — see scripts/monthly_redteam_apt.sh for that "ceiling/honesty" test, which
+# runs monthly and logs to its own file without gating this daily green.
+#
+# scripts/attack_sim_realworld.py enforces its own ALLOWED_HOSTS guard and refuses to run
+# against anything but localhost/127.0.0.1/::1 or an explicitly allowlisted staging host —
+# BASE_URL is hardcoded to localhost here as a second, independent safeguard.
 
 set -uo pipefail
 
@@ -23,19 +39,6 @@ HEALTH_URL="$BASE_URL/health"
 DATE_STR="$(date +%Y-%m-%d)"
 
 mkdir -p "$LOG_DIR"
-
-# Synthetic, local-only demo account for this instance's SQLite DB. Never a real credential —
-# the ALLOWED_HOSTS guard in every script below means it can only ever touch localhost. Set
-# AEGIS_EMAIL/AEGIS_PASSWORD in the environment beforehand to use a different local account.
-#
-# Rotated 2026-09-24 (daily-redteam -> daily-redteam-2): the original account's raw Event
-# history got permanently poisoned by a since-fixed harness bug (unsalted synthetic source
-# IPs in attack_sim_phase3.py caused stale cross-run events to keep merging into spurious
-# CROSS_ACTOR_PASSWORD_SPRAY findings). cleanup_sim.py only deletes Cases/Incidents, never
-# raw Events, so those pre-fix rows would have kept colliding forever on the old account
-# regardless of the code fix. See logs/redteam-daily.log for the full incident writeup.
-export AEGIS_EMAIL="${AEGIS_EMAIL:-daily-redteam-2@cordon.local}"
-export AEGIS_PASSWORD="${AEGIS_PASSWORD:-Daily-RedTeam-Local-Only}"
 
 TMP_DIR="$(mktemp -d)"
 STARTED_BACKEND=0
@@ -100,13 +103,12 @@ if ! ( cd "$BACKEND_DIR" && pytest tests/security/ -q ) >"$TMP_DIR/security.log"
 fi
 tail -n 20 "$TMP_DIR/security.log"
 
-# --- 3. Attack-sim campaigns, in sequence, against the local API only ---
-run_phase() {
-    local script="$1" out="$2"
-    echo "[daily_redteam] running $(basename "$script")..."
-    python3 "$script" --base-url "$BASE_URL" --pace 0 --no-prompt >"$out" 2>&1
-    return $?
-}
+# --- 3. Real-world commodity/criminal attack suite (its own isolated account; no cleanup needed) ---
+echo "[daily_redteam] running attack_sim_realworld.py..."
+python3 "$PROJECT_ROOT/scripts/attack_sim_realworld.py" --base-url "$BASE_URL" --pace 0 --no-prompt \
+    >"$TMP_DIR/realworld.log" 2>&1
+REALWORLD_EXIT=$?
+tail -n 25 "$TMP_DIR/realworld.log"
 
 parse_rate() {
     grep -oE 'Detection rate: [0-9]+/[0-9]+' "$1" | head -1 | grep -oE '[0-9]+/[0-9]+'
@@ -115,78 +117,36 @@ parse_fp() {
     grep -oE 'False positives: [0-9]+' "$1" | head -1 | grep -oE '[0-9]+'
 }
 
-run_phase "$PROJECT_ROOT/scripts/attack_sim.py" "$TMP_DIR/p1.log" || echo "[daily_redteam] WARNING: attack_sim.py (phase 1) exited non-zero"
+RATE="$(parse_rate "$TMP_DIR/realworld.log")"
+FP="$(parse_fp "$TMP_DIR/realworld.log")"; FP="${FP:-0}"
 
-run_phase "$PROJECT_ROOT/scripts/attack_sim_phase2.py" "$TMP_DIR/p2.log" || echo "[daily_redteam] WARNING: attack_sim_phase2.py exited non-zero"
-run_phase "$PROJECT_ROOT/scripts/attack_sim_phase3.py" "$TMP_DIR/p3.log" || echo "[daily_redteam] WARNING: attack_sim_phase3.py exited non-zero"
-run_phase "$PROJECT_ROOT/scripts/attack_sim_phase4.py" "$TMP_DIR/p4.log" || echo "[daily_redteam] WARNING: attack_sim_phase4.py exited non-zero"
-run_phase "$PROJECT_ROOT/scripts/attack_sim_phase5.py" "$TMP_DIR/p5.log" || echo "[daily_redteam] WARNING: attack_sim_phase5.py exited non-zero"
+if [ -z "$RATE" ]; then
+    echo "[daily_redteam] ERROR: could not parse a detection rate out of attack_sim_realworld.py's output (exit=$REALWORLD_EXIT); full output:" >&2
+    cat "$TMP_DIR/realworld.log" >&2
+fi
 
-RATE_P2="$(parse_rate "$TMP_DIR/p2.log")"
-RATE_P3="$(parse_rate "$TMP_DIR/p3.log")"
-RATE_P4="$(parse_rate "$TMP_DIR/p4.log")"
-RATE_P5="$(parse_rate "$TMP_DIR/p5.log")"
-FP_P2="$(parse_fp "$TMP_DIR/p2.log")"; FP_P2="${FP_P2:-0}"
-FP_P3="$(parse_fp "$TMP_DIR/p3.log")"; FP_P3="${FP_P3:-0}"
-FP_P4="$(parse_fp "$TMP_DIR/p4.log")"; FP_P4="${FP_P4:-0}"
-FP_P5="$(parse_fp "$TMP_DIR/p5.log")"; FP_P5="${FP_P5:-0}"
-FP_TOTAL=$((FP_P2 + FP_P3 + FP_P4 + FP_P5))
-
-# Track (rather than immediately fail on) an unparseable rate: synthetic data has already been
-# created by this point, and cleanup (next step) must always run regardless, or leftover
-# cases/incidents accumulate across runs and contaminate later runs' cross-actor correlation —
-# this is exactly what caused the repeated false-positive regressions on 2026-09-27/09-30: a
-# phase crash tripped the old pre-cleanup fail() here, cleanup never ran, and the orphaned data
-# kept merging into later runs' CROSS_ACTOR_PASSWORD_SPRAY findings.
-PARSE_FAILURES=""
-for pair in "P2:$RATE_P2" "P3:$RATE_P3" "P4:$RATE_P4" "P5:$RATE_P5"; do
-    name="${pair%%:*}"; val="${pair#*:}"
-    if [ -z "$val" ]; then
-        PARSE_FAILURES="${PARSE_FAILURES}${PARSE_FAILURES:+ }${name}"
-        logf="$TMP_DIR/$(echo "$name" | tr 'A-Z' 'a-z').log"
-        echo "[daily_redteam] ERROR: could not parse a detection rate out of ${name}'s output; last 40 lines of ${logf}:" >&2
-        tail -n 40 "$logf" >&2
-    fi
-done
-
-# --- 4. Clean up synthetic data so it never accumulates — always, even if a phase above failed ---
-echo "[daily_redteam] cleaning up synthetic data..."
-python3 "$PROJECT_ROOT/scripts/cleanup_sim.py" --base-url "$BASE_URL" --yes >"$TMP_DIR/cleanup.log" 2>&1 \
-    || echo "[daily_redteam] WARNING: cleanup_sim.py exited non-zero — see below"
-tail -n 10 "$TMP_DIR/cleanup.log"
-
-# --- 5. Regression check against the last recorded run ---
+# --- 4. Regression check against the last recorded run ---
 REGRESSION=0
 if [ "$SECURITY_RESULT" != "PASS" ]; then
     REGRESSION=1
 fi
-if [ "$FP_TOTAL" -gt 0 ]; then
+if [ "$FP" -gt 0 ]; then
     REGRESSION=1
 fi
-if [ -n "$PARSE_FAILURES" ]; then
+if [ -z "$RATE" ]; then
     REGRESSION=1
 fi
 
-if [ -f "$LOG_FILE" ]; then
+if [ -n "$RATE" ] && [ -f "$LOG_FILE" ]; then
     LAST_LINE="$(tail -n 1 "$LOG_FILE")"
-    for name in P2 P3 P4 P5; do
-        prev="$(echo "$LAST_LINE" | grep -oE "${name} [0-9]+/[0-9]+" | grep -oE '[0-9]+/[0-9]+' | cut -d/ -f1)"
-        case "$name" in
-            P2) cur="${RATE_P2%%/*}" ;;
-            P3) cur="${RATE_P3%%/*}" ;;
-            P4) cur="${RATE_P4%%/*}" ;;
-            P5) cur="${RATE_P5%%/*}" ;;
-        esac
-        if [ -n "$prev" ] && [ -n "$cur" ] && [ "$cur" -lt "$prev" ]; then
-            REGRESSION=1
-        fi
-    done
+    PREV="$(echo "$LAST_LINE" | grep -oE "realworld [0-9]+/[0-9]+" | grep -oE '[0-9]+/[0-9]+' | cut -d/ -f1)"
+    CUR="${RATE%%/*}"
+    if [ -n "$PREV" ] && [ "$CUR" -lt "$PREV" ]; then
+        REGRESSION=1
+    fi
 fi
 
-LOG_LINE="${DATE_STR} | security-tests: ${SECURITY_RESULT} | P2 ${RATE_P2:-ERR} | P3 ${RATE_P3:-ERR} | P4 ${RATE_P4:-ERR} | P5 ${RATE_P5:-ERR} | false-positives: ${FP_TOTAL}"
-if [ -n "$PARSE_FAILURES" ]; then
-    LOG_LINE="${LOG_LINE} | unparseable: ${PARSE_FAILURES}"
-fi
+LOG_LINE="${DATE_STR} | security-tests: ${SECURITY_RESULT} | realworld ${RATE:-ERR} | false-positives: ${FP}"
 if [ "$REGRESSION" = "1" ]; then
     LOG_LINE="*** REGRESSION *** ${LOG_LINE}"
 fi
