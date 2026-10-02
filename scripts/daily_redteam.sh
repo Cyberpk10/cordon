@@ -132,12 +132,24 @@ FP_P4="$(parse_fp "$TMP_DIR/p4.log")"; FP_P4="${FP_P4:-0}"
 FP_P5="$(parse_fp "$TMP_DIR/p5.log")"; FP_P5="${FP_P5:-0}"
 FP_TOTAL=$((FP_P2 + FP_P3 + FP_P4 + FP_P5))
 
+# Track (rather than immediately fail on) an unparseable rate: synthetic data has already been
+# created by this point, and cleanup (next step) must always run regardless, or leftover
+# cases/incidents accumulate across runs and contaminate later runs' cross-actor correlation —
+# this is exactly what caused the repeated false-positive regressions on 2026-09-27/09-30: a
+# phase crash tripped the old pre-cleanup fail() here, cleanup never ran, and the orphaned data
+# kept merging into later runs' CROSS_ACTOR_PASSWORD_SPRAY findings.
+PARSE_FAILURES=""
 for pair in "P2:$RATE_P2" "P3:$RATE_P3" "P4:$RATE_P4" "P5:$RATE_P5"; do
     name="${pair%%:*}"; val="${pair#*:}"
-    [ -n "$val" ] || fail "could not parse a detection rate out of ${name}'s output — see $TMP_DIR/$(echo "$name" | tr 'A-Z' 'a-z').log before it's cleaned up (re-run with TMPDIR set to inspect)"
+    if [ -z "$val" ]; then
+        PARSE_FAILURES="${PARSE_FAILURES}${PARSE_FAILURES:+ }${name}"
+        logf="$TMP_DIR/$(echo "$name" | tr 'A-Z' 'a-z').log"
+        echo "[daily_redteam] ERROR: could not parse a detection rate out of ${name}'s output; last 40 lines of ${logf}:" >&2
+        tail -n 40 "$logf" >&2
+    fi
 done
 
-# --- 4. Clean up synthetic data so it never accumulates ---
+# --- 4. Clean up synthetic data so it never accumulates — always, even if a phase above failed ---
 echo "[daily_redteam] cleaning up synthetic data..."
 python3 "$PROJECT_ROOT/scripts/cleanup_sim.py" --base-url "$BASE_URL" --yes >"$TMP_DIR/cleanup.log" 2>&1 \
     || echo "[daily_redteam] WARNING: cleanup_sim.py exited non-zero — see below"
@@ -151,6 +163,9 @@ fi
 if [ "$FP_TOTAL" -gt 0 ]; then
     REGRESSION=1
 fi
+if [ -n "$PARSE_FAILURES" ]; then
+    REGRESSION=1
+fi
 
 if [ -f "$LOG_FILE" ]; then
     LAST_LINE="$(tail -n 1 "$LOG_FILE")"
@@ -162,13 +177,16 @@ if [ -f "$LOG_FILE" ]; then
             P4) cur="${RATE_P4%%/*}" ;;
             P5) cur="${RATE_P5%%/*}" ;;
         esac
-        if [ -n "$prev" ] && [ "$cur" -lt "$prev" ]; then
+        if [ -n "$prev" ] && [ -n "$cur" ] && [ "$cur" -lt "$prev" ]; then
             REGRESSION=1
         fi
     done
 fi
 
-LOG_LINE="${DATE_STR} | security-tests: ${SECURITY_RESULT} | P2 ${RATE_P2} | P3 ${RATE_P3} | P4 ${RATE_P4} | P5 ${RATE_P5} | false-positives: ${FP_TOTAL}"
+LOG_LINE="${DATE_STR} | security-tests: ${SECURITY_RESULT} | P2 ${RATE_P2:-ERR} | P3 ${RATE_P3:-ERR} | P4 ${RATE_P4:-ERR} | P5 ${RATE_P5:-ERR} | false-positives: ${FP_TOTAL}"
+if [ -n "$PARSE_FAILURES" ]; then
+    LOG_LINE="${LOG_LINE} | unparseable: ${PARSE_FAILURES}"
+fi
 if [ "$REGRESSION" = "1" ]; then
     LOG_LINE="*** REGRESSION *** ${LOG_LINE}"
 fi

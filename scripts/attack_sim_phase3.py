@@ -41,6 +41,7 @@ import getpass
 import hashlib
 import json
 import os
+import re
 import statistics
 import sys
 import time
@@ -308,10 +309,32 @@ def _snap_to_weekday(dt: datetime) -> datetime:
     return _business_days(dt, 1)[0]
 
 
+_ACTOR_RUN_ID_RE = re.compile(r"\.([0-9a-f]{8})@victimcorp\.example")
+
+
 def post_events_and_check(client: AegisClient, events: list[dict]) -> tuple[bool, list[dict]]:
-    """Returns (any_incident_created, incidents_created)."""
+    """Returns (any_incident_created, incidents_created), scoped to THIS run's own actors.
+
+    /api/events re-scans the whole account's auth_fail history on every POST, by design (so a
+    spray split across many small batches can't evade it) — but Events are append-only and
+    deleting an Incident only FK-SET-NULLs its evidence rows' incident_id, so once
+    cleanup_sim.py deletes a prior run's incident, that same old evidence is eligible to be
+    "rediscovered" into a brand-new incident by any later, unrelated request that happens to
+    touch the account within the lookback window. Without this filter that shows up as a false
+    positive attributed to whatever this run just posted, when it's really stale evidence from
+    a previous day's run. Every actor this script creates embeds this run's run_id, so filter
+    incidents_created down to ones that actually involve one of them.
+    """
+    run_ids = {m for e in events for m in _ACTOR_RUN_ID_RE.findall(e.get("actor", ""))}
     resp = client.post("/api/events", {"events": events})
-    incidents = resp.get("incidents_created") or []
+    raw_incidents = resp.get("incidents_created") or []
+    incidents = [
+        inc for inc in raw_incidents
+        if run_ids & {
+            m for a in (inc.get("related_actors") or [inc.get("actor", "")])
+            for m in _ACTOR_RUN_ID_RE.findall(a)
+        }
+    ]
     return bool(incidents), incidents
 
 
