@@ -2,13 +2,16 @@ import Image from "next/image";
 
 const LINKS = [
   { label: "Platform", href: "#platform" },
+  { label: "Early Warning", href: "#early-warning" },
+  { label: "Training", href: "#simulation" },
   { label: "Product Tour", href: "#product-tour" },
-  { label: "Why Aegis", href: "#why-aegis" },
+  { label: "Why Cordon", href: "#why-aegis" },
   { label: "Autonomy", href: "#autonomy" },
+  { label: "About", href: "#about-founder" },
 ];
 
 const DEMO_MAILTO =
-  "mailto:paakowansah@icloud.com?subject=Aegis%20demo%20request";
+  "mailto:paakowansah@icloud.com?subject=Cordon%20demo%20request";
 
 export default function Nav() {
   return (
@@ -17,14 +20,14 @@ export default function Nav() {
         <a href="#" className="flex shrink-0 items-center gap-2 text-white">
           <Image
             src="/brand/aegis-icon.svg"
-            alt="Aegis"
+            alt="Cordon"
             width={32}
             height={32}
             className="h-6 w-6 sm:h-7 sm:w-7"
             priority
           />
           <span className="text-base font-bold tracking-tight text-white sm:text-lg">
-            AEGIS
+            CORDON
           </span>
         </a>
 
@@ -42,7 +45,7 @@ export default function Nav() {
 
         <a
           href={DEMO_MAILTO}
-          className="rounded-full bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+          className="rounded-md bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
         >
           Get a demo
         </a>

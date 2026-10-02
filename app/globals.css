@@ -1,11 +1,19 @@
 @import "tailwindcss";
 
 @theme {
+  /* Base dark surfaces — deepest to lightest */
+  --color-navy-950: #05090f;
+  --color-navy-900: #0a1220;
+  --color-navy-800: #10192c;
   --color-navy: #0b1f3a;
-  --color-navy-950: #060f1f;
-  --color-navy-800: #122a4d;
-  --color-brand-blue: #2f6bff;
+  --color-navy-700: #17233a;
+
+  /* Single restrained accent */
+  --color-brand-blue: #3b82f6;
+
+  /* Kept for legacy references; no longer used in new gradients/badges */
   --color-brand-purple: #8b5cf6;
+
   --font-sans: var(--font-inter);
 }
 
@@ -14,24 +22,17 @@ html {
 }
 
 body {
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--color-navy-950);
+  color: #e2e8f0;
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01";
 }
 
-@keyframes scan-sweep {
-  0% {
-    top: -10%;
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
-    opacity: 0;
-  }
+/* Faint technical grid texture — used sparingly (hero only), never as a glow */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
 }

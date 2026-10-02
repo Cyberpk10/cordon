@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Aegis — AI-Native Defensive Security Platform",
-    short_name: "Aegis",
+    name: "Cordon: AI-Native Defensive Security Platform",
+    short_name: "Cordon",
     description:
       "Real-time phishing analysis, autonomous containment, and audit-ready compliance evidence.",
     start_url: "/",

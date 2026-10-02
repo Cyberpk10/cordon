@@ -8,9 +8,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Aegis — AI-Native Defensive Security Platform",
+  title: "Cordon: AI-Native Defensive Security Platform",
   description:
-    "Aegis analyzes every email in real time, contains threats autonomously within guardrails you control, and turns every detection into audit-ready evidence mapped to MITRE ATT&CK, NIST CSF, ISO 27001, and SOC 2.",
+    "Cordon analyzes every email in real time, contains threats autonomously within guardrails you control, and turns every detection into audit-ready evidence mapped to MITRE ATT&CK, NIST CSF, ISO 27001, and SOC 2.",
   icons: {
     icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
     apple: [
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-white text-slate-900">
+      <body className="min-h-full flex flex-col bg-navy-950 text-slate-200">
         {children}
       </body>
     </html>

@@ -1,7 +1,7 @@
 import { Layers, Undo2, ShieldOff, Power, ScrollText } from "lucide-react";
 
 const BADGES = [
-  { icon: Layers, label: "Graduated levels (L0–L3)" },
+  { icon: Layers, label: "Graduated levels (L0-L3)" },
   { icon: Undo2, label: "Reversible-first actions" },
   { icon: ShieldOff, label: "Executive exclusions" },
   { icon: Power, label: "Kill switch" },
@@ -10,14 +10,14 @@ const BADGES = [
 
 export default function AutonomyBand() {
   return (
-    <section id="autonomy" className="bg-navy-950 py-24">
+    <section id="autonomy" className="border-y border-white/5 bg-navy-900 py-24">
       <div className="mx-auto max-w-5xl px-6 text-center">
         <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
           Acts on its own. Never out of your control.
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-400">
           Autonomy is graduated, confidence-gated, and reversible by
-          construction — bounded at every layer, and one button away from
+          construction, bounded at every layer, and one button away from
           stopping entirely.
         </p>
 

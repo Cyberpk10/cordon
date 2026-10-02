@@ -11,7 +11,7 @@ const STATS = [
     sub: "board- and auditor-ready",
   },
   {
-    value: "L0–L3",
+    value: "L0-L3",
     label: "autonomy",
     sub: "graduated, reversible-first control",
   },
@@ -19,14 +19,14 @@ const STATS = [
 
 export default function StatStrip() {
   return (
-    <section className="border-b border-slate-200 bg-white">
+    <section className="border-y border-white/5 bg-navy-900">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-6 py-12 sm:grid-cols-4">
         {STATS.map((stat) => (
           <div key={stat.label} className="text-center sm:text-left">
-            <div className="text-3xl font-bold tracking-tight text-navy">
+            <div className="text-3xl font-bold tracking-tight text-white">
               {stat.value}
             </div>
-            <div className="mt-1 text-sm font-semibold text-slate-700">
+            <div className="mt-1 text-sm font-semibold text-slate-300">
               {stat.label}
             </div>
             <div className="mt-0.5 text-xs text-slate-500">{stat.sub}</div>
