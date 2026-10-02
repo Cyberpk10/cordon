@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
 const PRIVACY_MAILTO =
@@ -22,9 +23,12 @@ export default function Footer() {
           </div>
 
           <nav className="flex gap-8 text-sm font-medium text-slate-400">
-            <a href="#design-partner" className="transition-colors hover:text-white">
+            <Link href="/#design-partner" className="transition-colors hover:text-white">
               Design Partner
-            </a>
+            </Link>
+            <Link href="/security" className="transition-colors hover:text-white">
+              Security
+            </Link>
             <a href={PRIVACY_MAILTO} className="transition-colors hover:text-white">
               Privacy
             </a>
