@@ -2,7 +2,7 @@ import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import FrameworkBar from "@/components/FrameworkBar";
 import VideoDemo from "@/components/VideoDemo";
-import LiveSimulation from "@/components/LiveSimulation";
+import EmailPlayground from "@/components/EmailPlayground";
 import StatStrip from "@/components/StatStrip";
 import PlatformCards from "@/components/PlatformCards";
 import EarlyWarning from "@/components/EarlyWarning";
@@ -25,10 +25,7 @@ export default function Home() {
         <Hero hasAnalyzeMalicious={screenshots.analyzeMalicious} />
         <FrameworkBar />
         <VideoDemo hasWalkthroughVideo={screenshots.walkthroughVideo} />
-        <LiveSimulation
-          hasAnalyzeMalicious={screenshots.analyzeMalicious}
-          hasAnalyzeSafe={screenshots.analyzeSafe}
-        />
+        <EmailPlayground />
         <StatStrip />
         <PlatformCards />
         <EarlyWarning />

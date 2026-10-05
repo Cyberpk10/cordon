@@ -6,6 +6,7 @@ import Link from "next/link";
 // still reachable by scrolling the single page, right after Platform.
 const LINKS = [
   { label: "Platform", href: "/#platform" },
+  { label: "Try It", href: "/#playground" },
   { label: "Why Cordon", href: "/#why-aegis" },
 ];
 
