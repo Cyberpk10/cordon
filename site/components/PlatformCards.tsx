@@ -19,7 +19,7 @@ const CARDS = [
     icon: BrainCircuit,
     title: "AI-Attack Detection",
     description:
-      "Flags AI-generated and AI-authored social engineering content (the polished, personalized lures other tools miss).",
+      "Cordon's AI reasons about the intent behind a message, catching AI-generated and polished social-engineering lures that pattern-matching misses, as a bounded signal that supports the verdict without ever overriding the deterministic core.",
   },
   {
     icon: Radar,

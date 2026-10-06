@@ -9,6 +9,7 @@ import {
   Clock,
   Server,
   ShieldAlert,
+  BrainCircuit,
 } from "lucide-react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
@@ -59,6 +60,12 @@ const TESTING = [
   "Over 800 automated tests run before every release, including a dedicated adversarial suite.",
   "A daily red-team program attacks our own detection engine with real-world attacker techniques, scored honestly, including what we miss.",
   "A monthly nation-state / APT “ceiling” test measures our frontier limits.",
+];
+
+const AI_HARDENING = [
+  "Cordon's AI reasons about the intent behind a message, not just surface patterns, as a bounded signal: it can strengthen a verdict but, by design, can never override the deterministic rules or turn a malicious email into a safe one.",
+  "We hardened this AI layer against prompt injection, where an attacker hides instructions inside an email to fool the analyzer. The email is always treated as untrusted data, never as instructions.",
+  "We test it directly: when fed a message instructing the AI to mark itself safe, it refused, and flagged the manipulation attempt itself as a sign of malicious intent.",
 ];
 
 const SUB_PROCESSORS = [
@@ -154,6 +161,25 @@ export default function SecurityPage() {
               We publish what we catch and what we miss, because a security vendor that hides
               its blind spots is a security risk.
             </p>
+          </div>
+        </section>
+
+        <section className="bg-navy-950 py-24">
+          <div className="mx-auto max-w-4xl px-6">
+            <div className="flex items-center gap-3">
+              <BrainCircuit className="h-5 w-5 text-brand-blue" strokeWidth={1.5} />
+              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                AI hardened against manipulation
+              </h2>
+            </div>
+            <ul className="mt-8 space-y-4">
+              {AI_HARDENING.map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-blue" />
+                  <span className="text-base text-slate-300">{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
