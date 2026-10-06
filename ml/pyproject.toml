@@ -17,6 +17,9 @@ dependencies = [
     "pydantic>=2.7",
     "pyyaml>=6.0",
     "python-dotenv>=1.0",
+    # Only used by aegis_ml.synthesize (bounded synthetic data generation, run explicitly via
+    # `python -m aegis_ml.cli synthesize`, never part of the normal download/build step).
+    "anthropic>=0.40",
 ]
 
 [project.optional-dependencies]

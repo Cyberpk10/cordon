@@ -121,7 +121,16 @@ raw bytes -> parse_eml() -> run_indicators() -> [optional ML predict()] -> fuse(
 - `app/mapping/framework_mapper.py` + `app/mapping/frameworks/*.yaml` — versioned YAML mapping
   indicator IDs to MITRE ATT&CK / NIST CSF / ISO 27001 / SOC 2 controls.
 - `app/ml/classifier.py` — loads the joblib artifacts (see `ml/models/CARD.md`) and predicts;
-  degrades to `(None, None)` if artifacts are missing or the feature is off.
+  degrades to `(None, None)` if artifacts are missing or the feature is off. Training data
+  (`ml/corpus/sources.md`) mixes licensing-clean public corpora (Nazario phishing incl. yearly
+  2015-2025 files, SpamAssassin ham, Enron) with a small, bounded, explicitly-labeled slice of
+  LLM-generated synthetic phishing/BEC/AI-lure email (≤2% of train, train-split-only by
+  construction in `aegis_ml/split.py` so val/test stay a real-only holdout). See `ml/models/
+  CARD.md`'s "Honest before/after/ablation evaluation" for the measured effect of each change
+  (broadening real data moved recall/precision; the synthetic slice measured as a no-op on the
+  real test set, i.e. no regression, which is why it shipped) — don't assume synthetic
+  augmentation improved a number without checking that section, since in this case it didn't
+  move any of them.
 - `app/reasoning/llm_analyst.py` — one Anthropic call (Haiku-class model) that returns both a
   human-readable narrative AND a structured, bounded intent assessment (`intent_category`,
   `intent_risk`, `confidence`, `brief_reasons`), via a forced tool-use call rather than free

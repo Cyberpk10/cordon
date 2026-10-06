@@ -1,6 +1,6 @@
 {
-  "model_version": "m3-logreg-v1-20260812",
-  "trained_at": "2026-08-12T23:57:28.655401+00:00",
+  "model_version": "m3-logreg-v1-20261006",
+  "trained_at": "2026-10-06T05:31:32.501264+00:00",
   "model_type": "LogisticRegression(class_weight=balanced, penalty=l2) + CalibratedClassifierCV(method=sigmoid, cv=5)",
   "feature_space": {
     "structured_features": 23,
@@ -9,53 +9,59 @@
   },
   "corpus": {
     "train": {
-      "size": 8130,
+      "size": 9739,
       "class_balance": {
-        "phishing": 1068,
-        "benign": 7062,
-        "total": 8130
+        "phishing": 2536,
+        "benign": 7203,
+        "total": 9739
       }
     },
     "val": {
-      "size": 1743,
+      "size": 2050,
       "class_balance": {
-        "phishing": 230,
-        "benign": 1513,
-        "total": 1743
+        "phishing": 506,
+        "benign": 1544,
+        "total": 2050
       }
     },
     "test": {
-      "size": 1744,
+      "size": 2049,
       "class_balance": {
-        "phishing": 230,
-        "benign": 1514,
-        "total": 1744
+        "phishing": 505,
+        "benign": 1544,
+        "total": 2049
       }
     }
   },
+  "data_composition": {
+    "train_synthetic_rows": 180,
+    "train_synthetic_rows_available": 180,
+    "train_synthetic_fraction": 0.0185,
+    "synthetic_excluded_for_this_run": false
+  },
   "test_metrics_at_default_threshold": {
     "threshold": 0.5,
-    "precision": 0.9909502262443439,
-    "recall": 0.9521739130434783,
-    "f1": 0.9711751662971175,
-    "roc_auc": 0.9950778243639079,
+    "precision": 0.9781746031746031,
+    "recall": 0.9762376237623762,
+    "f1": 0.977205153617443,
+    "roc_auc": 0.9991201969937926,
     "confusion_matrix": {
-      "true_negative": 1512,
-      "false_positive": 2,
-      "false_negative": 11,
-      "true_positive": 219
+      "true_negative": 1533,
+      "false_positive": 11,
+      "false_negative": 12,
+      "true_positive": 493
     }
   },
   "high_precision_threshold": {
     "tuned_on": "val split",
-    "threshold": 0.16,
-    "precision": 0.9537815126050421,
-    "recall": 0.9869565217391304,
+    "threshold": 0.18,
+    "precision": 0.950381679389313,
+    "recall": 0.9841897233201581,
     "target_precision": 0.95,
     "target_met": true,
     "precision_recall_on_test_at_this_threshold": {
-      "precision": 0.9414225941422594,
-      "recall": 0.9782608695652174
+      "precision": 0.946969696969697,
+      "recall": 0.9900990099009901
     }
   }
 }

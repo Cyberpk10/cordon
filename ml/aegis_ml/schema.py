@@ -20,6 +20,18 @@ class Source(str, Enum):
     NAZARIO = "nazario"
     SPAMASSASSIN = "spamassassin"
     ENRON = "enron"
+    # Synthetic augmentation (never real captured correspondence) — see
+    # aegis_ml.synthesize and ml/corpus/sources.md's "Synthetic augmentation" section. Split
+    # into three source values, one per lure category, rather than a single generic
+    # "synthetic" value, specifically so every downstream stat that already groups by
+    # `source` (dedupe's raw_counts_by_source, the corpus report, CARD.md's data table) shows
+    # synthetic volume broken out separately from real data and by category, with zero new
+    # plumbing — "clearly labeled... so we can measure their effect separately" falls out of
+    # the existing source-keyed machinery for free instead of needing a parallel is_synthetic
+    # column threaded through every stage.
+    SYNTHETIC_CREDENTIAL_PHISHING = "synthetic_credential_phishing"
+    SYNTHETIC_BEC = "synthetic_bec"
+    SYNTHETIC_AI_LURE = "synthetic_ai_lure"
 
 
 EMAIL_RECORD_COLUMNS = [

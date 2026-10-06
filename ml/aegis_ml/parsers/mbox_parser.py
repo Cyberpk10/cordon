@@ -28,11 +28,23 @@ def iter_mbox_records(path: Path, *, source: Source, label: Label) -> Iterator[E
 
 
 def iter_single_message_dir_records(
-    directory: Path, *, source: Source, label: Label
+    directory: Path, *, source: Source, label: Label, id_prefix: str | None = None
 ) -> Iterator[EmailRecord]:
     """SpamAssassin's public corpus ships one raw RFC822 message per file (not an mbox
-    archive) — this reads a directory of those files."""
+    archive) — this reads a directory of those files.
+
+    id_prefix defaults to directory.name — fine as long as every directory this is ever
+    called on has a unique name. That stopped being true once the SpamAssassin ham corpus
+    started spanning multiple snapshot dates that each ship a same-named `easy_ham/`/
+    `hard_ham/` category folder (see aegis_ml.download.spamassassin.download_spamassassin_ham)
+    — two different real messages from two different dates could otherwise collide into the
+    same deterministic id (make_id hashes `source:original_id`), with the second silently
+    overwriting the first in anything keyed by id. Callers with more than one same-named
+    source directory must pass an explicit, actually-unique id_prefix.
+    """
     import email
+
+    prefix = id_prefix if id_prefix is not None else directory.name
 
     for path in sorted(directory.iterdir()):
         if not path.is_file() or path.name == "cmds":
@@ -45,6 +57,6 @@ def iter_single_message_dir_records(
             msg,
             source=source,
             label=label,
-            original_id=f"{directory.name}/{path.name}",
+            original_id=f"{prefix}/{path.name}",
             raw_bytes=raw_bytes,
         )

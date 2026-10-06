@@ -1,5 +1,13 @@
 """`python -m aegis_ml.cli build` — orchestrates download -> normalize -> dedupe -> split ->
-report for the M3 Stage 1 training corpus."""
+report for the M3 Stage 1 training corpus.
+
+`python -m aegis_ml.cli synthesize` — a separate, explicit command for bounded synthetic
+augmentation (aegis_ml.synthesize). Deliberately NOT part of `build`'s own download step:
+it costs real Anthropic API tokens per run, so a corpus rebuild must never silently re-spend
+them. Run it once (or whenever you want to regenerate), then run `build` normally — `build`
+always picks up whatever synthetic files already exist on disk (normalize_synthetic degrades
+to an empty frame if none do yet, same as every other optional source).
+"""
 
 from __future__ import annotations
 
@@ -14,6 +22,7 @@ from aegis_ml.download.spamassassin import download_spamassassin_ham
 from aegis_ml.normalize import normalize_all
 from aegis_ml.report import build_report, write_and_print_report
 from aegis_ml.split import DEFAULT_SEED, stratified_split, write_splits
+from aegis_ml.synthesize import CATEGORY_CONFIG, DEFAULT_TARGET_PER_CATEGORY, generate_all
 
 ALL_SOURCES = ["nazario", "spamassassin", "enron", "phishtank"]
 
@@ -78,6 +87,19 @@ def main() -> None:
     build_parser.add_argument("--enron-sample-size", type=int, default=ENRON_DEFAULT_SAMPLE_SIZE)
     build_parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
 
+    synthesize_parser = subparsers.add_parser(
+        "synthesize",
+        help="Generate bounded synthetic phishing/BEC/AI-lure training data via the LLM "
+        "(costs real Anthropic API tokens; never run implicitly by `build`).",
+    )
+    synthesize_parser.add_argument(
+        "--target-per-category",
+        type=int,
+        default=DEFAULT_TARGET_PER_CATEGORY,
+        help=f"Target sample count for each of {', '.join(CATEGORY_CONFIG)} (default: %(default)s).",
+    )
+    synthesize_parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
+
     args = parser.parse_args()
 
     if args.command == "build":
@@ -88,6 +110,11 @@ def main() -> None:
             enron_sample_size=args.enron_sample_size,
             seed=args.seed,
         )
+    elif args.command == "synthesize":
+        results = generate_all(target_per_category=args.target_per_category, seed=args.seed)
+        total = sum(len(paths) for paths in results.values())
+        print(f"[cli] synthesize complete: {total} total synthetic samples on disk "
+              f"({', '.join(f'{k}={len(v)}' for k, v in results.items())}).")
 
 
 if __name__ == "__main__":

@@ -92,12 +92,27 @@ def build_features_for_split(df: pd.DataFrame, vectorizer=None):
     return X, y, vectorizer
 
 
-def train() -> dict:
+def train(exclude_synthetic: bool = False) -> dict:
+    """exclude_synthetic=True drops every synthetic-sourced row from the train split before
+    fitting anything — used to produce the real-data-only ablation model, so the synthetic
+    augmentation's actual effect can be measured honestly against the same real-only val/test
+    splits (val/test never contain synthetic rows regardless — see aegis_ml.split)."""
     trained_at = datetime.now(timezone.utc)
-    model_version = f"{MODEL_VERSION_PREFIX}-{trained_at:%Y%m%d}"
+    variant_suffix = "-real-only" if exclude_synthetic else ""
+    model_version = f"{MODEL_VERSION_PREFIX}-{trained_at:%Y%m%d}{variant_suffix}"
 
     print("[train] Loading splits...")
     train_df, val_df, test_df = _load_split("train"), _load_split("val"), _load_split("test")
+
+    synthetic_mask = (
+        train_df["source"].astype(str).str.startswith("synthetic_")
+        if "source" in train_df.columns
+        else pd.Series(False, index=train_df.index)
+    )
+    synthetic_rows_available = int(synthetic_mask.sum())
+    if exclude_synthetic:
+        train_df = train_df[~synthetic_mask].reset_index(drop=True)
+    synthetic_rows_used = 0 if exclude_synthetic else synthetic_rows_available
 
     print("[train] Extracting features (re-parsing every record through the real backend "
           "pipeline — this is the slow step)...")
@@ -157,6 +172,14 @@ def train() -> dict:
             "val": {"size": int(len(y_val)), "class_balance": _class_balance(y_val)},
             "test": {"size": int(len(y_test)), "class_balance": _class_balance(y_test)},
         },
+        "data_composition": {
+            "train_synthetic_rows": synthetic_rows_used,
+            "train_synthetic_rows_available": synthetic_rows_available,
+            "train_synthetic_fraction": (
+                round(synthetic_rows_used / len(y_train), 4) if len(y_train) else 0.0
+            ),
+            "synthetic_excluded_for_this_run": exclude_synthetic,
+        },
         "test_metrics_at_default_threshold": test_metrics,
         "high_precision_threshold": {
             "tuned_on": "val split",
@@ -194,7 +217,8 @@ def _write_outputs(model, vectorizer, metrics: dict) -> None:
 
 
 def main() -> None:
-    metrics = train()
+    exclude_synthetic = "--exclude-synthetic" in sys.argv[1:]
+    metrics = train(exclude_synthetic=exclude_synthetic)
     print("\n=== Aegis ML Classifier — training summary ===\n")
     print(f"Model version: {metrics['model_version']}")
     print(f"Test metrics (threshold=0.5): {metrics['test_metrics_at_default_threshold']}")

@@ -11,7 +11,16 @@ from aegis_ml.paths import INTERIM_DIR, ensure_dirs
 from aegis_ml.schema import EMAIL_RECORD_COLUMNS
 
 # First-seen-wins order when the same normalized subject+body appears in multiple sources.
-SOURCE_PRIORITY = ["nazario", "spamassassin", "enron"]
+# Keyed to match aegis_ml.normalize.normalize_all()'s dict keys exactly (one entry per
+# top-level DataFrame it returns, "synthetic" being the single combined frame covering all
+# three synthetic Source values — see normalize_synthetic). "synthetic" is deliberately last:
+# if a generated sample happens to collide (identical normalized subject+body) with a real
+# message, the real one should win — it's strictly better ground truth, and it means
+# synthetic volume can never silently inflate by duplicating something a real source already
+# provided. The finer-grained synthetic_credential_phishing/synthetic_bec/synthetic_ai_lure
+# distinction isn't needed here; it's preserved per-row in the "source" column regardless of
+# this ordering, which is all downstream per-category reporting actually reads.
+SOURCE_PRIORITY = ["nazario", "spamassassin", "enron", "synthetic"]
 
 _WHITESPACE_RE = re.compile(r"\s+")
 

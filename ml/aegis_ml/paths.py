@@ -17,6 +17,7 @@ RAW_NAZARIO_DIR = RAW_DIR / "nazario"
 RAW_SPAMASSASSIN_DIR = RAW_DIR / "spamassassin"
 RAW_ENRON_DIR = RAW_DIR / "enron"
 RAW_PHISHTANK_DIR = RAW_DIR / "phishtank"
+RAW_SYNTHETIC_DIR = RAW_DIR / "synthetic"
 
 
 def ensure_dirs() -> None:
@@ -25,6 +26,7 @@ def ensure_dirs() -> None:
         RAW_SPAMASSASSIN_DIR,
         RAW_ENRON_DIR,
         RAW_PHISHTANK_DIR,
+        RAW_SYNTHETIC_DIR,
         INTERIM_DIR,
         PROCESSED_DIR,
         MODELS_DIR,
