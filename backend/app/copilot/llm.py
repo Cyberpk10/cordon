@@ -13,7 +13,7 @@ computed for one whitelisted query — it has no DB/tool access, so even a fully
 narration is a wording problem, never a data-leak one.
 
 Defensive analysis only. Both functions degrade to None on any missing key or failure,
-never raise — same resilience contract as llm_analyst.generate_analyst_narrative.
+never raise — same resilience contract as llm_analyst.generate_llm_assessment.
 """
 
 from __future__ import annotations

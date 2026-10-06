@@ -13,8 +13,10 @@ action anywhere in its action catalog.
 - **Three-layer phishing detection** — a deterministic, rule-based indicator engine (sender
   spoofing, look-alike/homoglyph domains, credential and payment-fraud language, link and
   attachment risk, per-account sender-history anomalies, threat-intel feed matches) fuses with
-  an optional ML classifier and an optional LLM analyst narrative. Both optional layers can only
-  nudge the score — the deterministic rule-based verdict can never be overridden by either.
+  an optional ML classifier and an optional LLM analyst assessment (a human narrative plus a
+  bounded, structured intent signal). Both optional layers can only nudge the score within a
+  hard cap, and the LLM signal is additive-only (it can raise a score, never lower one) — the
+  deterministic rule-based verdict can never be overridden or pushed to safe by either.
 - **AI-generated content detection** — flags phishing text that reads as LLM-authored, a
   growing share of real-world lures.
 - **Intrusion & data-exfiltration detection** — per-actor behavioral baselines (UEBA) plus

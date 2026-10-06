@@ -196,6 +196,16 @@ class Case(Base):
     framework_mappings: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
     analyst_narrative: Mapped[str | None] = mapped_column(Text, nullable=True)
     analyst_model: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Bounded, additive-only LLM intent signal (app.reasoning.llm_analyst,
+    # app.scoring.risk_engine.LLM_INTENT_MAX_CONTRIBUTION_POINTS) — mirrors analyst_narrative/
+    # analyst_model: all four nullable, populated together only when ENABLE_LLM_REASONING was
+    # on and the model's response passed strict schema validation. llm_intent_risk is the
+    # actual number of points (0 to the cap) folded into `score` above, not a raw/unclamped
+    # model output.
+    llm_intent_category: Mapped[str | None] = mapped_column(String, nullable=True)
+    llm_intent_risk: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    llm_intent_confidence: Mapped[str | None] = mapped_column(String, nullable=True)
+    llm_intent_reasons: Mapped[list | None] = mapped_column(_JSONVariant, nullable=True)
     # M3 — optional ML classifier signal, mirrors analyst_narrative/analyst_model: nullable,
     # populated only when ENABLE_ML_CLASSIFIER was on and inference succeeded for this case.
     ml_probability: Mapped[float | None] = mapped_column(Float, nullable=True)

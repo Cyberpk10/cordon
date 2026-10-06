@@ -10,8 +10,11 @@ comments throughout `backend/app/core/config.py`, which doubles as a changelog) 
 
 - A deterministic, rule-based phishing indicator engine that fuses findings into a 0-100 risk
   score and maps them to compliance frameworks (MITRE ATT&CK, NIST CSF, ISO 27001, SOC 2).
-- An optional ML classifier signal and an optional LLM analyst narrative, both bounded add-ons
-  that can only nudge — never override — the rule-based verdict.
+- An optional ML classifier signal and an optional LLM analyst assessment (narrative +
+  a structured, bounded intent signal), both bounded add-ons that can only nudge — never
+  override — the rule-based verdict. The LLM signal is additive-only (it can raise a score
+  within its cap, never lower one), so it structurally cannot be used to push a
+  deterministically-malicious email to safe, including via prompt injection in the email body.
 - Multi-channel (email + Slack/Teams chat) detection, cross-signal intrusion/UEBA detection over
   ingested activity events, case/incident management, audit evidence packs, and continuous
   control monitoring.
@@ -94,9 +97,10 @@ packages; `frontend`'s `eslint` is the only configured linter in the repo.
 shared by the direct-upload, paste-text, and inbound-webhook entry points):
 
 ```
-raw bytes -> parse_eml() -> run_indicators() -> [optional ML predict()] -> fuse() -> score/verdict
+raw bytes -> parse_eml() -> run_indicators() -> [optional ML predict()] -> fuse() -> rule_score/rule_verdict
+                                                                          -> [optional LLM assessment, shown rule_score/rule_verdict]
+                                                                          -> fuse() again (+ bounded LLM intent_risk) -> final score/verdict
                                                                           -> map_indicators() -> framework mappings
-                                                                          -> [optional LLM narrative]
 ```
 
 - `app/parsing/eml_parser.py` + `app/parsing/auth_results.py` — parses `.eml` bytes, including
@@ -106,15 +110,34 @@ raw bytes -> parse_eml() -> run_indicators() -> [optional ML predict()] -> fuse(
   domains, urgency language, credential/payment requests, link analysis, attachment risk, auth
   failures, AI-authored-text heuristics, chat context). `engine.py` is a flat registry +
   runner — adding a rule means adding a module and one line in `_RULES`.
-- `app/scoring/risk_engine.py` — fuses indicator scores (+ optional bounded ML probability) into
-  the 0-100 score and Safe/Suspicious/Malicious verdict. The ML signal is structurally bounded so
-  it alone can never flip a verdict band.
+- `app/scoring/risk_engine.py` — fuses indicator scores (+ optional bounded ML probability +
+  optional bounded LLM intent signal) into the 0-100 score and Safe/Suspicious/Malicious
+  verdict. Both optional signals are structurally bounded so neither alone can flip a verdict
+  band from a clean rule score: `ML_MAX_CONTRIBUTION_POINTS` (15, ± either direction) and
+  `LLM_INTENT_MAX_CONTRIBUTION_POINTS` (20, **additive-only** — it can only ever raise a score,
+  never lower one). The deterministic rule-based score is always computed first and is what
+  these two bounded signals nudge, never replace; see that module's docstring for the full
+  guarantee and `tests/unit/test_risk_engine.py` for the tests that prove it structurally.
 - `app/mapping/framework_mapper.py` + `app/mapping/frameworks/*.yaml` — versioned YAML mapping
   indicator IDs to MITRE ATT&CK / NIST CSF / ISO 27001 / SOC 2 controls.
 - `app/ml/classifier.py` — loads the joblib artifacts (see `ml/models/CARD.md`) and predicts;
   degrades to `(None, None)` if artifacts are missing or the feature is off.
-- `app/reasoning/llm_analyst.py` — calls Anthropic (Haiku-class model) to narrate the
-  already-computed verdict; never recomputes it. Fails soft (`null` narrative) on any error.
+- `app/reasoning/llm_analyst.py` — one Anthropic call (Haiku-class model) that returns both a
+  human-readable narrative AND a structured, bounded intent assessment (`intent_category`,
+  `intent_risk`, `confidence`, `brief_reasons`), via a forced tool-use call rather than free
+  text. `intent_risk` feeds back into `risk_engine.fuse()` as the additive-only LLM signal
+  described above; the narrative is display-only and is never parsed or acted on. The email
+  body is untrusted content: clearly delimited in the prompt as data to analyze and never
+  follow, and the model's response is independently re-validated server-side against a strict
+  Pydantic schema (fixed `intent_category` enum, `intent_risk` range, `extra="forbid"`) — the
+  tool's JSON schema is a strong hint to the model, not a guarantee, so nothing downstream
+  trusts a field the API itself didn't enforce. Any failure at any layer (no API key, network/
+  timeout, a malformed tool call, or a schema violation) degrades identically: the whole
+  assessment is discarded and the pipeline falls back to the rule-based (+ ML) result with no
+  error surfaced to the caller. See `tests/unit/test_llm_analyst.py` and
+  `tests/security/test_prompt_injection_e2e.py` for the injection-hardening tests, including
+  ones that mock a "successfully compromised" model response (claiming `intent_risk=0`/benign
+  for a known-malicious email) and confirm the score is never lowered by it.
 
 **Detections (intrusion/UEBA) mirror the indicators pattern exactly**, one level up from a
 single email — over ingested activity `Event`s instead of a parsed email:

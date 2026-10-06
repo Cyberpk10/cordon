@@ -101,6 +101,14 @@ class AnalyzeResponse(BaseModel):
     framework_mappings: dict[str, list[FrameworkControlRef]]
     analyst_narrative: str | None = None
     analyst_model: str | None = None
+    # Bounded, additive-only LLM intent signal — see app.scoring.risk_engine.
+    # LLM_INTENT_MAX_CONTRIBUTION_POINTS. llm_intent_risk is the number of points (0 to that
+    # cap) actually folded into `score` above; all four fields are None together whenever no
+    # LLM assessment was obtained.
+    llm_intent_category: str | None = None
+    llm_intent_risk: int | None = None
+    llm_intent_confidence: str | None = None
+    llm_intent_reasons: list[str] | None = None
     ml_probability: float | None = None
     ml_model_version: str | None = None
 
@@ -216,6 +224,10 @@ class CaseDetailResponse(BaseModel):
     framework_mappings: dict[str, list[FrameworkControlRef]]
     analyst_narrative: str | None = None
     analyst_model: str | None = None
+    llm_intent_category: str | None = None
+    llm_intent_risk: int | None = None
+    llm_intent_confidence: str | None = None
+    llm_intent_reasons: list[str] | None = None
     ml_probability: float | None = None
     ml_model_version: str | None = None
     latest_label: LabelResponse | None = None

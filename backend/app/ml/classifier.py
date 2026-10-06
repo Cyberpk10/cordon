@@ -34,7 +34,7 @@ def _load_model() -> LoadedModel | None:
     """Loads the trained classifier + vectorizer + metadata once per process. Any missing file,
     unreadable JSON, or corrupt joblib is caught here (not retried per-request) and cached as
     "unavailable" — predict() then always returns (None, None) for the rest of the process
-    lifetime, exactly like a missing ANTHROPIC_API_KEY degrades generate_analyst_narrative."""
+    lifetime, exactly like a missing ANTHROPIC_API_KEY degrades generate_llm_assessment."""
     import joblib  # deferred: only import the ML runtime deps if the flag is actually on
 
     artifacts_dir = Path(settings.ml_artifacts_dir) if settings.ml_artifacts_dir else _DEFAULT_ARTIFACTS_DIR

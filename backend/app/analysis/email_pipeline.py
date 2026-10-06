@@ -15,7 +15,7 @@ from app.ml.classifier import predict as ml_predict
 from app.mapping.framework_mapper import map_indicators
 from app.models.schemas import FrameworkControlRef, Indicator, Verdict
 from app.parsing.eml_parser import ParsedEmail, parse_eml
-from app.reasoning.llm_analyst import generate_analyst_narrative
+from app.reasoning.llm_analyst import generate_llm_assessment
 from app.scoring.risk_engine import fuse
 from app.sender_history.aggregation import SenderHistorySnapshot
 
@@ -29,6 +29,15 @@ class PipelineResult:
     framework_mappings: dict[str, list[FrameworkControlRef]]
     analyst_narrative: str | None
     analyst_model: str | None
+    # Bounded, additive-only LLM intent signal (app.reasoning.llm_analyst,
+    # app.scoring.risk_engine.LLM_INTENT_MAX_CONTRIBUTION_POINTS) — None across all four
+    # fields together whenever no LLM assessment was obtained (disabled, no API key, call
+    # failure, or output that failed strict schema validation), exactly mirroring how
+    # analyst_narrative/analyst_model already behave.
+    llm_intent_category: str | None
+    llm_intent_risk: int | None
+    llm_intent_confidence: str | None
+    llm_intent_reasons: list[str] | None
     ml_probability: float | None
     ml_model_version: str | None
 
@@ -50,15 +59,24 @@ def run_email_pipeline(
     if settings.enable_ml_classifier:
         ml_probability, ml_model_version = ml_predict(parsed, indicators)
 
-    score, verdict = fuse(indicators, ml_probability)
-    framework_mappings = map_indicators([i.id for i in indicators])
+    # Pass 1: the deterministic rules + ML result. This is what the LLM (if enabled) is shown
+    # as already-final context to react to, AND what the pipeline falls back to byte-for-byte
+    # whenever the LLM is off, has no key, times out, or returns anything that fails strict
+    # schema validation — "the deterministic rules remain authoritative" holds because this
+    # value, not the LLM's opinion of it, is the baseline Pass 2 below can only ever add to.
+    rule_score, rule_verdict = fuse(indicators, ml_probability)
 
-    analyst_narrative: str | None = None
-    analyst_model: str | None = None
+    llm_assessment = None
     if settings.enable_llm_reasoning:
-        analyst_narrative, analyst_model = generate_analyst_narrative(
-            parsed, indicators, score, verdict
-        )
+        llm_assessment = generate_llm_assessment(parsed, indicators, rule_score, rule_verdict)
+
+    # Pass 2: fold in the bounded, additive-only LLM intent signal. llm_intent_risk is None
+    # (a no-op — see risk_engine.compute_score) whenever llm_assessment is None, so this is
+    # exactly Pass 1's score/verdict, unchanged, whenever the LLM wasn't available or usable.
+    llm_intent_risk = llm_assessment.intent_risk if llm_assessment else None
+    score, verdict = fuse(indicators, ml_probability, llm_intent_risk)
+
+    framework_mappings = map_indicators([i.id for i in indicators])
 
     return PipelineResult(
         parsed=parsed,
@@ -66,8 +84,12 @@ def run_email_pipeline(
         score=score,
         verdict=verdict,
         framework_mappings=framework_mappings,
-        analyst_narrative=analyst_narrative,
-        analyst_model=analyst_model,
+        analyst_narrative=llm_assessment.narrative if llm_assessment else None,
+        analyst_model=llm_assessment.model if llm_assessment else None,
+        llm_intent_category=llm_assessment.intent_category if llm_assessment else None,
+        llm_intent_risk=llm_assessment.intent_risk if llm_assessment else None,
+        llm_intent_confidence=llm_assessment.confidence if llm_assessment else None,
+        llm_intent_reasons=llm_assessment.brief_reasons if llm_assessment else None,
         ml_probability=ml_probability,
         ml_model_version=ml_model_version,
     )

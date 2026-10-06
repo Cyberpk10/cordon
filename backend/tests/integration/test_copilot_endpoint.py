@@ -3,7 +3,7 @@ monkeypatched here — same boundary-mocking style as test_llm_analyst.py — th
 never makes a real Anthropic call in tests. Patches go on app.api.routes.copilot's
 bound names (it does `from app.copilot.llm import narrate, select_template`), not on
 app.copilot.llm itself, matching how test_analyze_endpoint.py patches
-analyze_module.generate_analyst_narrative rather than the source module.
+email_pipeline_module.generate_llm_assessment rather than the source module.
 """
 
 from __future__ import annotations
