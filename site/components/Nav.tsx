@@ -31,33 +31,36 @@ export default function Nav() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 lg:flex">
+        <nav className="hidden items-center gap-7 lg:flex">
           {LINKS.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium whitespace-nowrap text-slate-300 transition-colors hover:text-white"
+              className="group relative text-sm font-medium whitespace-nowrap text-slate-300 transition-colors hover:text-white"
             >
               {link.label}
+              <span className="absolute -bottom-1 left-0 h-px w-0 bg-brand-blue transition-all duration-300 group-hover:w-full" />
             </a>
           ))}
           <Link
             href="/security"
-            className="text-sm font-medium whitespace-nowrap text-slate-300 transition-colors hover:text-white"
+            className="group relative text-sm font-medium whitespace-nowrap text-slate-300 transition-colors hover:text-white"
           >
             Security
+            <span className="absolute -bottom-1 left-0 h-px w-0 bg-brand-blue transition-all duration-300 group-hover:w-full" />
           </Link>
           <Link
             href="/#about-founder"
-            className="text-sm font-medium whitespace-nowrap text-slate-300 transition-colors hover:text-white"
+            className="group relative text-sm font-medium whitespace-nowrap text-slate-300 transition-colors hover:text-white"
           >
             About
+            <span className="absolute -bottom-1 left-0 h-px w-0 bg-brand-blue transition-all duration-300 group-hover:w-full" />
           </Link>
         </nav>
 
         <a
           href={DEMO_MAILTO}
-          className="rounded-md bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+          className="btn-primary rounded-md px-4 py-2 text-sm font-semibold text-white"
         >
           Get a demo
         </a>

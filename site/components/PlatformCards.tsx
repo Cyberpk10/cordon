@@ -7,6 +7,7 @@ import {
   Gauge,
   Globe,
 } from "lucide-react";
+import Reveal from "@/components/motion/Reveal";
 
 const CARDS = [
   {
@@ -57,7 +58,7 @@ export default function PlatformCards() {
   return (
     <section id="platform" className="bg-navy-950 py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             One platform, one AI engine
           </h2>
@@ -65,31 +66,35 @@ export default function PlatformCards() {
             Every detection surface shares the same reasoning engine, the
             same evidence trail, and the same guardrails.
           </p>
-        </div>
+        </Reveal>
 
         <div className="mt-16 grid border-t border-white/10 sm:grid-cols-2">
           {CARDS.map((card, i) => (
-            <div
-              key={card.title}
-              className={`flex gap-6 border-b border-white/10 py-10 sm:px-10 ${
-                i % 2 === 0 ? "sm:border-r sm:pl-0" : "sm:pl-10"
-              }`}
-            >
-              <div className="flex shrink-0 flex-col items-start gap-4">
-                <span className="font-mono text-xs text-slate-600">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <card.icon className="h-5 w-5 text-brand-blue" strokeWidth={1.5} />
+            <Reveal key={card.title} delay={Math.min(i * 0.06, 0.3)} y={16}>
+              <div
+                className={`group flex h-full gap-6 border-b border-white/10 py-10 transition-colors duration-300 hover:bg-white/[0.02] sm:px-10 ${
+                  i % 2 === 0 ? "sm:border-r sm:pl-0" : "sm:pl-10"
+                }`}
+              >
+                <div className="flex shrink-0 flex-col items-start gap-4">
+                  <span className="font-mono text-xs text-slate-600">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <card.icon
+                    className="h-5 w-5 text-brand-blue transition-transform duration-300 group-hover:scale-110"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-white">
+                    {card.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                    {card.description}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-semibold text-white">
-                  {card.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                  {card.description}
-                </p>
-              </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

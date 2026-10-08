@@ -1,4 +1,5 @@
 import { BadgeCheck } from "lucide-react";
+import Reveal from "@/components/motion/Reveal";
 
 const SKILL_GROUPS = [
   {
@@ -53,7 +54,7 @@ export default function AboutFounder() {
   return (
     <section id="about-founder" className="bg-navy-950 py-24">
       <div className="mx-auto grid max-w-7xl items-start gap-16 px-6 lg:grid-cols-2">
-        <div>
+        <Reveal>
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             About the Founder
           </h2>
@@ -112,9 +113,12 @@ export default function AboutFounder() {
             <BadgeCheck className="h-4 w-4" />
             Certified ISO/IEC 27001 Lead Auditor &middot; GRC Mastery
           </div>
-        </div>
+        </Reveal>
 
-        <div className="rounded-2xl border border-white/10 bg-navy-900 p-10">
+        <Reveal
+          delay={0.12}
+          className="rounded-2xl border border-white/10 bg-navy-900 p-10 transition-all duration-300 hover:border-white/15 hover:shadow-xl hover:shadow-black/30"
+        >
           <h3 className="text-xs font-bold uppercase tracking-wide text-brand-blue">
             Expertise
           </h3>
@@ -128,7 +132,7 @@ export default function AboutFounder() {
                   {group.skills.map((skill) => (
                     <span
                       key={skill}
-                      className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-200"
+                      className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-200 transition-colors duration-200 hover:border-brand-blue/30 hover:text-white"
                     >
                       {skill}
                     </span>
@@ -137,7 +141,7 @@ export default function AboutFounder() {
               </div>
             ))}
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

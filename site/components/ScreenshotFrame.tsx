@@ -23,7 +23,7 @@ export default function ScreenshotFrame({
   priority = false,
 }: ScreenshotFrameProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-navy-900 shadow-2xl shadow-black/40">
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-navy-900 shadow-2xl shadow-black/40 transition-all duration-300 hover:border-white/20 hover:shadow-black/60">
       <div className="flex items-center gap-1.5 border-b border-white/10 bg-navy-800 px-4 py-3">
         <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
         <span className="h-2.5 w-2.5 rounded-full bg-white/15" />

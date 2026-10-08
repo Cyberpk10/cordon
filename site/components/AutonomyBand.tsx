@@ -1,4 +1,5 @@
 import { Layers, Undo2, ShieldOff, Power, ScrollText } from "lucide-react";
+import Reveal from "@/components/motion/Reveal";
 
 const BADGES = [
   { icon: Layers, label: "Graduated levels (L0-L3)" },
@@ -11,7 +12,7 @@ const BADGES = [
 export default function AutonomyBand() {
   return (
     <section id="autonomy" className="border-y border-white/5 bg-navy-900 py-24">
-      <div className="mx-auto max-w-5xl px-6 text-center">
+      <Reveal className="mx-auto max-w-5xl px-6 text-center">
         <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
           Acts on its own. Never out of your control.
         </h2>
@@ -25,14 +26,14 @@ export default function AutonomyBand() {
           {BADGES.map((badge) => (
             <span
               key={badge.label}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-200"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-blue/30 hover:bg-white/[0.08]"
             >
               <badge.icon className="h-4 w-4 text-brand-blue" />
               {badge.label}
             </span>
           ))}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

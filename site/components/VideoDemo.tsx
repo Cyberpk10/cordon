@@ -1,4 +1,5 @@
 import { Film } from "lucide-react";
+import Reveal from "@/components/motion/Reveal";
 
 export default function VideoDemo({
   hasWalkthroughVideo,
@@ -8,7 +9,7 @@ export default function VideoDemo({
   return (
     <section className="bg-navy-950 py-24">
       <div className="mx-auto max-w-6xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Watch the full Cordon walkthrough
           </h2>
@@ -16,9 +17,13 @@ export default function VideoDemo({
             A 90-second walkthrough: detection, early warning, staff
             training, and audit-ready compliance.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="mx-auto mt-14 max-w-[900px] overflow-hidden rounded-xl border border-white/10 shadow-2xl shadow-black/40">
+        <Reveal
+          delay={0.1}
+          y={28}
+          className="mx-auto mt-14 max-w-[900px] overflow-hidden rounded-xl border border-white/10 shadow-2xl shadow-black/40 transition-shadow duration-300 hover:shadow-brand-blue/10"
+        >
           {hasWalkthroughVideo ? (
             <video className="w-full" controls preload="metadata">
               <source
@@ -45,7 +50,7 @@ export default function VideoDemo({
               </p>
             </div>
           )}
-        </div>
+        </Reveal>
       </div>
     </section>
   );

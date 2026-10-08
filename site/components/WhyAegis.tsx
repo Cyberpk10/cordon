@@ -1,4 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
+import Reveal from "@/components/motion/Reveal";
 
 const CHECKLIST = [
   "Real-time phishing verdicts, not just SPF/DKIM checks",
@@ -12,7 +13,7 @@ export default function WhyAegis() {
   return (
     <section id="why-aegis" className="bg-navy-950 py-24">
       <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-2">
-        <div>
+        <Reveal>
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Other tools block. Cordon blocks and proves it.
           </h2>
@@ -24,9 +25,12 @@ export default function WhyAegis() {
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
 
-        <div className="rounded-2xl border border-white/10 bg-navy-900 p-10">
+        <Reveal
+          delay={0.12}
+          className="rounded-2xl border border-white/10 bg-navy-900 p-10 transition-all duration-300 hover:border-white/15 hover:shadow-xl hover:shadow-black/30"
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Our principle
           </p>
@@ -40,7 +44,7 @@ export default function WhyAegis() {
             mapping lives in one evidence trail, from the SOC to the
             boardroom.
           </p>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

@@ -1,4 +1,5 @@
 import { ShieldCheck, UserCheck, GraduationCap, Lock } from "lucide-react";
+import Reveal from "@/components/motion/Reveal";
 
 const POINTS = [
   { icon: ShieldCheck, label: "Safe, authorized simulations" },
@@ -13,7 +14,7 @@ const POINTS = [
 export default function PhishingSimulation() {
   return (
     <section id="simulation" className="bg-navy-950 py-24">
-      <div className="mx-auto max-w-4xl px-6">
+      <Reveal className="mx-auto max-w-4xl px-6">
         <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
           Catch the phish, and train the people it targets.
         </h2>
@@ -31,14 +32,14 @@ export default function PhishingSimulation() {
           {POINTS.map((point) => (
             <span
               key={point.label}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-200"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-blue/30 hover:bg-white/[0.08]"
             >
               <point.icon className="h-4 w-4 text-brand-blue" />
               {point.label}
             </span>
           ))}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

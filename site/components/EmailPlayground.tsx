@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import {
   Loader2,
   PlayCircle,
@@ -18,6 +19,7 @@ import {
   type PlaygroundSample,
   type PlaygroundVerdict,
 } from "@/lib/playgroundData";
+import Reveal from "@/components/motion/Reveal";
 
 type Status = "idle" | "analyzing" | "done";
 
@@ -317,7 +319,7 @@ function IdlePanel({ onAnalyze }: { onAnalyze: () => void }) {
       <button
         type="button"
         onClick={onAnalyze}
-        className="inline-flex items-center gap-2 rounded-md bg-brand-blue px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+        className="btn-primary inline-flex items-center gap-2 rounded-md px-6 py-3 text-sm font-semibold text-white"
       >
         <PlayCircle className="h-4 w-4" />
         Analyze this email
@@ -356,7 +358,7 @@ export default function EmailPlayground() {
   return (
     <section id="playground" className="bg-navy-900 py-24">
       <div className="mx-auto max-w-6xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Try it on a real email
           </h2>
@@ -364,9 +366,9 @@ export default function EmailPlayground() {
             Pick a sample email below and click Analyze to watch Cordon&rsquo;s real verdict
             render.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="mt-10 grid gap-3 sm:grid-cols-3">
+        <Reveal delay={0.1} className="mt-10 grid gap-3 sm:grid-cols-3">
           {PLAYGROUND_SAMPLES.map((s) => {
             const isSelected = s.key === selectedKey;
             const vStyle = VERDICT_STYLES[s.verdict];
@@ -376,10 +378,10 @@ export default function EmailPlayground() {
                 key={s.key}
                 type="button"
                 onClick={() => selectSample(s.key)}
-                className={`rounded-xl border px-5 py-4 text-left transition-colors ${
+                className={`rounded-xl border px-5 py-4 text-left transition-all duration-200 ${
                   isSelected
                     ? "border-brand-blue/50 bg-navy-800"
-                    : "border-white/10 bg-navy-950 hover:border-white/20"
+                    : "border-white/10 bg-navy-950 hover:-translate-y-0.5 hover:border-white/20 hover:bg-navy-800/50"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -390,10 +392,10 @@ export default function EmailPlayground() {
               </button>
             );
           })}
-        </div>
+        </Reveal>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2 lg:items-start">
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-navy-950">
+        <Reveal delay={0.15} y={28} className="mt-8 grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-navy-950 transition-colors duration-300 hover:border-white/15">
             <div className="flex items-center gap-1.5 border-b border-white/10 bg-navy-900 px-5 py-3">
               <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
               <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
@@ -425,7 +427,12 @@ export default function EmailPlayground() {
             {status === "idle" && <IdlePanel onAnalyze={runAnalysis} />}
             {status === "analyzing" && <AnalyzingPanel />}
             {status === "done" && (
-              <div className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-4"
+              >
                 <ResultCard sample={sample} />
                 <button
                   type="button"
@@ -435,10 +442,10 @@ export default function EmailPlayground() {
                   <RotateCcw className="h-3.5 w-3.5" />
                   Run the analysis again
                 </button>
-              </div>
+              </motion.div>
             )}
           </div>
-        </div>
+        </Reveal>
 
         <p className="mx-auto mt-10 max-w-xl text-center text-xs text-slate-500">
           Real Cordon analysis on curated sample emails. Live, paste-your-own analysis is

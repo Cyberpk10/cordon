@@ -22,7 +22,7 @@ export default function Home() {
     <>
       <Nav />
       <main className="flex-1">
-        <Hero hasAnalyzeMalicious={screenshots.analyzeMalicious} />
+        <Hero />
         <FrameworkBar />
         <VideoDemo hasWalkthroughVideo={screenshots.walkthroughVideo} />
         <EmailPlayground />

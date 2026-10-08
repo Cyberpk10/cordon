@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Power, Undo2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import ScreenshotFrame from "@/components/ScreenshotFrame";
+import Reveal from "@/components/motion/Reveal";
 
 function ControlChip({ framework, id }: { framework: string; id: string }) {
   return (
@@ -233,7 +235,7 @@ export default function ProductTour({
   return (
     <section id="product-tour" className="bg-navy-900 py-24">
       <div className="mx-auto max-w-6xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             See Cordon in five steps
           </h2>
@@ -241,9 +243,9 @@ export default function ProductTour({
             From a landed phish to a signed audit pack: walk through the
             whole lifecycle.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="mt-14 grid items-center gap-10 lg:grid-cols-2">
+        <Reveal delay={0.1} className="mt-14 grid items-center gap-10 lg:grid-cols-2">
           <div>
             <span className="text-xs font-bold uppercase tracking-wide text-brand-blue">
               Step {step + 1} of {STEPS.length}
@@ -260,7 +262,7 @@ export default function ProductTour({
                 type="button"
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
                 disabled={step === 0}
-                className="inline-flex items-center gap-1 rounded-md border border-white/15 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-secondary inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-semibold text-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Back
@@ -271,7 +273,7 @@ export default function ProductTour({
                   setStep((s) => Math.min(STEPS.length - 1, s + 1))
                 }
                 disabled={step === STEPS.length - 1}
-                className="inline-flex items-center gap-1 rounded-md bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-primary inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Next
                 <ChevronRight className="h-4 w-4" />
@@ -295,28 +297,36 @@ export default function ProductTour({
             </div>
           </div>
 
-          <div>
-            {step === 0 && (
-              <ScreenshotFrame
-                src={hasAnalyzeMalicious ? "/screenshots/analyze-malicious.png" : null}
-                alt="Cordon's analysis verdict for a malicious phishing email"
-                filename="analyze-malicious.png"
-                aspectClass="aspect-[4/3]"
-              />
-            )}
-            {step === 1 && <StepFindingsToControls />}
-            {step === 2 && (
-              <ScreenshotFrame
-                src={hasDashboard ? "/screenshots/dashboard.png" : null}
-                alt="Cordon's board dashboard"
-                filename="dashboard.png"
-                aspectClass="aspect-[4/3]"
-              />
-            )}
-            {step === 3 && <StepAuditMode />}
-            {step === 4 && <StepAutonomy />}
-          </div>
-        </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {step === 0 && (
+                <ScreenshotFrame
+                  src={hasAnalyzeMalicious ? "/screenshots/analyze-malicious.png" : null}
+                  alt="Cordon's analysis verdict for a malicious phishing email"
+                  filename="analyze-malicious.png"
+                  aspectClass="aspect-[4/3]"
+                />
+              )}
+              {step === 1 && <StepFindingsToControls />}
+              {step === 2 && (
+                <ScreenshotFrame
+                  src={hasDashboard ? "/screenshots/dashboard.png" : null}
+                  alt="Cordon's board dashboard"
+                  filename="dashboard.png"
+                  aspectClass="aspect-[4/3]"
+                />
+              )}
+              {step === 3 && <StepAuditMode />}
+              {step === 4 && <StepAutonomy />}
+            </motion.div>
+          </AnimatePresence>
+        </Reveal>
       </div>
     </section>
   );

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import Reveal from "@/components/motion/Reveal";
 
 export const metadata: Metadata = {
   title: "Security & Trust | Cordon",
@@ -85,8 +86,12 @@ export default function SecurityPage() {
     <>
       <Nav />
       <main className="flex-1">
-        <section className="border-b border-white/5 bg-navy-950 py-24">
-          <div className="mx-auto max-w-3xl px-6 text-center">
+        <section className="relative overflow-hidden border-b border-white/5 bg-navy-950">
+          <div
+            className="glow-blob glow-breathe pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 bg-brand-blue/15"
+            aria-hidden
+          />
+          <Reveal className="relative mx-auto max-w-3xl px-6 py-24 text-center">
             <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
               Security &amp; Trust
             </h1>
@@ -95,41 +100,44 @@ export default function SecurityPage() {
               compliance are not afterthoughts. They are the product. Here is how we protect
               your data and hold ourselves accountable.
             </p>
-          </div>
+          </Reveal>
         </section>
 
         <section className="bg-navy-950 py-24">
           <div className="mx-auto max-w-7xl px-6">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              How we protect your data
-            </h2>
+            <Reveal>
+              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                How we protect your data
+              </h2>
+            </Reveal>
 
             <div className="mt-12 grid border-t border-white/10 sm:grid-cols-2">
               {DATA_PROTECTION.map((item, i) => (
-                <div
-                  key={item.title}
-                  className={`flex gap-6 border-b border-white/10 py-10 sm:px-10 ${
-                    i % 2 === 0 ? "sm:border-r sm:pl-0" : "sm:pl-10"
-                  }`}
-                >
-                  <item.icon
-                    className="h-5 w-5 shrink-0 text-brand-blue"
-                    strokeWidth={1.5}
-                  />
-                  <div>
-                    <h3 className="text-base font-semibold text-white">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                      {item.description}
-                    </p>
+                <Reveal key={item.title} delay={Math.min(i * 0.05, 0.2)} y={14}>
+                  <div
+                    className={`flex h-full gap-6 border-b border-white/10 py-10 transition-colors duration-300 hover:bg-white/[0.02] sm:px-10 ${
+                      i % 2 === 0 ? "sm:border-r sm:pl-0" : "sm:pl-10"
+                    }`}
+                  >
+                    <item.icon
+                      className="h-5 w-5 shrink-0 text-brand-blue"
+                      strokeWidth={1.5}
+                    />
+                    <div>
+                      <h3 className="text-base font-semibold text-white">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                        {item.description}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
         </section>
 
         <section className="border-y border-white/5 bg-navy-900 py-24">
-          <div className="mx-auto max-w-4xl px-6">
+          <Reveal className="mx-auto max-w-4xl px-6">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Authentication and access
             </h2>
@@ -141,11 +149,11 @@ export default function SecurityPage() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Reveal>
         </section>
 
         <section className="bg-navy-950 py-24">
-          <div className="mx-auto max-w-4xl px-6">
+          <Reveal className="mx-auto max-w-4xl px-6">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               How we test ourselves
             </h2>
@@ -161,11 +169,11 @@ export default function SecurityPage() {
               We publish what we catch and what we miss, because a security vendor that hides
               its blind spots is a security risk.
             </p>
-          </div>
+          </Reveal>
         </section>
 
         <section className="bg-navy-950 py-24">
-          <div className="mx-auto max-w-4xl px-6">
+          <Reveal className="mx-auto max-w-4xl px-6">
             <div className="flex items-center gap-3">
               <BrainCircuit className="h-5 w-5 text-brand-blue" strokeWidth={1.5} />
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -180,17 +188,17 @@ export default function SecurityPage() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Reveal>
         </section>
 
         <section className="border-y border-white/5 bg-navy-900 py-24">
-          <div className="mx-auto max-w-4xl px-6">
+          <Reveal className="mx-auto max-w-4xl px-6">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Compliance
             </h2>
 
             <div className="mt-8 space-y-4">
-              <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-navy-950 p-6">
+              <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-navy-950 p-6 transition-colors duration-300 hover:border-white/15">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-blue" />
                 <p className="text-base text-slate-300">
                   Every detection auto-maps to ISO 27001, NIST CSF 2.0, SOC 2, and MITRE
@@ -198,7 +206,7 @@ export default function SecurityPage() {
                 </p>
               </div>
 
-              <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-navy-950 p-6">
+              <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-navy-950 p-6 transition-colors duration-300 hover:border-white/15">
                 <Clock className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
                 <div>
                   <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-300">
@@ -212,12 +220,12 @@ export default function SecurityPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </section>
 
         <section className="bg-navy-950 py-24">
-          <div className="mx-auto max-w-4xl px-6">
-            <div className="rounded-2xl border border-white/10 bg-navy-900 p-10">
+          <Reveal className="mx-auto max-w-4xl px-6">
+            <div className="rounded-2xl border border-white/10 bg-navy-900 p-10 transition-all duration-300 hover:border-white/15 hover:shadow-xl hover:shadow-black/30">
               <div className="flex items-center gap-3">
                 <Server className="h-5 w-5 text-brand-blue" strokeWidth={1.5} />
                 <h2 className="text-2xl font-bold tracking-tight text-white">
@@ -246,12 +254,12 @@ export default function SecurityPage() {
                 for more detail.
               </p>
             </div>
-          </div>
+          </Reveal>
         </section>
 
         <section className="border-t border-white/5 bg-navy-900 py-24">
-          <div className="mx-auto max-w-4xl px-6">
-            <div className="rounded-2xl border border-white/10 bg-navy-950 p-10">
+          <Reveal className="mx-auto max-w-4xl px-6">
+            <div className="rounded-2xl border border-white/10 bg-navy-950 p-10 transition-all duration-300 hover:border-white/15 hover:shadow-xl hover:shadow-black/30">
               <div className="flex items-center gap-3">
                 <ShieldAlert className="h-5 w-5 text-brand-blue" strokeWidth={1.5} />
                 <h2 className="text-2xl font-bold tracking-tight text-white">
@@ -270,7 +278,7 @@ export default function SecurityPage() {
                 remediate before public disclosure.
               </p>
             </div>
-          </div>
+          </Reveal>
         </section>
 
         <div className="bg-navy-950 pb-16">
