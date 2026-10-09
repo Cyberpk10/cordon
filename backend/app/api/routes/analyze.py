@@ -19,6 +19,7 @@ from app.core.time import to_naive_utc
 from app.db.models import Case, User
 from app.db.session import get_db
 from app.early_warning.hooks import evaluate_actors
+from app.investigation.build import maybe_auto_investigate
 from app.models.schemas import AnalyzeResponse, AnalyzeTextRequest, EmailSummary
 from app.sender_history.loader import load_sender_history
 from app.storage.raw_email_store import save_raw_email
@@ -82,6 +83,8 @@ def _persist_case_and_build_response(
     evaluate_actors(
         db, current_user.account_id, case.to_addresses, to_naive_utc(datetime.now(timezone.utc))
     )
+    db.flush()
+    maybe_auto_investigate(db, current_user.account_id, case=case)
     db.commit()
     db.refresh(case)
 

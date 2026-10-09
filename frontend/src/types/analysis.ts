@@ -661,3 +661,95 @@ export interface SimulationTrainingRecommendationsListResponse {
   items: SimulationTrainingRecommendation[];
   total: number;
 }
+
+// ---- Agentic investigation layer (M10 Stage 1) -----------------------------------------
+
+export interface InvestigationTimelineEntry {
+  timestamp: string;
+  type: string;
+  description: string;
+  source: "case" | "incident" | "event";
+  source_id: string;
+}
+
+export interface InvestigationSenderIntelligence {
+  domain: string;
+  classification: "established" | "seen_before" | "first_contact";
+  seen_count: number;
+  first_seen: string | null;
+  last_seen: string | null;
+  is_trusted_vendor: boolean;
+}
+
+export interface InvestigationRelatedCase {
+  id: string;
+  created_at: string;
+  verdict: Verdict;
+  score: number;
+  subject: string | null;
+  to_addresses: string[];
+}
+
+export interface InvestigationRelatedIncident {
+  id: string;
+  created_at: string;
+  title: string;
+  verdict: Verdict;
+  score: number;
+}
+
+export interface InvestigationThreatIntelHit {
+  source: "email_indicator" | "activity_finding";
+  id: string;
+  title: string | null;
+  evidence: string[] | null;
+  actor: string | null;
+}
+
+export interface InvestigationThreatLevel {
+  score: number;
+  band: string;
+  trend: string;
+}
+
+export interface InvestigationScope {
+  targeted_recipients: string[];
+  other_recipients_same_sender: string[];
+  likely_same_campaign_case_ids: string[];
+  possible_additional_targets: boolean;
+  possible_account_compromise: boolean;
+  compromise_signals: string[];
+}
+
+export interface InvestigationRecommendedStep {
+  step_id: string;
+  title: string;
+  description: string;
+  category: string;
+  related_indicator_ids: string[];
+  control_refs: RemediationControlRef[];
+}
+
+export interface Investigation {
+  id: string;
+  case_id: string | null;
+  incident_id: string | null;
+  created_at: string;
+  updated_at: string;
+  trigger: "auto" | "manual";
+  actor: string | null;
+  verdict: Verdict;
+  score: number;
+  sender_intelligence: InvestigationSenderIntelligence | null;
+  related_cases: InvestigationRelatedCase[];
+  related_incidents: InvestigationRelatedIncident[];
+  threat_intel_hits: InvestigationThreatIntelHit[];
+  threat_level: InvestigationThreatLevel | null;
+  ueba_findings: Finding[];
+  timeline: InvestigationTimelineEntry[];
+  scope: InvestigationScope;
+  recommended_steps: InvestigationRecommendedStep[];
+  summary: string | null;
+  summary_model: string | null;
+  summary_evidence_strength: "strong" | "moderate" | "thin" | null;
+}

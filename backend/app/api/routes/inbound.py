@@ -31,6 +31,7 @@ from app.db.models import Account, Case
 from app.db.session import get_db
 from app.early_warning.hooks import evaluate_actors
 from app.inbound.mailgun import extract_raw_email, verify_signature
+from app.investigation.build import maybe_auto_investigate
 from app.inbound.unwrap import unwrap_forwarded_email
 from app.models.schemas import InboundEmailResponse
 from app.sender_history.loader import load_sender_history
@@ -184,6 +185,8 @@ async def receive_inbound_email(
     db.add(case)
     record_case_signal(db, account.id, case)
     evaluate_actors(db, account.id, case.to_addresses, to_naive_utc(datetime.now(timezone.utc)))
+    db.flush()
+    maybe_auto_investigate(db, account.id, case=case)
 
     log_event(
         db,

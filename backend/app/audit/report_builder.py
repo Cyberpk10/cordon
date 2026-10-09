@@ -7,7 +7,7 @@ install, no system binary dependency like weasyprint/wkhtmltopdf would need).
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from io import BytesIO
 from xml.sax.saxutils import escape as xml_escape
@@ -18,7 +18,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from app.audit.aggregation import ControlEvidence
+from app.audit.aggregation import ControlEvidence, InvestigationEvidence
 
 NAVY = colors.HexColor("#0f172a")
 SLATE_BORDER = colors.HexColor("#cbd5e1")
@@ -47,6 +47,9 @@ class ReportContext:
     total_controls: int
     operating_controls: int
     total_supporting_cases: int
+    # M10 Stage 1 — agentic investigations generated in this period, regardless of framework
+    # (an investigation isn't framework-specific, so it's not folded into `controls` above).
+    investigations: list[InvestigationEvidence] = field(default_factory=list)
 
 
 def _integrity_text(ctx: ReportContext) -> str:
@@ -99,6 +102,22 @@ def build_json_report(ctx: ReportContext) -> bytes:
                     ),
                 }
                 for control in ctx.controls
+            ],
+            "investigations": [
+                {
+                    "id": inv.id,
+                    "case_id": inv.case_id,
+                    "incident_id": inv.incident_id,
+                    "created_at": inv.created_at.isoformat(),
+                    "trigger": inv.trigger,
+                    "actor": inv.actor,
+                    "verdict": inv.verdict,
+                    "score": inv.score,
+                    "summary": inv.summary,
+                    "summary_evidence_strength": inv.summary_evidence_strength,
+                    "recommended_steps": inv.recommended_step_titles,
+                }
+                for inv in ctx.investigations
             ],
         }
     }
@@ -190,6 +209,40 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
                 )
             )
             elements.append(Spacer(1, 0.08 * inch))
+
+    if ctx.investigations:
+        elements.append(Spacer(1, 0.25 * inch))
+        elements.append(Paragraph("Agentic Investigations", heading_style))
+        elements.append(
+            Paragraph(
+                "Each investigation below assembles Cordon's own correlated signals "
+                "(sender history, related cases/incidents, threat-intel hits, early-warning "
+                "threat level, behavioral findings) for the flagged case or incident, with a "
+                "recommended response. Recommendations only — no action listed here executes "
+                "automatically; see the methodology note above.",
+                styles["Normal"],
+            )
+        )
+        elements.append(Spacer(1, 0.08 * inch))
+        for inv in ctx.investigations:
+            entity = f"case {inv.case_id[:8]}" if inv.case_id else f"incident {inv.incident_id[:8]}"
+            header = (
+                f"<b>{xml_escape(entity)}</b> — {xml_escape(inv.verdict)} "
+                f"({inv.score}/100), {xml_escape(inv.trigger)} trigger, "
+                f"{inv.created_at:%Y-%m-%d}"
+            )
+            elements.append(Paragraph(header, styles["Normal"]))
+            if inv.summary:
+                strength = f" (evidence: {inv.summary_evidence_strength})" if inv.summary_evidence_strength else ""
+                elements.append(
+                    Paragraph(xml_escape(inv.summary) + xml_escape(strength), styles["BodyText"])
+                )
+            if inv.recommended_step_titles:
+                steps_text = "; ".join(inv.recommended_step_titles)
+                elements.append(
+                    Paragraph(f"Recommended response: {xml_escape(steps_text)}", styles["BodyText"])
+                )
+            elements.append(Spacer(1, 0.1 * inch))
 
     doc.build(elements)
     return buffer.getvalue()

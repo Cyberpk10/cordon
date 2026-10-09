@@ -26,6 +26,8 @@ from app.api.routes.events import router as events_router
 from app.api.routes.human_risk import router as human_risk_router
 from app.api.routes.inbound import router as inbound_router
 from app.api.routes.incidents import router as incidents_router
+from app.api.routes.investigations import cases_router as investigations_cases_router
+from app.api.routes.investigations import incidents_router as investigations_incidents_router
 from app.api.routes.labels import router as labels_router
 from app.api.routes.messages import router as messages_router
 from app.api.routes.monitoring import router as monitoring_router
@@ -114,6 +116,8 @@ app.include_router(human_risk_router)
 app.include_router(vendor_domains_router)
 app.include_router(threat_level_router)
 app.include_router(early_warning_router)
+app.include_router(investigations_cases_router)
+app.include_router(investigations_incidents_router)
 
 
 @app.get("/health")

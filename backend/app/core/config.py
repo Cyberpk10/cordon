@@ -684,5 +684,33 @@ class Settings:
         default_factory=lambda: int(os.environ.get("HUMAN_RISK_FAST_REPORT_WINDOW_MINUTES", "60"))
     )
 
+    # Agentic investigation layer (M10 Stage 1) — how far back app.investigation.gather looks
+    # for correlated cases/incidents/events for the actor(s) involved in a flagged case or
+    # incident. Same 30-day default as early_warning_incident_lookback_days, for the same
+    # reason: long enough to catch a slow-forming pattern, short enough to stay a relevant
+    # snapshot rather than an account's entire history.
+    investigation_lookback_days: int = field(
+        default_factory=lambda: int(os.environ.get("INVESTIGATION_LOOKBACK_DAYS", "30"))
+    )
+    # Hard caps on how many related cases/incidents/events/findings an investigation embeds —
+    # same bounded-state discipline as every other per-actor JSON field in this codebase
+    # (e.g. ActorThreatLevel.recent_signals). Keeps one investigation's payload (and the LLM
+    # prompt built from it) a fixed, small size regardless of how much correlated history an
+    # actor has.
+    investigation_max_related_cases: int = field(
+        default_factory=lambda: int(os.environ.get("INVESTIGATION_MAX_RELATED_CASES", "10"))
+    )
+    investigation_max_related_incidents: int = field(
+        default_factory=lambda: int(os.environ.get("INVESTIGATION_MAX_RELATED_INCIDENTS", "10"))
+    )
+    investigation_max_timeline_events: int = field(
+        default_factory=lambda: int(os.environ.get("INVESTIGATION_MAX_TIMELINE_EVENTS", "25"))
+    )
+    # Verdicts at or above which Case/Incident creation automatically triggers an
+    # investigation (see app.investigation.hooks.maybe_investigate). On-demand investigation
+    # via the "Investigate" action is unaffected by this — a human can always request one
+    # regardless of verdict.
+    investigation_auto_trigger_verdicts: tuple[str, ...] = ("suspicious", "malicious")
+
 
 settings = Settings()

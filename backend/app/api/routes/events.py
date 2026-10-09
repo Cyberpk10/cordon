@@ -42,6 +42,7 @@ from app.detections.engine import run_detections
 from app.events.schema import ActivityEvent, EventBatchRequest
 from app.mapping.framework_mapper import map_indicators
 from app.early_warning.hooks import evaluate_actors
+from app.investigation.build import maybe_auto_investigate
 from app.models.schemas import EventBatchResponse, Finding, IncidentSummary, Verdict
 from app.scoring.intrusion_risk_engine import fuse
 from app.threat_level.hooks import record_event_batch_signals
@@ -403,6 +404,7 @@ async def ingest_events(
             window_start=ctx["window_start"],
             window_end=ctx["window_end"],
         )
+        maybe_auto_investigate(db, account_id, incident=incident)
         incidents_created.append(
             _to_summary(incident, ctx["score"], ctx["verdict"], ctx["window_start"], ctx["window_end"])
         )
@@ -424,6 +426,7 @@ async def ingest_events(
             window_end=group.window_end,
             related_actors=group.actors,
         )
+        maybe_auto_investigate(db, account_id, incident=incident)
         incidents_created.append(
             _to_summary(incident, score, verdict, group.window_start, group.window_end)
         )
@@ -476,6 +479,7 @@ async def ingest_events(
                 window_end=spray.window_end,
                 related_actors=spray.actors,
             )
+            maybe_auto_investigate(db, account_id, incident=incident)
             incidents_created.append(
                 _to_summary(incident, score, verdict, spray.window_start, spray.window_end)
             )

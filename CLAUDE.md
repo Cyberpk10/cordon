@@ -21,6 +21,12 @@ comments throughout `backend/app/core/config.py`, which doubles as a changelog) 
 - Closed-loop autonomous response (quarantine, block domain, disable session, flag for review)
   gated by a policy engine, executed for real only via a Microsoft Graph connector — otherwise a
   mock connector, so nothing fires unconfigured.
+- An agentic investigation layer (M10) that turns a flagged Case/Incident into a grounded
+  report in one step: Cordon's own correlated signals (sender history, related cases/
+  incidents/events, threat-intel hits, early-warning threat level, UEBA findings), an
+  optional LLM narrative that can only cite evidence actually gathered, and recommended
+  response steps from the same deterministic playbooks remediation already uses.
+  Recommend-only; see `backend/app/investigation/`.
 
 Cordon performs analysis and (opt-in, policy-gated) containment only: no exploitation, no
 destructive actions are defined anywhere in the action catalog.
@@ -179,6 +185,58 @@ single email — over ingested activity `Event`s instead of a parsed email:
 - `graph_connector.py` — real MSAL/Graph calls; failure contract is strict (success dict or
   raise — no silent "soft failure" state), since the executor infers success purely from
   exceptions.
+
+**Agentic investigation** — `app/investigation/`: turns a flagged Case/Incident into a
+grounded investigation in one step, scoped strictly to data Cordon already has (no external
+SOC source is ever queried here).
+
+- `gather.py` (DB-touching) + `aggregation.py` (pure) — assembles the context: sender
+  intelligence (first-contact/look-alike/known-bad classification, re-derived from
+  `app.sender_history` with the triggering case excluded from its own history), other cases
+  from the same sender, other cases/incidents/events for the actor (the targeted recipient
+  for a case, or the incident's own actor — whoever's account activity is actually at risk),
+  the early-warning threat level/band/trend for that actor, UEBA findings pulled from
+  correlated incidents, and threat-intel hits — but only the ones Cordon's OWN indicator/
+  detection engines already matched (`SENDER_DOMAIN_KNOWN_BAD`, `SENDER_IP_KNOWN_MALICIOUS`,
+  `LINK_KNOWN_MALICIOUS`, `EVENT_IP_KNOWN_MALICIOUS`), never a fresh lookup that could
+  disagree with what was actually detected. A timeline and blast-radius/scope ("did other
+  recipients get the same message," "does this actor show compromise signals") fall out of
+  the same gathered evidence.
+- `llm_summary.py` — same architecture and the same prompt-injection hardening as
+  `app.reasoning.llm_analyst` (forced tool-use, untrusted free text delimited and never
+  followed, strict server-side Pydantic validation, fails closed to no narrative on any
+  error). Grounding is structurally enforced, not just requested: every evidence item
+  gathered is given to the model as a numbered list (`EV1`, `EV2`, ...), and the model must
+  cite which ids its narrative relies on — any cited id outside the real set (a fabrication)
+  fails validation and discards the WHOLE response, the same fail-closed contract as an
+  invented `intent_category` in `llm_analyst`. Never sees a raw email body (only subject,
+  which is delimited as untrusted) — investigations must stay buildable even after raw-email
+  retention purge.
+- `build.py` — orchestrates gather → recommended steps (reuses `app.remediation.playbook`/
+  `intrusion_playbook`'s existing deterministic engine — recommend-only, same contract as
+  remediation itself) → optional narrative (gated behind `ENABLE_LLM_REASONING`, one call per
+  investigation, never per-email) → upsert into `app.db.models.Investigation`. Re-investigating
+  replaces the prior record in place rather than appending, since it reflects current
+  best-available evidence, not a log of past runs.
+  `maybe_auto_investigate` is called from the Case/Incident creation paths (`app/api/routes/
+  analyze.py`, `inbound.py`, `events.py`) right after persistence, firing only at Suspicious/
+  Malicious (`investigation_auto_trigger_verdicts`) and swallowing any exception — an
+  investigation failure must never break email analysis or event ingestion. The "Investigate"
+  action (`POST .../investigate` in `app/api/routes/investigations.py`) runs the same path
+  on demand regardless of verdict.
+- Exposed in the frontend via `InvestigationPanel` (`frontend/src/components/
+  InvestigationPanel.tsx`), reused for both cases and incidents the same way
+  `ResponsePlaybookPanel` already is, and folded into the Audit Mode evidence pack
+  (`app/audit/report_builder.py`) as its own section — the investigation itself is
+  audit-ready documentation, not just an analyst tool.
+- See `tests/integration/test_investigations.py` and `tests/unit/test_investigation_*.py` for
+  the grounding/injection/graceful-degradation tests, including one that reproduces a real
+  bug this feature's own tests caught before merge: a naive-vs-aware datetime comparison in
+  `app.threat_level.aggregation.compute_trend` that silently broke auto-investigation (via
+  `maybe_auto_investigate`'s necessary exception-swallowing) whenever the actor already had a
+  threat-level row — fixed by threading one normalized-to-naive-UTC `now` through every
+  lookback calculation in `gather.py`, the same `app.core.time.to_naive_utc` discipline every
+  other hooks module in this codebase already follows.
 
 **Multi-tenancy & auth** (`app/db/models.py`, `app/auth/`): every `Account` (org/tenant) owns
 many `User`s; virtually every other table (`Case`, `Incident`, `Event`, `Label`,

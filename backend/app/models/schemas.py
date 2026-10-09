@@ -990,3 +990,96 @@ class HumanRiskEvidenceResponse(BaseModel):
     distinct_employees_tested: int
     distinct_employees_trained: int
     sample_campaign_ids: list[UUID]
+
+
+# ---- Agentic investigation layer (M10 Stage 1) ------------------------------------------
+
+
+class InvestigationTimelineEntryResponse(BaseModel):
+    timestamp: datetime
+    type: str
+    description: str
+    source: Literal["case", "incident", "event"]
+    source_id: str
+
+
+class InvestigationSenderIntelligenceResponse(BaseModel):
+    domain: str
+    classification: Literal["established", "seen_before", "first_contact"]
+    seen_count: int
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
+    is_trusted_vendor: bool
+
+
+class InvestigationRelatedCaseResponse(BaseModel):
+    id: UUID
+    created_at: datetime
+    verdict: Verdict
+    score: int
+    subject: str | None = None
+    to_addresses: list[str] = Field(default_factory=list)
+
+
+class InvestigationRelatedIncidentResponse(BaseModel):
+    id: UUID
+    created_at: datetime
+    title: str
+    verdict: Verdict
+    score: int
+
+
+class InvestigationThreatIntelHitResponse(BaseModel):
+    source: Literal["email_indicator", "activity_finding"]
+    id: str
+    title: str | None = None
+    evidence: list[str] | None = None
+    actor: str | None = None
+
+
+class InvestigationThreatLevelResponse(BaseModel):
+    score: float
+    band: str
+    trend: str
+
+
+class InvestigationScopeResponse(BaseModel):
+    targeted_recipients: list[str] = Field(default_factory=list)
+    other_recipients_same_sender: list[str] = Field(default_factory=list)
+    likely_same_campaign_case_ids: list[str] = Field(default_factory=list)
+    possible_additional_targets: bool = False
+    possible_account_compromise: bool = False
+    compromise_signals: list[str] = Field(default_factory=list)
+
+
+class InvestigationRecommendedStepResponse(BaseModel):
+    step_id: str
+    title: str
+    description: str
+    category: str
+    related_indicator_ids: list[str]
+    control_refs: list[RemediationControlRef]
+
+
+class InvestigationResponse(BaseModel):
+    id: UUID
+    case_id: UUID | None = None
+    incident_id: UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+    trigger: Literal["auto", "manual"]
+    actor: str | None = None
+    verdict: Verdict
+    score: int
+    sender_intelligence: InvestigationSenderIntelligenceResponse | None = None
+    related_cases: list[InvestigationRelatedCaseResponse] = Field(default_factory=list)
+    related_incidents: list[InvestigationRelatedIncidentResponse] = Field(default_factory=list)
+    threat_intel_hits: list[InvestigationThreatIntelHitResponse] = Field(default_factory=list)
+    threat_level: InvestigationThreatLevelResponse | None = None
+    ueba_findings: list[Finding] = Field(default_factory=list)
+    timeline: list[InvestigationTimelineEntryResponse] = Field(default_factory=list)
+    scope: InvestigationScopeResponse
+    recommended_steps: list[InvestigationRecommendedStepResponse] = Field(default_factory=list)
+    summary: str | None = None
+    summary_model: str | None = None
+    summary_evidence_strength: Literal["strong", "moderate", "thin"] | None = None

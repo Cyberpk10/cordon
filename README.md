@@ -32,6 +32,14 @@ action anywhere in its action catalog.
   small, fixed, non-destructive action catalog (quarantine, block sender domain, disable
   session, flag for review) through a real Microsoft Graph connector or a safe mock, gated by a
   blast-radius rate limit. Irreversible actions always require human approval.
+- **Agentic investigation** — turns a flagged case or incident into a complete, grounded
+  investigation in one step: correlates Cordon's own sender history, related cases/incidents/
+  events, threat-intel hits, early-warning threat level, and UEBA findings into a timeline and
+  blast-radius assessment, with an optional LLM narrative that can only cite evidence actually
+  gathered (fabricated citations are rejected outright, same fail-closed contract as the LLM
+  analyst), and a recommended response mapped from the existing playbooks. Runs automatically
+  on a Suspicious/Malicious verdict or on demand; recommend-only, and exportable as part of the
+  audit evidence pack.
 - **Compliance mapping** — every finding maps to MITRE ATT&CK, NIST CSF, ISO 27001, and SOC 2
   controls, with continuous control monitoring that tracks evidence freshness and drift over
   time, and generates audit evidence packs on demand.

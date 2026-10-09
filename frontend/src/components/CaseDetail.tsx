@@ -5,6 +5,7 @@ import AiAuthoredFlag from "./AiAuthoredFlag";
 import AIAnalystSummary from "./AIAnalystSummary";
 import FrameworkMappingPanel from "./FrameworkMappingPanel";
 import IndicatorList from "./IndicatorList";
+import InvestigationPanel from "./InvestigationPanel";
 import ResponsePlaybookPanel from "./ResponsePlaybookPanel";
 import VerdictBadge from "./VerdictBadge";
 
@@ -182,6 +183,8 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
           <AIAnalystSummary narrative={caseData.analyst_narrative} model={caseData.analyst_model} />
 
           <ResponsePlaybookPanel caseId={caseData.id} />
+
+          <InvestigationPanel entityId={caseData.id} />
 
           <section>
             <h2 className="mb-3 text-lg font-semibold text-slate-800">Indicators</h2>

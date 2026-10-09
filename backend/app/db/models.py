@@ -858,3 +858,113 @@ class TrustedVendorDomain(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class Investigation(Base):
+    """Agentic investigation layer output (M10 Stage 1) for a flagged Case or Incident —
+    assembles Cordon's OWN already-persisted signals (sender history, correlated cases/
+    incidents/events for the actor(s) involved, threat-intel hits already found by the
+    indicator/detection engines, early-warning threat level, UEBA findings from correlated
+    incidents, and the triggering case's own indicators) into one structured record, plus an
+    optional LLM-generated grounded narrative (app.investigation.llm_summary) and recommended
+    response steps mapped from the existing deterministic playbooks
+    (app.remediation.playbook/intrusion_playbook). Deliberately scoped to data Cordon already
+    has — no external SOC/threat source is ever queried here. Recommends only; nothing here
+    executes an action (see recommended_steps's docstring-equivalent in
+    app.investigation.build).
+
+    Exactly one of case_id/incident_id is set (CHECK constraint, same dual-parent pattern as
+    Label/RemediationAction/AutonomyAction). Upserted per (account, case_id) or (account,
+    incident_id) rather than append-only — see the UniqueConstraints below: re-investigating
+    (the on-demand "Investigate" action, or an automatic re-trigger) replaces the prior
+    record's context/summary in place, since an investigation reflects CURRENT best-available
+    evidence, not a log of past runs. (Label/RemediationAction stay append-only because they
+    record a human's/operator's decision history; this table records a machine-assembled
+    snapshot that's meant to be refreshed, not accumulated.)
+    """
+
+    __tablename__ = "investigations"
+    __table_args__ = (
+        CheckConstraint(
+            "(case_id IS NOT NULL) != (incident_id IS NOT NULL)",
+            name="ck_investigations_exactly_one_parent",
+        ),
+        UniqueConstraint("case_id", name="uq_investigations_case_id"),
+        UniqueConstraint("incident_id", name="uq_investigations_incident_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    case_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("cases.id", ondelete="CASCADE"), nullable=True
+    )
+    incident_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("incidents.id", ondelete="CASCADE"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    # "auto" (fired by a verdict-crossing Case/Incident creation) | "manual" (the "Investigate"
+    # action on an already-existing case/incident).
+    trigger: Mapped[str] = mapped_column(String, nullable=False)
+    # The primary actor this investigation correlated events/incidents/threat-level/UEBA
+    # against — the targeted recipient for a case (their account is what could actually show
+    # signs of compromise), or the incident's own actor. None if no actor could be resolved
+    # (e.g. a case with no recipient address).
+    actor: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Snapshot of the triggering case/incident's own already-final verdict/score, duplicated
+    # here so a list view never needs a join back to cases/incidents.
+    verdict: Mapped[str] = mapped_column(String, nullable=False)
+    score: Mapped[int] = mapped_column(Integer, nullable=False)
+    # {domain, classification, seen_count, first_seen, last_seen, is_trusted_vendor} or {} —
+    # see app.investigation.gather.SenderIntelligence. Empty for an incident-triggered
+    # investigation (no sender to profile).
+    sender_intelligence: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
+    # Other Case rows from the same sender (bounded, see settings.investigation_max_related_cases) —
+    # both "other emails from this actor" and the raw material for the blast-radius scope below.
+    related_cases: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    # Other Incident rows naming the same actor (bounded).
+    related_incidents: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    # Threat-intel-backed indicators/findings already detected by the email indicator engine
+    # (SENDER_DOMAIN_KNOWN_BAD, SENDER_IP_KNOWN_MALICIOUS, LINK_KNOWN_MALICIOUS) and the
+    # events detection engine (EVENT_IP_KNOWN_MALICIOUS on a related incident) — never
+    # independently re-queried against the threat-intel snapshot here, so this can never
+    # disagree with what the detection engines themselves already found.
+    threat_intel_hits: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    # {score, band, trend} read from ActorThreatLevel for `actor`, or None if the actor has
+    # no threat-level row yet.
+    threat_level: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    # UEBA/detection findings (app.models.schemas.Finding, serialized) pulled from
+    # related_incidents — never recomputed here.
+    ueba_findings: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    # Ordered (oldest first) {timestamp, type, description, source, source_id} entries
+    # assembled from the case delivery, related cases, related incidents, and correlated
+    # events — see app.investigation.gather.TimelineEntry.
+    timeline: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    # {other_recipients_targeted: [...], possible_account_compromise: bool,
+    # compromise_signals: [...], affected_summary: str} — see app.investigation.gather's
+    # build_scope.
+    scope: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
+    # Recommended response steps, same shape as app.remediation.playbook.PlaybookStep,
+    # derived via the EXISTING deterministic playbook engine (generate_playbook /
+    # generate_intrusion_playbook) from the triggering case's indicators or incident's
+    # findings — recommendation only, nothing here executes anything.
+    recommended_steps: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    # Grounded LLM narrative (app.investigation.llm_summary) — None whenever
+    # ENABLE_LLM_REASONING is off, no API key is configured, the call fails, or the response
+    # cites evidence outside what was actually gathered (fails closed, same contract as
+    # app.reasoning.llm_analyst). The deterministic fields above are always populated
+    # regardless of whether this narrative exists.
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    summary_model: Mapped[str | None] = mapped_column(String, nullable=True)
+    # "strong" | "moderate" | "thin" — the model's own assessment of how much it had to go
+    # on, required whenever `summary` is populated. None alongside summary=None.
+    summary_evidence_strength: Mapped[str | None] = mapped_column(String, nullable=True)

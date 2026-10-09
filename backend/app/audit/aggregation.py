@@ -23,6 +23,26 @@ class CaseRef:
 
 
 @dataclass(frozen=True)
+class InvestigationEvidence:
+    """One investigation (app.db.models.Investigation) summarized for the audit evidence
+    pack — the compliance wedge for M10 Stage 1: an investigation IS audit-ready
+    documentation, not just an analyst tool. Built directly from already-persisted fields —
+    no new computation happens for the audit pack specifically."""
+
+    id: str
+    case_id: str | None
+    incident_id: str | None
+    created_at: datetime
+    trigger: str
+    actor: str | None
+    verdict: str
+    score: int
+    summary: str | None
+    summary_evidence_strength: str | None
+    recommended_step_titles: list[str]
+
+
+@dataclass(frozen=True)
 class ControlEvidence:
     control_id: str
     control_name: str

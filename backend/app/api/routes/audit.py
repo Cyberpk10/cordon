@@ -16,13 +16,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.audit.aggregation import ControlEvidence, evidence_for_framework
+from app.audit.aggregation import ControlEvidence, InvestigationEvidence, evidence_for_framework
 from app.audit.report_builder import ReportContext, build_json_report, build_pdf_report
 from app.auth.dependencies import get_current_user
 from app.dashboard.aggregation import CaseRow
 from app.db.models import (
     AuditReport,
     Case,
+    Investigation,
     SimulationCampaign,
     SimulationRecipient,
     SimulationTrainingRecommendation,
@@ -72,6 +73,37 @@ def _to_case_row(case: Case) -> CaseRow:
         indicators=case.indicators,
         framework_mappings=case.framework_mappings,
     )
+
+
+def _investigations_in_period(
+    db: Session, account_id: UUID, period_start: datetime, period_end: datetime
+) -> list[InvestigationEvidence]:
+    rows = (
+        db.query(Investigation)
+        .filter(
+            Investigation.account_id == account_id,
+            Investigation.created_at >= period_start,
+            Investigation.created_at <= period_end,
+        )
+        .order_by(Investigation.created_at.desc())
+        .all()
+    )
+    return [
+        InvestigationEvidence(
+            id=str(row.id),
+            case_id=str(row.case_id) if row.case_id else None,
+            incident_id=str(row.incident_id) if row.incident_id else None,
+            created_at=row.created_at,
+            trigger=row.trigger,
+            actor=row.actor,
+            verdict=row.verdict,
+            score=row.score,
+            summary=row.summary,
+            summary_evidence_strength=row.summary_evidence_strength,
+            recommended_step_titles=[step["title"] for step in row.recommended_steps],
+        )
+        for row in rows
+    ]
 
 
 def _load_framework_or_404(alias: AuditFramework) -> tuple[str, LoadedFramework]:
@@ -234,6 +266,7 @@ async def generate_audit_report(
     )
     operating_controls = sum(1 for e in evidence if e.operating)
     total_supporting_cases = len({cid for e in evidence for cid in e.supporting_case_ids})
+    investigations = _investigations_in_period(db, current_user.account_id, period_start, period_end)
 
     report_id = uuid.uuid4()
     generated_at = datetime.utcnow()
@@ -248,6 +281,7 @@ async def generate_audit_report(
         total_controls=len(evidence),
         operating_controls=operating_controls,
         total_supporting_cases=total_supporting_cases,
+        investigations=investigations,
     )
 
     json_bytes = build_json_report(ctx)

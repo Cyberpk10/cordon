@@ -24,6 +24,7 @@ import type {
   HumanRiskSummaryResponse,
   IncidentDetail,
   IncidentListResponse,
+  Investigation,
   Label,
   MessageChannel,
   RemediationPlaybook,
@@ -404,6 +405,38 @@ export async function submitIncidentRemediationAction(
   if (!response.ok) {
     return parseErrorOrThrow(response);
   }
+}
+
+export async function getCaseInvestigation(caseId: string): Promise<Investigation> {
+  const response = await apiFetch(`/api/cases/${caseId}/investigation`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function investigateCase(caseId: string): Promise<Investigation> {
+  const response = await apiFetch(`/api/cases/${caseId}/investigate`, { method: "POST" });
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function getIncidentInvestigation(incidentId: string): Promise<Investigation> {
+  const response = await apiFetch(`/api/incidents/${incidentId}/investigation`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function investigateIncident(incidentId: string): Promise<Investigation> {
+  const response = await apiFetch(`/api/incidents/${incidentId}/investigate`, { method: "POST" });
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
 }
 
 export async function queryCopilot(question: string): Promise<CopilotQueryResponse> {

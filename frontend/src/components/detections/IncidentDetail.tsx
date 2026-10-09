@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import {
   deleteIncident,
   getIncident,
+  getIncidentInvestigation,
   getIncidentRemediationPlaybook,
+  investigateIncident,
   submitIncidentLabel,
   submitIncidentRemediationAction,
 } from "../../api/client";
 import type { IncidentDetail as IncidentDetailType, Verdict } from "../../types/analysis";
 import FrameworkMappingPanel from "../FrameworkMappingPanel";
+import InvestigationPanel from "../InvestigationPanel";
 import ResponsePlaybookPanel from "../ResponsePlaybookPanel";
 import VerdictBadge from "../VerdictBadge";
 import EvidenceEventsTable from "./EvidenceEventsTable";
@@ -190,6 +193,12 @@ export default function IncidentDetail({ incidentId, onBack, onDeleted }: Incide
             caseId={incident.id}
             fetchPlaybook={getIncidentRemediationPlaybook}
             submitAction={submitIncidentRemediationAction}
+          />
+
+          <InvestigationPanel
+            entityId={incident.id}
+            fetchInvestigation={getIncidentInvestigation}
+            runInvestigation={investigateIncident}
           />
 
           <section>
