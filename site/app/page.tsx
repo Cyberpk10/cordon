@@ -7,6 +7,7 @@ import StatStrip from "@/components/StatStrip";
 import PlatformCards from "@/components/PlatformCards";
 import EarlyWarning from "@/components/EarlyWarning";
 import PhishingSimulation from "@/components/PhishingSimulation";
+import Investigation from "@/components/Investigation";
 import ProductTour from "@/components/ProductTour";
 import WhyAegis from "@/components/WhyAegis";
 import AutonomyBand from "@/components/AutonomyBand";
@@ -30,6 +31,7 @@ export default function Home() {
         <PlatformCards />
         <EarlyWarning />
         <PhishingSimulation />
+        <Investigation />
         <ProductTour
           hasAnalyzeMalicious={screenshots.analyzeMalicious}
           hasDashboard={screenshots.dashboard}
