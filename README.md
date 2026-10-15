@@ -78,6 +78,45 @@ required to run Cordon locally or in production.
   tradecraft engineered to probe the honest limits of today's detection. Most of it is expected
   to get through; it's tracked for visibility and does not gate daily green.
 
+## Security
+
+Production hardening for the backend API (`backend/app/main.py`, `backend/app/core/
+security_headers.py`, `backend/app/auth/`):
+
+- **API docs disabled in production** — `/docs`, `/redoc`, and `/openapi.json` all 404 (not
+  just unlinked) whenever `ENVIRONMENT=production`, via `app.main.create_app()`'s
+  `docs_url`/`redoc_url`/`openapi_url` gate. Available in every other environment for local
+  development and manual API testing.
+- **Per-IP rate limiting on every auth and token endpoint** — login, signup, refresh,
+  invite-accept, and both password-reset endpoints are capped at 10 requests/minute per
+  source IP (`app.auth.rate_limit.AUTH_RATE_LIMIT`, enforced via `slowapi`), returning 429
+  once exceeded. In-memory storage, correct for the current single-instance deployment; a
+  multi-instance deployment would need a shared store (e.g. Redis) since each instance
+  otherwise enforces the limit independently.
+- **Account-level brute-force lockout** — 5 consecutive failed logins against the same
+  account trigger a self-clearing 15-minute lockout (`User.failed_login_attempts`/
+  `locked_until`), independent of source IP. This closes the gap the per-IP limit alone
+  leaves open against a password-spray attack that rotates IPs while hammering one account.
+  A single successful login resets the counter; the lockout lifts on its own once its window
+  has elapsed, no cleanup job required.
+- **Security headers on every response** — `Strict-Transport-Security`,
+  `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`,
+  and a restrictive `Permissions-Policy`, applied via `SecurityHeadersMiddleware`. Every
+  `/api/auth/*` response additionally gets `Cache-Control: no-store`, since tokens and
+  credentials must never sit in a shared proxy cache or browser back-forward cache. The same
+  four headers are set at the edge for the marketing site (`site/next.config.ts`) and the
+  analyst SPA (`frontend/vercel.json`).
+- **No internal detail in error responses** — an unhandled exception returns a flat, generic
+  `{"detail": "Internal server error."}`; the real exception (class, message, full traceback)
+  only ever reaches the server's own logs via `logger.exception`, never the client. HTTPS is
+  enforced in production (`HTTPSRedirectMiddleware`), and request bodies are capped before a
+  route ever reads them (`app.core.body_limit`).
+- **Multi-tenant isolation, injection hardening, and more** — every table is scoped to its
+  owning account and every route checks it; the optional LLM analyst/copilot/investigation
+  narratives treat all free text as untrusted, delimited input that can only ever raise (never
+  lower) a score and must cite real, server-validated evidence. See the "Testing &
+  red-teaming" section above and `CLAUDE.md` for the full architectural detail.
+
 ## Getting started
 
 ### Backend

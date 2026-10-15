@@ -133,6 +133,70 @@ async def signup(request: Request, body: SignupRequest, db: Session = Depends(ge
     return response
 
 
+_DEV_AUTOLOGIN_EMAIL = "dev-admin@cordon.local"
+_DEV_AUTOLOGIN_ACCOUNT_NAME = "Local Dev"
+
+
+def _ensure_dev_autologin_allowed() -> None:
+    """Hard, double gate before dev_login does anything: the opt-in flag must be explicitly
+    on AND the environment must not be "production" (checked unconditionally, regardless of
+    the flag) - belt and suspenders, doubled here specifically because this endpoint hands
+    out a real, fully-privileged admin session with NO credential check at all. 404, not
+    403/disabled-feature-message: an instance where this isn't allowed should not even reveal
+    that the route exists."""
+    if settings.environment == "production" or not settings.enable_dev_autologin:
+        raise HTTPException(status_code=404)
+
+
+@router.post("/dev-login", response_model=TokenResponse)
+async def dev_login(request: Request, db: Session = Depends(get_db)) -> TokenResponse:
+    """LOCAL/DEV ONLY - see _ensure_dev_autologin_allowed; never reachable in production
+    regardless of configuration. Idempotently finds-or-creates one fixed local admin account
+    (dev-admin@cordon.local) and returns a fresh session for it, no credential required.
+    Exists purely so a developer can open a single URL and land in the app already signed
+    in - see frontend's /dev-login route. The seeded user's password_hash is a random,
+    never-revealed, never-used value (this endpoint never checks a password at all) so the
+    account also can't accidentally be logged into via the real /login endpoint with a
+    guessable password."""
+    _ensure_dev_autologin_allowed()
+
+    user = db.query(User).filter(User.email == _DEV_AUTOLOGIN_EMAIL).first()
+    if user is None:
+        account = Account(name=_DEV_AUTOLOGIN_ACCOUNT_NAME, inbound_token=generate_inbound_token())
+        db.add(account)
+        db.flush()
+        user = User(
+            account_id=account.id,
+            email=_DEV_AUTOLOGIN_EMAIL,
+            password_hash=hash_password(generate_opaque_token()),
+            role="admin",
+        )
+        db.add(user)
+        db.flush()
+        log_event(
+            db,
+            event_type="account_created",
+            account_id=account.id,
+            user_id=user.id,
+            detail={"dev_autologin": True},
+            ip_address=_client_ip(request),
+        )
+    else:
+        account = db.get(Account, user.account_id)
+
+    user.last_login_at = datetime.utcnow()
+    log_event(
+        db, event_type="dev_autologin", account_id=user.account_id, user_id=user.id,
+        ip_address=_client_ip(request),
+    )
+    response, _ = _issue_tokens(db, user, account)
+    db.commit()
+    return response
+
+
+_ACCOUNT_LOCKED_ERROR = "Too many failed login attempts. Please try again later."
+
+
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit(AUTH_RATE_LIMIT)
 async def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
@@ -140,7 +204,40 @@ async def login(request: Request, body: LoginRequest, db: Session = Depends(get_
     ip = _client_ip(request)
     user = db.query(User).filter(User.email == email).first()
 
+    # Account-level lockout check — a password-spray attack rotates IPs to dodge
+    # AUTH_RATE_LIMIT, but keeps hitting the same account, so this is a second, independent
+    # layer. Checked before the password comparison so a locked account never even reaches
+    # verify_password while locked. Self-clearing: once locked_until is in the past, the
+    # lockout is cleared right here rather than needing a cleanup job.
+    if user is not None and user.locked_until is not None:
+        if to_naive_utc(user.locked_until) > datetime.utcnow():
+            log_event(
+                db,
+                event_type="login_blocked_account_locked",
+                account_id=user.account_id,
+                user_id=user.id,
+                ip_address=ip,
+            )
+            db.commit()
+            raise HTTPException(status_code=429, detail=_ACCOUNT_LOCKED_ERROR)
+        user.locked_until = None
+        user.failed_login_attempts = 0
+
     if user is None or not user.is_active or not verify_password(body.password, user.password_hash):
+        if user is not None and user.is_active:
+            user.failed_login_attempts += 1
+            if user.failed_login_attempts >= settings.account_lockout_threshold:
+                user.locked_until = datetime.utcnow() + timedelta(
+                    minutes=settings.account_lockout_duration_minutes
+                )
+                log_event(
+                    db,
+                    event_type="account_locked",
+                    account_id=user.account_id,
+                    user_id=user.id,
+                    detail={"failed_attempts": user.failed_login_attempts},
+                    ip_address=ip,
+                )
         log_event(
             db,
             event_type="login_failure",
@@ -154,6 +251,8 @@ async def login(request: Request, body: LoginRequest, db: Session = Depends(get_
 
     account = db.get(Account, user.account_id)
     user.last_login_at = datetime.utcnow()
+    user.failed_login_attempts = 0
+    user.locked_until = None
     log_event(
         db, event_type="login_success", account_id=user.account_id, user_id=user.id, ip_address=ip
     )
@@ -178,7 +277,8 @@ async def logout(body: LogoutRequest, db: Session = Depends(get_db)) -> None:
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(body: RefreshRequest, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit(AUTH_RATE_LIMIT)
+async def refresh(request: Request, body: RefreshRequest, db: Session = Depends(get_db)) -> TokenResponse:
     row = db.query(RefreshToken).filter(RefreshToken.token_hash == hash_token(body.refresh_token)).first()
     if row is None:
         raise HTTPException(status_code=401, detail="Invalid refresh token.")
@@ -339,7 +439,10 @@ async def request_password_reset(
 
 
 @router.post("/password-reset/confirm", status_code=204)
-async def confirm_password_reset(body: PasswordResetConfirmRequest, db: Session = Depends(get_db)) -> None:
+@limiter.limit(AUTH_RATE_LIMIT)
+async def confirm_password_reset(
+    request: Request, body: PasswordResetConfirmRequest, db: Session = Depends(get_db)
+) -> None:
     token_row = (
         db.query(PasswordResetToken)
         .filter(PasswordResetToken.token_hash == hash_token(body.token))

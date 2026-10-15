@@ -44,6 +44,17 @@ class Settings:
     environment: str = field(default_factory=lambda: os.environ.get("ENVIRONMENT", "development"))
     log_level: str = field(default_factory=lambda: os.environ.get("LOG_LEVEL", "INFO"))
 
+    # Local dev convenience: POST /api/auth/dev-login seeds a fixed local admin account and
+    # hands back a real, fully-privileged session with NO credential check at all - so this
+    # is gated by TWO independent checks, not just this flag (see
+    # app.api.routes.auth._ensure_dev_autologin_allowed): this must be explicitly turned on
+    # (off by default, same as every other opt-in feature in this file) AND `environment`
+    # must not be "production" (checked unconditionally, regardless of this flag's value) -
+    # the endpoint 404s unless both hold. Never set this in a production deployment.
+    enable_dev_autologin: bool = field(
+        default_factory=lambda: _env_bool("ENABLE_DEV_AUTOLOGIN", False)
+    )
+
     # Comma-separated allowed CORS origins, e.g. the deployed Vercel URL in production. Falls
     # back to the local Vite dev server origins when unset, so local dev is unaffected.
     cors_origins: list[str] = field(
@@ -580,6 +591,19 @@ class Settings:
     )
     jwt_refresh_token_ttl_days: int = field(
         default_factory=lambda: int(os.environ.get("JWT_REFRESH_TOKEN_TTL_DAYS", "7"))
+    )
+
+    # Account-level brute-force lockout (M8 Stage 5 security hardening) — complements the
+    # per-IP AUTH_RATE_LIMIT in app.auth.rate_limit, since a password-spray attack rotates
+    # IPs but keeps hitting the same account. Conservative defaults chosen specifically so a
+    # real user who mistypes their password a couple of times is never affected: 5 consecutive
+    # failures (not just any failures — a single success resets the counter) before a short,
+    # self-clearing 15-minute lockout. See app.api.routes.auth::login.
+    account_lockout_threshold: int = field(
+        default_factory=lambda: int(os.environ.get("ACCOUNT_LOCKOUT_THRESHOLD", "5"))
+    )
+    account_lockout_duration_minutes: int = field(
+        default_factory=lambda: int(os.environ.get("ACCOUNT_LOCKOUT_DURATION_MINUTES", "15"))
     )
 
     # Email forwarding intake (M8 Stage 3). No safe default for the signing key — an unset

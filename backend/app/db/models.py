@@ -69,6 +69,12 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Account-level brute-force lockout (complements the per-IP rate limit in
+    # app.auth.rate_limit, since a password-spray attack rotates IPs but keeps hitting the
+    # same account) — see app.api.routes.auth::login. Self-clearing: `locked_until` is just a
+    # timestamp, so the lockout lifts on its own once it's in the past, no cleanup job needed.
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class RefreshToken(Base):
