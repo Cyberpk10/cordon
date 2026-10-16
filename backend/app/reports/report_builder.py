@@ -22,7 +22,6 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import (
     HRFlowable,
-    PageBreak,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -205,8 +204,8 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
         buffer,
         pagesize=letter,
         title=f"Cordon Security & Compliance Report - {ctx.account_name}",
-        topMargin=1.4 * inch,
-        bottomMargin=0.9 * inch,
+        topMargin=1.15 * inch,
+        bottomMargin=0.65 * inch,
         leftMargin=0.75 * inch,
         rightMargin=0.75 * inch,
     )
@@ -226,9 +225,9 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
             f"Generated: {ctx.generated_at:%Y-%m-%d %H:%M} UTC",
             subtitle_style,
         ),
-        Spacer(1, 0.25 * inch),
+        Spacer(1, 0.18 * inch),
         HRFlowable(width="100%", color=BORDER, thickness=0.75),
-        Spacer(1, 0.2 * inch),
+        Spacer(1, 0.16 * inch),
         Paragraph("Executive Summary", heading_style),
         Spacer(1, 0.08 * inch),
         Paragraph(xml_escape(ctx.executive_summary.text), body_style),
@@ -239,7 +238,7 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
             else "Generated directly from the figures in this report (no AI narrative layer).",
             muted_style,
         ),
-        Spacer(1, 0.3 * inch),
+        Spacer(1, 0.22 * inch),
     ]
 
     if not m.has_any_activity:
@@ -257,7 +256,7 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
                 ]
             )
         )
-        elements.append(Spacer(1, 0.3 * inch))
+        elements.append(Spacer(1, 0.16 * inch))
 
         elements.append(Paragraph("Verdict Breakdown", heading_style))
         elements.append(Spacer(1, 0.08 * inch))
@@ -282,13 +281,13 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
                     ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
                     ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                     ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
-                    ("TOPPADDING", (0, 0), (-1, -1), 6),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
                 ]
             )
         )
         elements.append(verdict_table)
-        elements.append(Spacer(1, 0.3 * inch))
+        elements.append(Spacer(1, 0.16 * inch))
 
         elements.append(Paragraph("Intrusion &amp; Early-Warning", heading_style))
         elements.append(Spacer(1, 0.08 * inch))
@@ -300,7 +299,7 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
                 body_style,
             )
         )
-        elements.append(Spacer(1, 0.3 * inch))
+        elements.append(Spacer(1, 0.16 * inch))
 
         hr = m.human_risk
         elements.append(Paragraph("Human Risk / Phishing Simulation", heading_style))
@@ -319,9 +318,12 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
             elements.append(
                 Paragraph("No phishing-simulation campaigns were run in this period.", body_style)
             )
-        elements.append(Spacer(1, 0.3 * inch))
+        elements.append(Spacer(1, 0.16 * inch))
 
-    elements.append(PageBreak())
+    # No forced PageBreak here — a modest report (the common case) fits framework coverage
+    # on the same page as the headline metrics with room to spare; platypus paginates
+    # automatically once content actually exceeds the page, so a larger report (many
+    # frameworks, a long human-risk/incident section) still overflows correctly on its own.
     elements.append(Paragraph("Control-Framework Coverage", heading_style))
     elements.append(Spacer(1, 0.08 * inch))
     elements.append(
@@ -331,7 +333,7 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
             muted_style,
         )
     )
-    elements.append(Spacer(1, 0.1 * inch))
+    elements.append(Spacer(1, 0.06 * inch))
 
     fw_table_data = [["Framework", "Controls Covered", "Coverage"]]
     for row in m.framework_coverage:
@@ -352,8 +354,8 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
                 ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
             ]
         )
     )
