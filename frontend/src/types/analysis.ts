@@ -60,6 +60,30 @@ export interface AnalyzeResponse {
   analyst_model: string | null;
 }
 
+// ---- Activity-log analyzer (pasted raw CSV, reuses the intrusion-detection engine) ------
+
+export interface ActivityLogSummary {
+  event_count: number;
+  distinct_actor_count: number;
+  primary_actor: string | null;
+  time_range_start: string;
+  time_range_end: string;
+  source_ips: string[];
+  other_incidents_detected: number;
+}
+
+export interface ActivityLogAnalyzeResponse {
+  id: string;
+  created_at: string;
+  verdict: Verdict;
+  score: number;
+  summary: ActivityLogSummary;
+  indicators: Indicator[];
+  framework_mappings: Record<string, FrameworkControlRef[]>;
+  analyst_narrative: string | null;
+  analyst_model: string | null;
+}
+
 export type MessageChannel = "email" | "slack" | "teams";
 
 export interface CaseSummary {

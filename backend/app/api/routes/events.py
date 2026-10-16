@@ -244,14 +244,21 @@ def _persist_baseline(db: Session, account_id: UUID, snapshot: BaselineSnapshot)
     row.suspicious_pattern_score = snapshot.suspicious_pattern_score
 
 
-@router.post("", response_model=EventBatchResponse)
-async def ingest_events(
-    body: EventBatchRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> EventBatchResponse:
-    account_id = current_user.account_id
-    persisted_rows = [_persist_event(db, account_id, event) for event in body.events]
+def ingest_activity_events(
+    db: Session, account_id: UUID, events: list[ActivityEvent]
+) -> list[tuple[Incident, IncidentSummary]]:
+    """The actual engine behind POST /api/events below, extracted so another entry point
+    (app.api.routes.activity_log, the pasted-raw-log analyzer) can reuse the exact same
+    multi-pass detection/correlation/persistence/auto-investigation pipeline rather than
+    duplicating any of it. Returns every Incident row created by this call paired with its
+    already-computed IncidentSummary (commits before returning) — the summary carries the
+    pristine, pre-DB-round-trip score/verdict/window_start/window_end exactly as the
+    original /api/events route always has, rather than re-reading them off the Incident row
+    after a refresh, which can hand back an aware datetime on Postgres vs the naive one that
+    was written (see app.core.time's naive-UTC discipline used everywhere else in this
+    codebase). The caller is responsible for shaping either half into whatever response it
+    needs; the Incident half carries findings/framework_mappings the summary doesn't."""
+    persisted_rows = [_persist_event(db, account_id, event) for event in events]
     db.flush()
 
     actors = sorted({row.actor for row in persisted_rows})
@@ -384,7 +391,7 @@ async def ingest_events(
     groups = detect_coordinated_campaign(list(outcomes.values()))
     merged_actors: set[str] = {a for g in groups for a in g.actors}
 
-    incidents_created: list[IncidentSummary] = []
+    incidents_created: list[tuple[Incident, IncidentSummary]] = []
 
     for actor in actors:
         if actor in merged_actors:
@@ -406,7 +413,7 @@ async def ingest_events(
         )
         maybe_auto_investigate(db, account_id, incident=incident)
         incidents_created.append(
-            _to_summary(incident, ctx["score"], ctx["verdict"], ctx["window_start"], ctx["window_end"])
+            (incident, _to_summary(incident, ctx["score"], ctx["verdict"], ctx["window_start"], ctx["window_end"]))
         )
 
     for group in groups:
@@ -428,7 +435,7 @@ async def ingest_events(
         )
         maybe_auto_investigate(db, account_id, incident=incident)
         incidents_created.append(
-            _to_summary(incident, score, verdict, group.window_start, group.window_end)
+            (incident, _to_summary(incident, score, verdict, group.window_start, group.window_end))
         )
 
     # ---- Pass 3: cross-actor password spray. Re-queries the whole account's auth_fail
@@ -481,9 +488,22 @@ async def ingest_events(
             )
             maybe_auto_investigate(db, account_id, incident=incident)
             incidents_created.append(
-                _to_summary(incident, score, verdict, spray.window_start, spray.window_end)
+                (incident, _to_summary(incident, score, verdict, spray.window_start, spray.window_end))
             )
 
     db.commit()
 
-    return EventBatchResponse(accepted=len(persisted_rows), incidents_created=incidents_created)
+    return incidents_created
+
+
+@router.post("", response_model=EventBatchResponse)
+async def ingest_events(
+    body: EventBatchRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> EventBatchResponse:
+    incidents = ingest_activity_events(db, current_user.account_id, body.events)
+    return EventBatchResponse(
+        accepted=len(body.events),
+        incidents_created=[summary for _incident, summary in incidents],
+    )

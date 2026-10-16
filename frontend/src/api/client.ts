@@ -1,5 +1,6 @@
 import type {
   ActivityEvent,
+  ActivityLogAnalyzeResponse,
   AnalyzeResponse,
   AuditEvidenceResponse,
   AuditFrameworkAlias,
@@ -63,6 +64,20 @@ export async function postAnalyze(file: File): Promise<AnalyzeResponse> {
 
 export async function postAnalyzeText(rawText: string): Promise<AnalyzeResponse> {
   const response = await apiFetch(`/api/analyze/text`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ raw_text: rawText }),
+  });
+
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+
+  return response.json();
+}
+
+export async function postActivityLog(rawText: string): Promise<ActivityLogAnalyzeResponse> {
+  const response = await apiFetch(`/api/activity-log/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ raw_text: rawText }),

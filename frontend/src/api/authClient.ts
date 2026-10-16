@@ -92,6 +92,17 @@ export async function signup(
   return body;
 }
 
+/** Local/dev-only, no-credential sign-in — see backend's POST /api/auth/dev-login
+ * docstring. 404s unless the backend has both ENABLE_DEV_AUTOLOGIN set AND a non-production
+ * environment; never reachable otherwise. */
+export async function devLogin(): Promise<TokenResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/dev-login`, { method: "POST" });
+  if (!response.ok) return parseErrorOrThrow(response);
+  const body: TokenResponse = await response.json();
+  setTokens(body.access_token, body.refresh_token);
+  return body;
+}
+
 export async function login(email: string, password: string): Promise<TokenResponse> {
   const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: "POST",

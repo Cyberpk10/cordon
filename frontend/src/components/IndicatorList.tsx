@@ -8,13 +8,17 @@ const SEVERITY_STYLES: Record<Severity, string> = {
 
 interface IndicatorListProps {
   indicators: Indicator[];
+  emptyMessage?: string;
 }
 
-export default function IndicatorList({ indicators }: IndicatorListProps) {
+export default function IndicatorList({
+  indicators,
+  emptyMessage = "No phishing indicators were detected in this email.",
+}: IndicatorListProps) {
   if (indicators.length === 0) {
     return (
       <p className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-        No phishing indicators were detected in this email.
+        {emptyMessage}
       </p>
     );
   }

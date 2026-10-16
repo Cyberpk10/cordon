@@ -14,7 +14,7 @@ export default function AuthLayout({ title, subtitle, children, footer }: AuthLa
       <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-navy px-12 py-12 text-white lg:flex">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-blue/20 via-transparent to-brand-purple/20" />
         <div className="relative flex items-center gap-3">
-          <AegisLogo className="h-9 w-9" />
+          <AegisLogo className="h-8 w-8" />
           <span className="text-xl font-semibold tracking-tight">Cordon</span>
         </div>
         <div className="relative max-w-md">

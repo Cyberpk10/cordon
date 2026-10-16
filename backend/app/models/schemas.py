@@ -113,6 +113,47 @@ class AnalyzeResponse(BaseModel):
     ml_model_version: str | None = None
 
 
+# ---- Activity-log analyzer (pasted raw CSV, reuses the intrusion-detection engine) --------
+
+
+class ActivityLogAnalyzeRequest(BaseModel):
+    raw_text: str
+
+
+class ActivityLogSummary(BaseModel):
+    """The activity-log analog of EmailSummary — the input was a batch of events, not one
+    message, so the useful "what did we just look at" facts are different in kind."""
+
+    event_count: int
+    distinct_actor_count: int
+    primary_actor: str | None = None
+    time_range_start: datetime
+    time_range_end: datetime
+    source_ips: list[str] = Field(default_factory=list)
+    # How many OTHER non-safe incidents this same paste also produced, beyond the one this
+    # response reports on (the highest-scoring one) — the UI is a single-result view, same as
+    # the email analyzer, so a log that happens to implicate multiple distinct actors still
+    # gets one headline verdict; this is how that's surfaced instead of silently dropped.
+    other_incidents_detected: int = 0
+
+
+class ActivityLogAnalyzeResponse(BaseModel):
+    """Deliberately the same field names as AnalyzeResponse (verdict/score/summary/
+    indicators/framework_mappings/analyst_narrative/analyst_model) so the frontend can reuse
+    VerdictBadge/IndicatorList/FrameworkMappingPanel/AIAnalystSummary unchanged — only
+    `summary`'s own shape differs, since an activity log isn't an email."""
+
+    id: UUID
+    created_at: datetime
+    verdict: Verdict
+    score: int
+    summary: ActivityLogSummary
+    indicators: list[Indicator]
+    framework_mappings: dict[str, list[FrameworkControlRef]]
+    analyst_narrative: str | None = None
+    analyst_model: str | None = None
+
+
 class InboundEmailResponse(BaseModel):
     """Response for POST /api/inbound/email/mime (M8 Stage 3) — deliberately lighter than
     AnalyzeResponse: the provider (Mailgun) never reads this body, it only needs a 2xx, and

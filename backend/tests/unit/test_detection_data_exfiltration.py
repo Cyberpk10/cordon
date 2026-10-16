@@ -70,3 +70,66 @@ def test_both_findings_can_fire_independently_in_same_window():
     )
     ids = {f.id for f in evaluate(window)}
     assert ids == {"DATA_EXFIL_LARGE_TRANSFER", "DATA_EXFIL_LARGE_DB_EXPORT"}
+
+
+def _bulk_download(bytes_: int | None) -> ActivityEvent:
+    return ActivityEvent(
+        timestamp=_TS,
+        actor="gina@corp.com",
+        action=EventAction.FILE_DOWNLOAD,
+        target="bulk_export",
+        bytes=bytes_,
+        outcome="bulk_download",
+    )
+
+
+def test_bulk_download_with_a_real_byte_count_cites_the_actual_figure():
+    window = ActorEventWindow(actor="gina@corp.com", events=[_bulk_download(900_000_000)])
+    findings = evaluate(window)
+    ids = [f.id for f in findings]
+    assert "DATA_EXFIL_LARGE_TRANSFER" in ids
+    finding = next(f for f in findings if f.id == "DATA_EXFIL_LARGE_TRANSFER")
+    assert "GB" in finding.description or "MB" in finding.description
+    assert "750" not in finding.description
+
+
+def test_bulk_download_with_no_byte_count_still_fires_but_states_no_number():
+    window = ActorEventWindow(actor="gina@corp.com", events=[_bulk_download(None)])
+    findings = evaluate(window)
+    ids = [f.id for f in findings]
+    assert "DATA_EXFIL_LARGE_TRANSFER" in ids
+    finding = next(f for f in findings if f.id == "DATA_EXFIL_LARGE_TRANSFER")
+    description = finding.description
+    for unit in ("B ", "KB", "MB", "GB", "TB", "bytes"):
+        assert unit not in description, f"description should cite no size unit: {description!r}"
+    assert "750" not in description
+
+
+def test_bulk_download_without_bytes_never_falls_back_to_the_old_placeholder():
+    window = ActorEventWindow(actor="gina@corp.com", events=[_bulk_download(None)])
+    findings = evaluate(window)
+    for finding in findings:
+        assert "750" not in finding.description
+
+
+def test_bulk_download_does_not_fire_for_allowlisted_destination(monkeypatch):
+    monkeypatch.setattr(settings, "exfil_allowlisted_destinations", ["bulk_export"])
+    window = ActorEventWindow(actor="gina@corp.com", events=[_bulk_download(None)])
+    assert evaluate(window) == []
+
+
+def test_large_transfer_still_takes_priority_over_unsized_bulk_marker():
+    # An event that both clears the byte threshold AND carries the bulk_download outcome
+    # marker must still be reported through the normal sized path, not duplicated.
+    event = ActivityEvent(
+        timestamp=_TS,
+        actor="gina@corp.com",
+        action=EventAction.FILE_DOWNLOAD,
+        target="bulk_export",
+        bytes=600_000_000,
+        outcome="bulk_download",
+    )
+    window = ActorEventWindow(actor="gina@corp.com", events=[event])
+    findings = evaluate(window)
+    assert len(findings) == 1
+    assert "GB" in findings[0].description or "MB" in findings[0].description

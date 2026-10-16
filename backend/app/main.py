@@ -15,6 +15,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.routes.activity_log import router as activity_log_router
 from app.api.routes.analyze import router as analyze_router
 from app.api.routes.audit import router as audit_router
 from app.api.routes.auth import router as auth_router
@@ -124,6 +125,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(analyze_router)
+    app.include_router(activity_log_router)
     app.include_router(cases_router)
     app.include_router(labels_router)
     app.include_router(dashboard_router)

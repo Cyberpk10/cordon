@@ -47,6 +47,16 @@ def _deterministic_llm_settings(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _deterministic_dev_autologin_settings(monkeypatch):
+    """Pin dev auto-login off for every test — exact mirror of _deterministic_llm_settings
+    above, and for the same reason: a developer's own backend/.env may well have
+    ENABLE_DEV_AUTOLOGIN=true for local convenience (see .env.example), and the test suite
+    must never depend on that. Tests that want the dev-login path opt in explicitly via
+    monkeypatch (see tests/integration/test_dev_autologin.py)."""
+    monkeypatch.setattr(settings, "enable_dev_autologin", False)
+
+
+@pytest.fixture(autouse=True)
 def _deterministic_ml_settings(monkeypatch):
     """Pin the shared settings singleton to the offline default (ML classifier off) for every
     test — exact mirror of _deterministic_llm_settings above. Also clears app.ml.classifier's
