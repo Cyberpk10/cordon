@@ -43,6 +43,17 @@ action anywhere in its action catalog.
 - **Compliance mapping** — every finding maps to MITRE ATT&CK, NIST CSF, ISO 27001, and SOC 2
   controls, with continuous control monitoring that tracks evidence freshness and drift over
   time, and generates audit evidence packs on demand.
+- **Security & Compliance Report** — a one-click, board- and auditor-ready report (`app.
+  reports`): emails analyzed and their verdict breakdown, threats detected/contained, estimated
+  exposure avoided, human-risk/phishing-simulation summary, intrusion and early-warning
+  activity, and control-framework coverage, all scoped to an account's own real data over a
+  selected period — an inactive account gets an honest "no activity" report, never padded
+  numbers. The executive summary at the top is either a fully deterministic, template-filled
+  recap of the same figures, or (opt-in, `ENABLE_LLM_REASONING`) an LLM-authored one under the
+  same grounding discipline as the agentic investigation narrative: every figure it states must
+  be one Cordon actually computed, forced via tool-use and rejected outright if it cites or
+  states anything else. Exports as a dark, Cordon-branded PDF (and JSON) and is viewable
+  in-app; an extension of the Audit Mode evidence-pack concept above, not a replacement for it.
 - **Analyst copilot** — a natural-language assistant that answers questions over an account's own
   cases, incidents, and risk posture — grounded in already-computed data, never a free-standing
   source of truth.

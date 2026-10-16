@@ -238,6 +238,47 @@ SOC source is ever queried here).
   lookback calculation in `gather.py`, the same `app.core.time.to_naive_utc` discipline every
   other hooks module in this codebase already follows.
 
+**Security & Compliance Report** (M11 Stage 1) — `app/reports/`: a one-click, board/auditor-
+ready artifact, positioned as an extension of Audit Mode (`app/audit/`) rather than a
+replacement — Audit Mode is a per-framework control-evidence table for an auditor to
+spot-check; this is the cross-framework executive artifact for a board or auditor's first
+read.
+
+- `gather.py` (DB-touching) — assembles one `ReportMetrics` for an account over a period from
+  data Cordon already has: cases analyzed and their verdict breakdown (reusing `app.dashboard.
+  aggregation.verdict_counts`), threats detected/contained (the latter counted only from
+  `AutonomyAction` rows with `status == "executed"`, i.e. actions that actually ran, not just
+  decided), estimated exposure avoided (reusing `app.risk_model.aggregation.exposure_avoided`
+  unchanged — the same calculation `GET /api/risk/financial` already exposes), intrusion
+  incidents and early-warning alerts raised, a human-risk/phishing-simulation summary, and
+  control-framework coverage across all four loaded frameworks at once (reusing `app.
+  dashboard.aggregation.framework_coverage`). `ReportMetrics.has_any_activity` is the single
+  switch the executive summary and both renderers use to decide between real figures and an
+  honest "no activity this period" report — never a padded or invented metric either way.
+- `executive_summary.py` — same architecture and grounding discipline as `app.investigation.
+  llm_summary`: every metric is offered to the model as a numbered list (`EV1`, `EV2`, ...)
+  and the model is forced (tool-use) to cite which ids its summary relies on; a citation to an
+  id it wasn't given, or a missing/malformed field, discards the whole response. Simpler than
+  `llm_summary`/`llm_analyst` in one respect — there is no email body, subject line, or other
+  untrusted free text anywhere in this prompt, since every evidence item is a number Cordon
+  itself already computed, so there is structurally no prompt-injection surface here at all.
+  Gated behind `ENABLE_LLM_REASONING` at the call site (`app/api/routes/reports.py`), exactly
+  like the investigation narrative; `generate_deterministic_summary` is the non-LLM fallback
+  used whenever the flag is off, the API key is missing, the call fails, or the model
+  fabricates — a template-filled recap of the same `ReportMetrics`, so the report always has
+  an honest executive summary regardless of LLM availability.
+- `report_builder.py` — renders the same `ReportContext` as JSON and a PDF (reportlab, no
+  system-binary dependency, mirroring `app.audit.report_builder`'s rationale), styled with
+  Cordon's own dark visual identity (navy background, the "C" mark drawn via a canvas page-
+  chrome callback, brand-blue accents) rather than the evidence pack's plain light styling,
+  since this artifact is meant to be read on screen by a board member as much as printed for
+  an auditor.
+- Exposed via `POST/GET /api/reports/security-compliance` (generate, returning the full
+  detail for an immediate in-app preview; list; re-fetch by id; `.../download` for the stored
+  PDF/JSON) and the frontend's `ReportsView` (`frontend/src/components/reports/`) — a
+  date-range picker, a Generate button, an in-app preview matching the PDF's sections, and a
+  Download PDF button, plus a recent-reports list mirroring Audit Mode's.
+
 **Multi-tenancy & auth** (`app/db/models.py`, `app/auth/`): every `Account` (org/tenant) owns
 many `User`s; virtually every other table (`Case`, `Incident`, `Event`, `Label`,
 `AutonomyPolicy`/`AutonomyAction`, ...) is scoped to one `Account` via FK. JWT access + refresh

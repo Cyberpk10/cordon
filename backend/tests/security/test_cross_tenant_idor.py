@@ -77,6 +77,40 @@ def test_audit_report_not_downloadable_by_another_account(
     assert all(item["id"] != report_id for item in listing["items"])
 
 
+def test_security_compliance_report_not_accessible_by_another_account(
+    authed_client, other_account_authed_client, db_session, test_account
+):
+    _make_case(db_session, test_account.account.id)
+    gen = authed_client.post("/api/reports/security-compliance", json={})
+    assert gen.status_code == 200
+    report_id = gen.json()["id"]
+
+    # The victim's own account can view/list/download it.
+    assert authed_client.get(f"/api/reports/security-compliance/{report_id}").status_code == 200
+    assert (
+        authed_client.get(f"/api/reports/security-compliance/{report_id}/download?format=json").status_code
+        == 200
+    )
+
+    # A different account guessing/enumerating the report id cannot, on any of the three
+    # read paths (view, download, list).
+    assert other_account_authed_client.get(f"/api/reports/security-compliance/{report_id}").status_code == 404
+    assert (
+        other_account_authed_client.get(
+            f"/api/reports/security-compliance/{report_id}/download?format=json"
+        ).status_code
+        == 404
+    )
+
+    listing = other_account_authed_client.get("/api/reports/security-compliance").json()
+    assert all(item["id"] != report_id for item in listing["items"])
+
+    # And generating its own report must reflect only ITS OWN data — the victim's malicious
+    # case must never bleed into another account's aggregated numbers.
+    other_report = other_account_authed_client.post("/api/reports/security-compliance", json={}).json()
+    assert other_report["emails_analyzed"] == 0
+
+
 # --- Aggregate endpoints: no cross-tenant bleed into the numbers ----------------------
 
 

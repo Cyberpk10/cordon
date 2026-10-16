@@ -35,6 +35,7 @@ from app.api.routes.monitoring import router as monitoring_router
 from app.api.routes.remediation import cases_router as remediation_cases_router
 from app.api.routes.remediation import incidents_router as remediation_incidents_router
 from app.api.routes.remediation import targets_router as targets_router
+from app.api.routes.reports import router as reports_router
 from app.api.routes.risk import router as risk_router
 from app.api.routes.simulation import router as simulation_router
 from app.api.routes.threat_level import router as threat_level_router
@@ -131,6 +132,7 @@ def create_app() -> FastAPI:
     app.include_router(targets_router)
     app.include_router(copilot_router)
     app.include_router(risk_router)
+    app.include_router(reports_router)
     app.include_router(events_router)
     app.include_router(incidents_router)
     app.include_router(remediation_incidents_router)

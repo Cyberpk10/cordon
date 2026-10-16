@@ -213,6 +213,82 @@ export interface AuditReportListResponse {
   page_size: number;
 }
 
+// ---- Security & Compliance Report ----------------------------------------------------
+
+export interface ReportVerdictBreakdown {
+  malicious: number;
+  suspicious: number;
+  safe: number;
+}
+
+export interface ReportExposureByAttackType {
+  attack_type: string;
+  count: number;
+  avg_loss_usd: number;
+  subtotal_usd: number;
+}
+
+export interface ReportHumanRiskSummary {
+  campaigns_run: number;
+  employees_tested: number;
+  employees_clicked: number;
+  employees_reported: number;
+  employees_flagged_for_training: number;
+}
+
+export interface ReportFrameworkCoverage {
+  framework_key: string;
+  framework_name: string;
+  total_controls: number;
+  covered_controls: number;
+  coverage_pct: number;
+}
+
+export interface ReportExecutiveSummary {
+  text: string;
+  source: "llm" | "deterministic";
+  model: string | null;
+}
+
+export interface SecurityComplianceReportDetail {
+  id: string;
+  created_at: string;
+  account_name: string;
+  period_start: string;
+  period_end: string;
+  executive_summary: ReportExecutiveSummary;
+  emails_analyzed: number;
+  verdict_breakdown: ReportVerdictBreakdown;
+  threats_detected: number;
+  threats_contained: number;
+  exposure_avoided_usd: number;
+  exposure_by_attack_type: ReportExposureByAttackType[];
+  incidents_detected: number;
+  early_warning_alerts_raised: number;
+  human_risk: ReportHumanRiskSummary;
+  framework_coverage: ReportFrameworkCoverage[];
+  has_any_activity: boolean;
+}
+
+export interface SecurityComplianceReportSummary {
+  id: string;
+  created_at: string;
+  period_start: string;
+  period_end: string;
+  emails_analyzed: number;
+  threats_detected: number;
+  threats_contained: number;
+  exposure_avoided_usd: number;
+  executive_summary_source: "llm" | "deterministic";
+}
+
+export interface SecurityComplianceReportListResponse {
+  items: SecurityComplianceReportSummary[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export type RemediationStatus = "recommended" | "approved" | "done";
 
 export interface RemediationControlRef {

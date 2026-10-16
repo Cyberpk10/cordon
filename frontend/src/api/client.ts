@@ -28,6 +28,8 @@ import type {
   Label,
   MessageChannel,
   RemediationPlaybook,
+  SecurityComplianceReportDetail,
+  SecurityComplianceReportListResponse,
   SimulationTrainingRecommendationsListResponse,
   TargetsListResponse,
   TemplateListResponse,
@@ -226,6 +228,75 @@ export async function downloadAuditReport(id: string, format: "pdf" | "json"): P
   const link = document.createElement("a");
   link.href = url;
   link.download = `cordon-audit-report.${format}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export interface GenerateSecurityComplianceReportParams {
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export async function generateSecurityComplianceReport(
+  params: GenerateSecurityComplianceReportParams = {}
+): Promise<SecurityComplianceReportDetail> {
+  const response = await apiFetch(`/api/reports/security-compliance`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      date_from: params.dateFrom,
+      date_to: params.dateTo,
+    }),
+  });
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export interface ListSecurityComplianceReportsParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listSecurityComplianceReports(
+  params: ListSecurityComplianceReportsParams = {}
+): Promise<SecurityComplianceReportListResponse> {
+  const query = new URLSearchParams();
+  query.set("page", String(params.page ?? 1));
+  query.set("page_size", String(params.pageSize ?? 20));
+
+  const response = await apiFetch(`/api/reports/security-compliance?${query.toString()}`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function getSecurityComplianceReport(id: string): Promise<SecurityComplianceReportDetail> {
+  const response = await apiFetch(`/api/reports/security-compliance/${id}`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function downloadSecurityComplianceReport(
+  id: string,
+  format: "pdf" | "json"
+): Promise<void> {
+  const response = await apiFetch(`/api/reports/security-compliance/${id}/download?format=${format}`);
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `cordon-security-compliance-report.${format}`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

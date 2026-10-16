@@ -9,6 +9,7 @@ import FrameworkMappingPanel from "./components/FrameworkMappingPanel";
 import CasesView from "./components/CasesView";
 import DashboardView from "./components/dashboard/DashboardView";
 import AuditView from "./components/audit/AuditView";
+import ReportsView from "./components/reports/ReportsView";
 import CopilotView from "./components/copilot/CopilotView";
 import DetectionsView from "./components/detections/DetectionsView";
 import EarlyWarningsView from "./components/early_warnings/EarlyWarningsView";
@@ -31,6 +32,7 @@ type Tab =
   | "cases"
   | "dashboard"
   | "audit"
+  | "reports"
   | "copilot"
   | "detections"
   | "early-warnings"
@@ -113,6 +115,7 @@ function AnalyzerApp() {
         className={`mx-auto px-4 py-10 ${
           tab === "dashboard" ||
           tab === "audit" ||
+          tab === "reports" ||
           tab === "copilot" ||
           tab === "detections" ||
           tab === "early-warnings" ||
@@ -161,6 +164,7 @@ function AnalyzerApp() {
                 "early-warnings",
                 "monitoring",
                 "audit",
+                "reports",
                 "copilot",
                 "autonomy",
                 "simulations",
@@ -197,6 +201,8 @@ function AnalyzerApp() {
         {tab === "simulations" && <SimulationsView />}
 
         {tab === "audit" && <AuditView />}
+
+        {tab === "reports" && <ReportsView />}
 
         {tab === "copilot" && <CopilotView />}
 

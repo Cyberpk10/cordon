@@ -359,6 +359,88 @@ class AuditReportListResponse(BaseModel):
     page_size: int
 
 
+# ---- Security & Compliance Report (M11 Stage 1) ------------------------------------------
+
+
+class SecurityComplianceReportRequest(BaseModel):
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+
+
+class ReportVerdictBreakdown(BaseModel):
+    malicious: int
+    suspicious: int
+    safe: int
+
+
+class ReportExposureByAttackType(BaseModel):
+    attack_type: str
+    count: int
+    avg_loss_usd: float
+    subtotal_usd: float
+
+
+class ReportHumanRiskSummary(BaseModel):
+    campaigns_run: int
+    employees_tested: int
+    employees_clicked: int
+    employees_reported: int
+    employees_flagged_for_training: int
+
+
+class ReportFrameworkCoverage(BaseModel):
+    framework_key: str
+    framework_name: str
+    total_controls: int
+    covered_controls: int
+    coverage_pct: float
+
+
+class ReportExecutiveSummary(BaseModel):
+    text: str
+    source: str  # "llm" | "deterministic"
+    model: str | None = None
+
+
+class SecurityComplianceReportDetail(BaseModel):
+    id: UUID
+    created_at: datetime
+    account_name: str
+    period_start: datetime
+    period_end: datetime
+    executive_summary: ReportExecutiveSummary
+    emails_analyzed: int
+    verdict_breakdown: ReportVerdictBreakdown
+    threats_detected: int
+    threats_contained: int
+    exposure_avoided_usd: float
+    exposure_by_attack_type: list[ReportExposureByAttackType]
+    incidents_detected: int
+    early_warning_alerts_raised: int
+    human_risk: ReportHumanRiskSummary
+    framework_coverage: list[ReportFrameworkCoverage]
+    has_any_activity: bool
+
+
+class SecurityComplianceReportSummary(BaseModel):
+    id: UUID
+    created_at: datetime
+    period_start: datetime
+    period_end: datetime
+    emails_analyzed: int
+    threats_detected: int
+    threats_contained: int
+    exposure_avoided_usd: float
+    executive_summary_source: str
+
+
+class SecurityComplianceReportListResponse(BaseModel):
+    items: list[SecurityComplianceReportSummary]
+    total: int
+    page: int
+    page_size: int
+
+
 class RemediationStatus(str, Enum):
     RECOMMENDED = "recommended"
     APPROVED = "approved"

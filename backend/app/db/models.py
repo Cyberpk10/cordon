@@ -289,6 +289,37 @@ class AuditReport(Base):
     json_path: Mapped[str] = mapped_column(String, nullable=False)
 
 
+class SecurityComplianceReport(Base):
+    """Metadata + file pointers for a generated Security & Compliance Report (M11 Stage 1) —
+    the board/auditor-ready artifact extension of Audit Mode (AuditReport above), aggregating
+    across all frameworks plus threat/human-risk/exposure metrics rather than one framework's
+    control table. Same storage pattern: the PDF/JSON files live on disk (see
+    app.storage.audit_report_store, reused as-is), this row makes a generated report listable
+    and re-downloadable, and the summary fields here are a snapshot of the key numbers at
+    generation time for fast list rendering without re-reading the JSON file."""
+
+    __tablename__ = "security_compliance_reports"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    emails_analyzed: Mapped[int] = mapped_column(Integer, nullable=False)
+    threats_detected: Mapped[int] = mapped_column(Integer, nullable=False)
+    threats_contained: Mapped[int] = mapped_column(Integer, nullable=False)
+    exposure_avoided_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    executive_summary: Mapped[str] = mapped_column(Text, nullable=False)
+    # "llm" | "deterministic" — see app.reports.executive_summary.
+    executive_summary_source: Mapped[str] = mapped_column(String, nullable=False)
+    pdf_path: Mapped[str] = mapped_column(String, nullable=False)
+    json_path: Mapped[str] = mapped_column(String, nullable=False)
+
+
 class RemediationAction(Base):
     """An operator's approval/completion of a recommended playbook step, for a case OR an
     incident (M5 Stage 1 — exactly one of case_id/incident_id is set, enforced by a CHECK
