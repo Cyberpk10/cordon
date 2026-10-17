@@ -19,11 +19,11 @@ export default function Nav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2 text-white">
           <Image
-            src="/brand/aegis-icon.svg"
+            src="/cordon-logo.png"
             alt="Cordon"
             width={32}
             height={32}
-            className="h-6 w-6 sm:h-7 sm:w-7"
+            className="h-7 w-7 rounded-[7px] sm:h-8 sm:w-8"
             priority
           />
           <span className="text-base font-bold tracking-tight text-white sm:text-lg">

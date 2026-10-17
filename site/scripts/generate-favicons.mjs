@@ -4,7 +4,7 @@ import path from "node:path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const source = path.join(root, "public/brand/aegis-icon-app.svg");
+const source = path.join(root, "public/cordon-logo.png");
 
 const targets = [
   { size: 32, out: "public/favicon-32.png" },
@@ -14,7 +14,7 @@ const targets = [
 
 for (const { size, out } of targets) {
   const dest = path.join(root, out);
-  await sharp(source, { density: 384 })
+  await sharp(source)
     .resize(size, size)
     .png()
     .toFile(dest);
