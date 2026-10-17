@@ -6,8 +6,10 @@ import {
   Bot,
   Gauge,
   Globe,
+  FileBarChart,
 } from "lucide-react";
 import Reveal from "@/components/motion/Reveal";
+import ScreenshotFrame from "@/components/ScreenshotFrame";
 
 const CARDS = [
   {
@@ -52,9 +54,20 @@ const CARDS = [
     description:
       "Every sender, link, domain, and IP is checked against known-bad threat-intel feeds. A match against real attacker infrastructure raises the verdict on its own, with the feed and date cited as evidence.",
   },
+  {
+    icon: FileBarChart,
+    title: "Security & Compliance Reporting",
+    description:
+      "One click turns Cordon's detections, risk, and control coverage into a board- and auditor-ready report, mapped to ISO 27001, NIST CSF, SOC 2, and MITRE ATT&CK, and exportable as a branded PDF. The work that protects you, packaged as the evidence that proves it.",
+    tagline: "Catches phishing like a top analyst. Reports it like an auditor.",
+  },
 ];
 
-export default function PlatformCards() {
+export default function PlatformCards({
+  hasSecurityComplianceReportSample,
+}: {
+  hasSecurityComplianceReportSample: boolean;
+}) {
   return (
     <section id="platform" className="bg-navy-950 py-24">
       <div className="mx-auto max-w-7xl px-6">
@@ -92,11 +105,35 @@ export default function PlatformCards() {
                   <p className="mt-2 text-sm leading-relaxed text-slate-400">
                     {card.description}
                   </p>
+                  {card.tagline && (
+                    <p className="mt-3 text-xs font-semibold tracking-wide text-brand-blue">
+                      {card.tagline}
+                    </p>
+                  )}
                 </div>
               </div>
             </Reveal>
           ))}
         </div>
+
+        {hasSecurityComplianceReportSample && (
+          <Reveal className="mt-16 flex flex-col items-center" y={20}>
+            <p className="text-sm font-medium text-slate-400">
+              What a Security &amp; Compliance Report looks like
+            </p>
+            <div className="mt-6 w-full max-w-sm">
+              <ScreenshotFrame
+                src="/screenshots/security-compliance-report-sample.png"
+                alt="Sample Cordon Security and Compliance Report showing headline metrics and control-framework coverage"
+                filename="security-compliance-report-sample.png"
+                aspectClass="aspect-[1275/1650]"
+              />
+            </div>
+            <p className="mt-4 text-xs text-slate-500">
+              Sample report. Illustrative data.
+            </p>
+          </Reveal>
+        )}
       </div>
     </section>
   );

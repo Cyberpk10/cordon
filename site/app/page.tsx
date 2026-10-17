@@ -28,7 +28,9 @@ export default function Home() {
         <VideoDemo hasWalkthroughVideo={screenshots.walkthroughVideo} />
         <EmailPlayground />
         <StatStrip />
-        <PlatformCards />
+        <PlatformCards
+          hasSecurityComplianceReportSample={screenshots.securityComplianceReportSample}
+        />
         <EarlyWarning />
         <PhishingSimulation />
         <Investigation />

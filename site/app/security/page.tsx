@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   BrainCircuit,
 } from "lucide-react";
+import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/motion/Reveal";
@@ -55,6 +56,10 @@ const ACCESS_CONTROLS = [
   "Short-lived access tokens with refresh-token reuse detection.",
   "Least-privilege access to production systems.",
   "Multi-factor authentication on our administrative accounts.",
+  "Rate limiting and automatic lockout protect our authentication endpoints against brute-force and credential-stuffing attempts.",
+  "Hardened security headers, including strict transport security, are enforced across our services.",
+  "Production systems are configured to expose only what is needed to operate, keeping the surface an outside attacker can reach as small as possible.",
+  "Errors return a generic message to the client. Internal details are never exposed and are captured only in secure internal logs.",
 ];
 
 const TESTING = [
@@ -77,7 +82,6 @@ const SUB_PROCESSORS = [
   { name: "Cloudflare", purpose: "network protection" },
 ];
 
-const PRIVACY_MAILTO = "mailto:paakowansah@icloud.com?subject=Cordon%20privacy%20inquiry";
 const SECURITY_MAILTO =
   "mailto:security@cordoncybersec.us?subject=Security%20disclosure";
 
@@ -245,12 +249,12 @@ export default function SecurityPage() {
                   </span>
                 ))}
                 . A current list is available on request. See our{" "}
-                <a
-                  href={PRIVACY_MAILTO}
+                <Link
+                  href="/privacy"
                   className="font-medium text-brand-blue hover:underline"
                 >
                   Privacy Policy
-                </a>{" "}
+                </Link>{" "}
                 for more detail.
               </p>
             </div>

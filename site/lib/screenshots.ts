@@ -8,6 +8,7 @@ export type ScreenshotAvailability = {
   analyzeMalicious: boolean;
   analyzeSafe: boolean;
   dashboard: boolean;
+  securityComplianceReportSample: boolean;
   walkthroughVideo: boolean;
 };
 
@@ -26,6 +27,10 @@ export function getScreenshotAvailability(): ScreenshotAvailability {
     analyzeMalicious: exists(SCREENSHOTS_DIR, "analyze-malicious.png"),
     analyzeSafe: exists(SCREENSHOTS_DIR, "analyze-safe.png"),
     dashboard: exists(SCREENSHOTS_DIR, "dashboard.png"),
+    securityComplianceReportSample: exists(
+      SCREENSHOTS_DIR,
+      "security-compliance-report-sample.png"
+    ),
     walkthroughVideo: exists(VIDEO_DIR, "cordon-walkthrough-90s.mp4"),
   };
 }
