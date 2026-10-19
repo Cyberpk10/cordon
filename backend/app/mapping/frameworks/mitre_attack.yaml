@@ -147,3 +147,11 @@ mappings:
   SENDER_DOMAIN_KNOWN_BAD: [T1583.001]
   SENDER_IP_KNOWN_MALICIOUS: [T1071]
   EVENT_IP_KNOWN_MALICIOUS: [T1071]
+
+  # Hidden-instruction / AI-injection payload detection (app.indicators.
+  # hidden_instruction_payload). No dedicated ATT&CK technique exists yet for "smuggling
+  # instructions to an AI reader" (ATT&CK predates LLM-agent threats; MITRE ATLAS is the
+  # framework that actually covers AI-specific attacks, but isn't wired into this mapper -
+  # see that module's docstring). Mapped to the phishing family since this is always a
+  # payload riding inside a phishing-shaped email, never a standalone delivery mechanism.
+  HIDDEN_AI_INSTRUCTION_PAYLOAD: [T1566]

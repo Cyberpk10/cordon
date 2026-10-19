@@ -9,6 +9,7 @@ from app.indicators import (
     chat_context,
     credential_payment,
     domain_age_heuristic,
+    hidden_instruction_payload,
     known_bad_sender,
     known_bad_urls,
     link_analysis,
@@ -38,6 +39,7 @@ _RULES: list[IndicatorRule] = [
     known_bad_urls.evaluate,
     known_bad_sender.evaluate,
     domain_age_heuristic.evaluate,
+    hidden_instruction_payload.evaluate,
 ]
 
 
