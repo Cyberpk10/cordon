@@ -72,6 +72,7 @@ const AI_HARDENING = [
   "Cordon's AI reasons about the intent behind a message, not just surface patterns, as a bounded signal: it can strengthen a verdict but, by design, can never override the deterministic rules or turn a malicious email into a safe one.",
   "We hardened this AI layer against prompt injection, where an attacker hides instructions inside an email to fool the analyzer. The email is always treated as untrusted data, never as instructions.",
   "We test it directly: when fed a message instructing the AI to mark itself safe, it refused, and flagged the manipulation attempt itself as a sign of malicious intent.",
+  "Separately, Cordon also detects when an email itself tries to hide instructions aimed at an AI assistant that might read your inbox — invisible text, zero-width characters, encoded payloads — and flags it as a malicious indicator, mapped to MITRE ATT&CK.",
 ];
 
 const SUB_PROCESSORS = [

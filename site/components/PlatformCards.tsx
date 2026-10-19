@@ -7,6 +7,7 @@ import {
   Gauge,
   Globe,
   FileBarChart,
+  EyeOff,
 } from "lucide-react";
 import Reveal from "@/components/motion/Reveal";
 import ScreenshotFrame from "@/components/ScreenshotFrame";
@@ -61,6 +62,13 @@ const CARDS = [
       "One click turns Cordon's detections, risk, and control coverage into a board- and auditor-ready report, mapped to ISO 27001, NIST CSF, SOC 2, and MITRE ATT&CK, and exportable as a branded PDF. The work that protects you, packaged as the evidence that proves it.",
     tagline: "Catches phishing like a top analyst. Reports it like an auditor.",
   },
+  {
+    icon: EyeOff,
+    title: "Catches hidden AI-injection attacks",
+    description:
+      "Attackers now hide instructions inside emails — invisible text, zero-width characters, and encoded payloads — to hijack the AI assistants that read your inbox. Cordon inspects the raw email, flags these hidden-instruction payloads, and maps them to MITRE ATT&CK.",
+    badge: "New",
+  },
 ];
 
 export default function PlatformCards({
@@ -99,8 +107,13 @@ export default function PlatformCards({
                   />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-white">
+                  <h3 className="flex items-center gap-2 text-base font-semibold text-white">
                     {card.title}
+                    {card.badge && (
+                      <span className="rounded-full border border-brand-blue/30 bg-brand-blue/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-blue">
+                        {card.badge}
+                      </span>
+                    )}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-slate-400">
                     {card.description}
