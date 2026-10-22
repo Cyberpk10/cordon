@@ -208,8 +208,7 @@ function AnalyzerApp() {
             )}
           </div>
           <p className="mt-3 text-slate-600">
-            Upload a <code className="rounded bg-slate-200 px-1 py-0.5 text-sm">.eml</code> file for
-            deterministic phishing-indicator analysis.
+            Upload an email for phishing analysis.
           </p>
           <nav className="mt-4 flex gap-1 border-b border-slate-200">
             {TAB_VALUES.map((t) => (
@@ -292,7 +291,7 @@ function AnalyzerApp() {
                       : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
-                  Upload .eml file
+                  Upload email
                 </button>
                 <button
                   type="button"
