@@ -10,19 +10,34 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from io import BytesIO
+from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 from app.audit.aggregation import ControlEvidence, InvestigationEvidence
 
 NAVY = colors.HexColor("#0f172a")
 SLATE_BORDER = colors.HexColor("#cbd5e1")
 SLATE_ROW = colors.HexColor("#f8fafc")
+MUTED_GRAY = colors.HexColor("#64748b")
+
+# Own copy (not a cross-import from app.reports) so this module stays self-contained — see
+# that module's docstring for why the Security & Compliance Report uses a different, dark
+# visual identity instead of this evidence pack's plain light/print styling.
+_LOGO_PATH = Path(__file__).parent / "assets" / "cordon-logo.png"
 
 METHODOLOGY_NOTE = (
     "This evidence pack aggregates Cordon case analyses whose automated, rule-based indicators "
@@ -34,12 +49,24 @@ METHODOLOGY_NOTE = (
     "substitute for full control testing or manual review."
 )
 
+# `framework_version` (loaded from each framework YAML's own `version:` field) is Cordon's
+# own internal mapping-pack revision number — it tracks how many times backend/app/mapping/
+# frameworks/<framework>.yaml has been revised, NOT the real-world standard's own version
+# (compare: MITRE ATT&CK is at v16+, this reads "v1.9"; NIST CSF 2.0's real version is
+# already in `framework_name` itself). The PDF label below says so explicitly so no reader
+# mistakes "v1.9" for a claim about ATT&CK's actual version.
+NO_EVIDENCE_NOTE = (
+    '"No evidence" means no threats mapping to this control were detected during the '
+    "period — not a control failure or gap."
+)
+
 
 @dataclass(frozen=True)
 class ReportContext:
     framework_key: str
     framework_name: str
     framework_version: str
+    account_name: str
     period_start: datetime
     period_end: datetime
     generated_at: datetime
@@ -66,6 +93,7 @@ def build_json_report(ctx: ReportContext) -> bytes:
             "framework_key": ctx.framework_key,
             "framework_name": ctx.framework_name,
             "framework_version": ctx.framework_version,
+            "account_name": ctx.account_name,
             "period_start": ctx.period_start.isoformat(),
             "period_end": ctx.period_end.isoformat(),
             "generated_at": ctx.generated_at.isoformat(),
@@ -135,11 +163,24 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
     title_style = ParagraphStyle("AegisTitle", parent=styles["Title"], textColor=NAVY)
     heading_style = ParagraphStyle("AegisHeading", parent=styles["Heading2"], textColor=NAVY)
 
-    elements = [
+    elements = []
+    if _LOGO_PATH.exists():
+        logo_size = 0.4 * inch
+        logo = Image(str(_LOGO_PATH), width=logo_size, height=logo_size)
+        logo.hAlign = "LEFT"
+        elements.append(logo)
+        elements.append(Spacer(1, 0.08 * inch))
+
+    elements += [
         Paragraph("Cordon — Threat &amp; Compliance Evidence Pack", title_style),
         Spacer(1, 0.15 * inch),
+        Paragraph(f"Prepared for: {xml_escape(ctx.account_name)}", styles["Heading3"]),
+        # `framework_version` is Cordon's own mapping-pack revision, not the real-world
+        # standard's version (see the module-level comment above) - labeled explicitly so
+        # "v1.9" is never misread as a claim about MITRE ATT&CK's own version.
         Paragraph(
-            f"Framework: {xml_escape(ctx.framework_name)} (v{xml_escape(ctx.framework_version)})",
+            f"Framework: {xml_escape(ctx.framework_name)} &middot; Cordon mapping "
+            f"v{xml_escape(ctx.framework_version)}",
             styles["Heading3"],
         ),
         Paragraph(f"Period: {ctx.period_start:%Y-%m-%d} – {ctx.period_end:%Y-%m-%d}", styles["Normal"]),
@@ -190,6 +231,19 @@ def build_pdf_report(ctx: ReportContext) -> bytes:
         )
     )
     elements.append(table)
+    elements.append(Spacer(1, 0.08 * inch))
+    elements.append(
+        Paragraph(
+            NO_EVIDENCE_NOTE,
+            ParagraphStyle(
+                "AegisNoEvidenceNote",
+                parent=styles["Normal"],
+                fontSize=8,
+                leading=10,
+                textColor=MUTED_GRAY,
+            ),
+        )
+    )
 
     human_risk_controls = [c for c in ctx.controls if c.human_risk is not None]
     if human_risk_controls:

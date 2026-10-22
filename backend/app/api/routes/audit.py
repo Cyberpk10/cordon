@@ -21,6 +21,7 @@ from app.audit.report_builder import ReportContext, build_json_report, build_pdf
 from app.auth.dependencies import get_current_user
 from app.dashboard.aggregation import CaseRow
 from app.db.models import (
+    Account,
     AuditReport,
     Case,
     Investigation,
@@ -267,6 +268,7 @@ async def generate_audit_report(
     operating_controls = sum(1 for e in evidence if e.operating)
     total_supporting_cases = len({cid for e in evidence for cid in e.supporting_case_ids})
     investigations = _investigations_in_period(db, current_user.account_id, period_start, period_end)
+    account = db.get(Account, current_user.account_id)
 
     report_id = uuid.uuid4()
     generated_at = datetime.utcnow()
@@ -274,6 +276,7 @@ async def generate_audit_report(
         framework_key=framework_key,
         framework_name=loaded.name,
         framework_version=loaded.version,
+        account_name=account.name,
         period_start=period_start,
         period_end=period_end,
         generated_at=generated_at,
