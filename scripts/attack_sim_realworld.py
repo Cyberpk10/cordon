@@ -149,14 +149,34 @@ class HTTPStatusError(RuntimeError):
 
 class AegisClient:
     """Thin stdlib HTTP wrapper — self-contained, matching this repo's existing convention
-    that each script under scripts/ duplicates it rather than sharing a module."""
+    that each script under scripts/ duplicates it rather than sharing a module.
+
+    Transparently refreshes the access token and retries once on a 401 — the same pattern
+    the real frontend already uses (see frontend/src/api/client.ts), and the fix for a real
+    regression: scenario 3's extra setup steps (seeding sender history) made a full run take
+    long enough to cross the access token's TTL, so the run died mid-scenario on a 401 and
+    the daily red-team log recorded a false "ERR"/regression - not a missed detection, just
+    the sim's own session expiring. A long scenario can no longer abort the run this way."""
 
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url.rstrip("/")
         self.token: str | None = None
+        self.refresh_token: str | None = None
+
+    def _refresh_access_token(self) -> None:
+        if not self.refresh_token:
+            raise RuntimeError(
+                "Got a 401 but have no refresh_token to retry with — "
+                "call create_isolated_account() first."
+            )
+        resp = self._request(
+            "POST", "/api/auth/refresh", json_body={"refresh_token": self.refresh_token}, auth=False
+        )
+        self.token = resp["access_token"]
+        self.refresh_token = resp["refresh_token"]
 
     def _request(self, method: str, path: str, *, json_body: dict | None = None,
-                 params: dict | None = None, auth: bool = True) -> dict:
+                 params: dict | None = None, auth: bool = True, _retried: bool = False) -> dict:
         url = self.base_url + path
         if params:
             query = "&".join(f"{k}={urllib.request.quote(str(v))}" for k, v in params.items() if v is not None)
@@ -177,6 +197,11 @@ class AegisClient:
                 return json.loads(body) if body else {}
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
+            if exc.code == 401 and auth and not _retried:
+                self._refresh_access_token()
+                return self._request(
+                    method, path, json_body=json_body, params=params, auth=auth, _retried=True
+                )
             raise HTTPStatusError(exc.code, body, path) from None
         except urllib.error.URLError as exc:
             raise RuntimeError(
@@ -207,6 +232,7 @@ def create_isolated_account(client: AegisClient, run_id: str) -> str:
         auth=False,
     )
     client.token = resp["access_token"]
+    client.refresh_token = resp["refresh_token"]
     cordon(f"account created. account_id={resp['user']['account_id']} (never reused, never logged into again)")
     return email
 
