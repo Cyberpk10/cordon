@@ -117,7 +117,7 @@ export default function CampaignBuilder({ onCreated }: CampaignBuilderProps) {
           <button
             onClick={handleVerify}
             disabled={!isAdmin || isVerifying || !domain.trim()}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+            className="rounded-lg bg-accent-fill px-4 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
           >
             {isVerifying ? "Checking…" : "Verify"}
           </button>
@@ -209,7 +209,7 @@ export default function CampaignBuilder({ onCreated }: CampaignBuilderProps) {
           <button
             onClick={handleCreate}
             disabled={!isAdmin || isCreating}
-            className="rounded-lg bg-accent px-6 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+            className="rounded-lg bg-accent-fill px-6 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
           >
             {isCreating ? "Creating…" : "Create campaign"}
           </button>

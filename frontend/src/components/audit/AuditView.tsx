@@ -132,7 +132,7 @@ export default function AuditView() {
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+                className="mt-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
               >
                 {isGenerating ? "Generating…" : "Generate Evidence Pack"}
               </button>

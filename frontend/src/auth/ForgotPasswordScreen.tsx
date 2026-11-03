@@ -68,7 +68,7 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
         <button
           type="button"
           onClick={onBackToLogin}
-          className="flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-fg transition hover:bg-accent-hover"
+          className="flex w-full items-center justify-center rounded-lg bg-accent-fill px-4 py-2.5 text-sm font-semibold text-fg-on-fill transition hover:bg-accent-fill-hover"
         >
           Back to sign in
         </button>

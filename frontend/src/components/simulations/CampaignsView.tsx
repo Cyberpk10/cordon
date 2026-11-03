@@ -66,7 +66,7 @@ export default function CampaignsView() {
         </p>
         <button
           onClick={() => setIsBuilding(true)}
-          className="whitespace-nowrap rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover"
+          className="whitespace-nowrap rounded-lg bg-accent-fill px-4 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover"
         >
           New campaign
         </button>

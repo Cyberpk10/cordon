@@ -36,7 +36,7 @@ export default function ReportPreview({ report, onDownload, isDownloading }: Rep
           <button
             onClick={() => onDownload("pdf")}
             disabled={isDownloading}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+            className="rounded-lg bg-accent-fill px-4 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
           >
             {isDownloading ? "Preparing…" : "Download PDF"}
           </button>

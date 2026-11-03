@@ -118,7 +118,7 @@ export default function ResponsePlaybookPanel({
                   <button
                     onClick={() => handleAction(step, "approved")}
                     disabled={actingStepId === step.step_id}
-                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+                    className="rounded-lg bg-accent-fill px-3 py-1.5 text-xs font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
                   >
                     {actingStepId === step.step_id ? "Approving…" : "Approve"}
                   </button>

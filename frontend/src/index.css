@@ -26,14 +26,24 @@
     /* Text */
     --color-fg: 238 242 251; /* #eef2fb */
     --color-fg-secondary: 154 166 194; /* #9aa6c2 */
-    --color-fg-muted: 102 114 143; /* #66728f */
+    --color-fg-muted: 117 129 160; /* #7581a0 — lightened from #66728f to clear WCAG AA (4.5:1) on card/panel */
+    --color-fg-on-fill: 255 255 255; /* #ffffff — labels on solid accent/danger fills */
 
     /* Accent */
     --color-accent: 90 108 240; /* #5a6cf0 */
     --color-accent-hover: 106 124 245; /* #6a7cf5 */
+    /* #5a6cf0 is for non-text uses only (borders, rings, highlights, bars): as small text
+     * or as a fill behind a label it falls just short of AA, so text and buttons get their
+     * own steps. `text-accent` resolves to accent-text (see tailwind.config.js). */
+    --color-accent-text: 106 124 245; /* #6a7cf5 — 5.0:1 on card */
+    --color-accent-text-hover: 133 147 248; /* #8593f8 */
+    --color-accent-fill: 83 99 221; /* #5363dd — primary button fill, 5.0:1 with white */
+    --color-accent-fill-hover: 76 92 204; /* #4c5ccc — darkens on hover to stay above AA */
 
     /* Status */
     --color-danger: 232 86 86; /* #e85656 */
+    --color-danger-fill: 197 73 73; /* #c54949 — destructive button fill, 4.75:1 with white */
+    --color-danger-fill-hover: 184 68 68; /* #b84444 */
     --color-success: 78 203 134; /* #4ecb86 */
     --color-warning: 230 170 70; /* #e6aa46 */
     --color-caution: 238 132 74; /* #ee844a — derived: "high" step between warning and danger */

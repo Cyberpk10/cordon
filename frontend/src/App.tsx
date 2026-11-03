@@ -9,8 +9,7 @@ import IndicatorList from "./components/IndicatorList";
 import FrameworkMappingPanel from "./components/FrameworkMappingPanel";
 import CasesView from "./components/CasesView";
 import DashboardView from "./components/dashboard/DashboardView";
-import AuditView from "./components/audit/AuditView";
-import ReportsView from "./components/reports/ReportsView";
+import AuditReportsView from "./components/audit/AuditReportsView";
 import CopilotView from "./components/copilot/CopilotView";
 import DetectionsView from "./components/detections/DetectionsView";
 import EarlyWarningsView from "./components/early_warnings/EarlyWarningsView";
@@ -29,27 +28,8 @@ import InviteAcceptScreen from "./auth/InviteAcceptScreen";
 import DevLoginScreen from "./auth/DevLoginScreen";
 import WelcomeForwardingScreen from "./auth/WelcomeForwardingScreen";
 import { INITIAL_TAB_STORAGE_KEY } from "./tabStorage";
-
-const TAB_VALUES = [
-  "analyze",
-  "cases",
-  "dashboard",
-  "detections",
-  "early-warnings",
-  "monitoring",
-  "audit",
-  "reports",
-  "copilot",
-  "autonomy",
-  "simulations",
-  "settings",
-] as const;
-
-type Tab = (typeof TAB_VALUES)[number];
-
-function isTab(value: string | null): value is Tab {
-  return TAB_VALUES.includes(value as Tab);
-}
+import { isTab, type Tab } from "./navigation";
+import AppShell from "./components/shell/AppShell";
 
 /** Reads the one-shot initial-tab marker DevLoginScreen sets, so a dev auto-login lands on
  * Early Warnings without a real router. A plain reload/normal visit never has this key set,
@@ -167,279 +147,223 @@ function AnalyzerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-page">
-      <div
-        className={`mx-auto px-4 py-10 ${
-          tab === "dashboard" ||
-          tab === "audit" ||
-          tab === "reports" ||
-          tab === "copilot" ||
-          tab === "detections" ||
-          tab === "early-warnings" ||
-          tab === "autonomy" ||
-          tab === "monitoring" ||
-          tab === "simulations"
-            ? "max-w-6xl"
-            : "max-w-3xl"
-        }`}
-      >
-        <header className="mb-8">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <AegisLogo className="h-8 w-8" />
-              <h1 className="text-3xl font-semibold text-fg">Cordon</h1>
-            </div>
-            {user && (
-              <div className="flex items-center gap-3 text-sm">
-                <div className="text-right leading-tight">
-                  <p className="font-semibold text-fg">{user.email}</p>
-                  <p className="text-fg-secondary">
-                    {user.account_name} &middot; {user.role}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => logout()}
-                  className="rounded-lg border border-line-strong px-3 py-1.5 font-semibold text-fg-secondary transition hover:bg-surface-raised"
-                >
-                  Log out
-                </button>
-              </div>
-            )}
+    <AppShell
+      tab={tab}
+      onSelectTab={setTab}
+      user={user}
+      onLogout={() => logout()}
+      contentWidth={tab === "analyze" || tab === "settings" ? "narrow" : "wide"}
+    >
+      {tab === "cases" && <CasesView />}
+
+      {tab === "dashboard" && <DashboardView />}
+
+      {tab === "detections" && <DetectionsView />}
+
+      {tab === "early-warnings" && <EarlyWarningsView />}
+
+      {tab === "autonomy" && <AutonomyView />}
+
+      {tab === "monitoring" && <ControlMonitoringView />}
+
+      {tab === "simulations" && <SimulationsView />}
+
+      {(tab === "audit" || tab === "reports") && <AuditReportsView tab={tab} onSelect={setTab} />}
+
+      {tab === "copilot" && <CopilotView />}
+
+      {tab === "settings" && <SettingsView />}
+
+      {tab === "analyze" && (
+        <>
+          <div className="mb-4 inline-flex rounded-lg border border-line bg-surface-raised p-1">
+            <button
+              type="button"
+              onClick={() => setInputType("email")}
+              className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
+                inputType === "email"
+                  ? "bg-surface-card text-accent shadow-sm"
+                  : "text-fg-secondary hover:text-fg"
+              }`}
+            >
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputType("activity-log")}
+              className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
+                inputType === "activity-log"
+                  ? "bg-surface-card text-accent shadow-sm"
+                  : "text-fg-secondary hover:text-fg"
+              }`}
+            >
+              Activity Log
+            </button>
           </div>
-          <p className="mt-3 text-fg-secondary">
-            Upload an email for phishing analysis.
-          </p>
-          <nav className="mt-4 flex gap-1 border-b border-line">
-            {TAB_VALUES.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-4 py-2 text-sm font-semibold capitalize transition ${
-                  tab === t
-                    ? "border-b-2 border-accent text-accent"
-                    : "text-fg-secondary hover:text-fg"
-                }`}
-              >
-                {t === "early-warnings" ? "Early Warnings" : t}
-              </button>
-            ))}
-          </nav>
-        </header>
+        </>
+      )}
 
-        {tab === "cases" && <CasesView />}
-
-        {tab === "dashboard" && <DashboardView />}
-
-        {tab === "detections" && <DetectionsView />}
-
-        {tab === "early-warnings" && <EarlyWarningsView />}
-
-        {tab === "autonomy" && <AutonomyView />}
-
-        {tab === "monitoring" && <ControlMonitoringView />}
-
-        {tab === "simulations" && <SimulationsView />}
-
-        {tab === "audit" && <AuditView />}
-
-        {tab === "reports" && <ReportsView />}
-
-        {tab === "copilot" && <CopilotView />}
-
-        {tab === "settings" && <SettingsView />}
-
-        {tab === "analyze" && (
-          <>
+      {tab === "analyze" && inputType === "email" && (
+        <>
+          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
             <div className="mb-4 inline-flex rounded-lg border border-line bg-surface-raised p-1">
               <button
                 type="button"
-                onClick={() => setInputType("email")}
+                onClick={() => setAnalyzeMode("upload")}
                 className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-                  inputType === "email"
+                  analyzeMode === "upload"
                     ? "bg-surface-card text-accent shadow-sm"
                     : "text-fg-secondary hover:text-fg"
                 }`}
               >
-                Email
+                Upload email
               </button>
               <button
                 type="button"
-                onClick={() => setInputType("activity-log")}
+                onClick={() => setAnalyzeMode("paste")}
                 className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-                  inputType === "activity-log"
+                  analyzeMode === "paste"
                     ? "bg-surface-card text-accent shadow-sm"
                     : "text-fg-secondary hover:text-fg"
                 }`}
               >
-                Activity Log
+                Paste email
               </button>
             </div>
-          </>
-        )}
 
-        {tab === "analyze" && inputType === "email" && (
-          <>
-            <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-              <div className="mb-4 inline-flex rounded-lg border border-line bg-surface-raised p-1">
-                <button
-                  type="button"
-                  onClick={() => setAnalyzeMode("upload")}
-                  className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-                    analyzeMode === "upload"
-                      ? "bg-surface-card text-accent shadow-sm"
-                      : "text-fg-secondary hover:text-fg"
-                  }`}
-                >
-                  Upload email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAnalyzeMode("paste")}
-                  className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-                    analyzeMode === "paste"
-                      ? "bg-surface-card text-accent shadow-sm"
-                      : "text-fg-secondary hover:text-fg"
-                  }`}
-                >
-                  Paste email
-                </button>
-              </div>
-
-              {analyzeMode === "upload" ? (
-                <UploadForm onSubmit={handleAnalyzeFile} isLoading={isLoading} />
-              ) : (
-                <PasteEmailForm onSubmit={handleAnalyzeText} isLoading={isLoading} />
-              )}
-            </section>
-
-            {error && (
-              <div className="mt-6 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
-                {error}
-              </div>
+            {analyzeMode === "upload" ? (
+              <UploadForm onSubmit={handleAnalyzeFile} isLoading={isLoading} />
+            ) : (
+              <PasteEmailForm onSubmit={handleAnalyzeText} isLoading={isLoading} />
             )}
+          </section>
 
-            {result && (
-              <div className="mt-8 flex flex-col gap-6">
-                <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-                  <VerdictBadge verdict={result.verdict} score={result.score} />
-                  <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
-                    <div>
-                      <dt className="inline font-semibold text-fg">From: </dt>
-                      <dd className="inline">
-                        {result.summary.from_display} &lt;{result.summary.from_address}&gt;
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="inline font-semibold text-fg">Subject: </dt>
-                      <dd className="inline">{result.summary.subject}</dd>
-                    </div>
-                    <div>
-                      <dt className="inline font-semibold text-fg">SPF/DKIM/DMARC: </dt>
-                      <dd className="inline">
-                        {result.summary.auth_results.spf} / {result.summary.auth_results.dkim} /{" "}
-                        {result.summary.auth_results.dmarc}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="inline font-semibold text-fg">Links / Attachments: </dt>
-                      <dd className="inline">
-                        {result.summary.link_count} / {result.summary.attachment_count}
-                      </dd>
-                    </div>
-                  </dl>
-                </section>
+          {error && (
+            <div className="mt-6 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
+              {error}
+            </div>
+          )}
 
-                <AiAuthoredFlag indicators={result.indicators} />
+          {result && (
+            <div className="mt-8 flex flex-col gap-6">
+              <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+                <VerdictBadge verdict={result.verdict} score={result.score} />
+                <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
+                  <div>
+                    <dt className="inline font-semibold text-fg">From: </dt>
+                    <dd className="inline">
+                      {result.summary.from_display} &lt;{result.summary.from_address}&gt;
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="inline font-semibold text-fg">Subject: </dt>
+                    <dd className="inline">{result.summary.subject}</dd>
+                  </div>
+                  <div>
+                    <dt className="inline font-semibold text-fg">SPF/DKIM/DMARC: </dt>
+                    <dd className="inline">
+                      {result.summary.auth_results.spf} / {result.summary.auth_results.dkim} /{" "}
+                      {result.summary.auth_results.dmarc}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="inline font-semibold text-fg">Links / Attachments: </dt>
+                    <dd className="inline">
+                      {result.summary.link_count} / {result.summary.attachment_count}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
 
-                <AIAnalystSummary narrative={result.analyst_narrative} model={result.analyst_model} />
+              <AiAuthoredFlag indicators={result.indicators} />
 
-                <section>
-                  <h2 className="mb-3 text-lg font-semibold text-fg">Indicators</h2>
-                  <IndicatorList indicators={result.indicators} />
-                </section>
+              <AIAnalystSummary narrative={result.analyst_narrative} model={result.analyst_model} />
 
-                <section>
-                  <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
-                  <FrameworkMappingPanel frameworkMappings={result.framework_mappings} />
-                </section>
-              </div>
-            )}
-          </>
-        )}
+              <section>
+                <h2 className="mb-3 text-lg font-semibold text-fg">Indicators</h2>
+                <IndicatorList indicators={result.indicators} />
+              </section>
 
-        {tab === "analyze" && inputType === "activity-log" && (
-          <>
-            <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-              <ActivityLogForm onSubmit={handleAnalyzeActivityLog} isLoading={isActivityLogLoading} />
-            </section>
+              <section>
+                <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
+                <FrameworkMappingPanel frameworkMappings={result.framework_mappings} />
+              </section>
+            </div>
+          )}
+        </>
+      )}
 
-            {activityLogError && (
-              <div className="mt-6 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
-                {activityLogError}
-              </div>
-            )}
+      {tab === "analyze" && inputType === "activity-log" && (
+        <>
+          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+            <ActivityLogForm onSubmit={handleAnalyzeActivityLog} isLoading={isActivityLogLoading} />
+          </section>
 
-            {activityLogResult && (
-              <div className="mt-8 flex flex-col gap-6">
-                <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-                  <VerdictBadge verdict={activityLogResult.verdict} score={activityLogResult.score} />
-                  <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
-                    <div>
-                      <dt className="inline font-semibold text-fg">Primary actor: </dt>
-                      <dd className="inline">{activityLogResult.summary.primary_actor ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="inline font-semibold text-fg">Events analyzed: </dt>
-                      <dd className="inline">
-                        {activityLogResult.summary.event_count} across{" "}
-                        {activityLogResult.summary.distinct_actor_count} account(s)
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="inline font-semibold text-fg">Time range: </dt>
-                      <dd className="inline">
-                        {new Date(activityLogResult.summary.time_range_start).toLocaleString()} –{" "}
-                        {new Date(activityLogResult.summary.time_range_end).toLocaleString()}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="inline font-semibold text-fg">Source IP(s): </dt>
-                      <dd className="inline">
-                        {activityLogResult.summary.source_ips.join(", ") || "—"}
-                      </dd>
-                    </div>
-                  </dl>
-                  {activityLogResult.summary.other_incidents_detected > 0 && (
-                    <p className="mt-3 text-xs text-warning">
-                      {activityLogResult.summary.other_incidents_detected} other incident(s) were
-                      also detected in this log — showing the highest-risk result.
-                    </p>
-                  )}
-                </section>
+          {activityLogError && (
+            <div className="mt-6 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
+              {activityLogError}
+            </div>
+          )}
 
-                <AIAnalystSummary
-                  narrative={activityLogResult.analyst_narrative}
-                  model={activityLogResult.analyst_model}
+          {activityLogResult && (
+            <div className="mt-8 flex flex-col gap-6">
+              <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+                <VerdictBadge verdict={activityLogResult.verdict} score={activityLogResult.score} />
+                <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
+                  <div>
+                    <dt className="inline font-semibold text-fg">Primary actor: </dt>
+                    <dd className="inline">{activityLogResult.summary.primary_actor ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="inline font-semibold text-fg">Events analyzed: </dt>
+                    <dd className="inline">
+                      {activityLogResult.summary.event_count} across{" "}
+                      {activityLogResult.summary.distinct_actor_count} account(s)
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="inline font-semibold text-fg">Time range: </dt>
+                    <dd className="inline">
+                      {new Date(activityLogResult.summary.time_range_start).toLocaleString()} –{" "}
+                      {new Date(activityLogResult.summary.time_range_end).toLocaleString()}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="inline font-semibold text-fg">Source IP(s): </dt>
+                    <dd className="inline">
+                      {activityLogResult.summary.source_ips.join(", ") || "—"}
+                    </dd>
+                  </div>
+                </dl>
+                {activityLogResult.summary.other_incidents_detected > 0 && (
+                  <p className="mt-3 text-xs text-warning">
+                    {activityLogResult.summary.other_incidents_detected} other incident(s) were
+                    also detected in this log — showing the highest-risk result.
+                  </p>
+                )}
+              </section>
+
+              <AIAnalystSummary
+                narrative={activityLogResult.analyst_narrative}
+                model={activityLogResult.analyst_model}
+              />
+
+              <section>
+                <h2 className="mb-3 text-lg font-semibold text-fg">Findings</h2>
+                <IndicatorList
+                  indicators={activityLogResult.indicators}
+                  emptyMessage="No intrusion findings were detected in this activity log."
                 />
+              </section>
 
-                <section>
-                  <h2 className="mb-3 text-lg font-semibold text-fg">Findings</h2>
-                  <IndicatorList
-                    indicators={activityLogResult.indicators}
-                    emptyMessage="No intrusion findings were detected in this activity log."
-                  />
-                </section>
-
-                <section>
-                  <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
-                  <FrameworkMappingPanel frameworkMappings={activityLogResult.framework_mappings} />
-                </section>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+              <section>
+                <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
+                <FrameworkMappingPanel frameworkMappings={activityLogResult.framework_mappings} />
+              </section>
+            </div>
+          )}
+        </>
+      )}
+    </AppShell>
   );
 }

@@ -130,7 +130,7 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
                 <button
                   onClick={handleSend}
                   disabled={!isAdmin || !authorizationChecked || isSending}
-                  className="rounded-lg bg-danger px-6 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-danger/85 disabled:cursor-not-allowed disabled:bg-line-strong"
+                  className="rounded-lg bg-danger-fill px-6 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-danger-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
                 >
                   {isSending ? "Sending…" : "Send campaign"}
                 </button>

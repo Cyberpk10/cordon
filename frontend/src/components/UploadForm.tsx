@@ -32,7 +32,7 @@ export default function UploadForm({ onSubmit, isLoading }: UploadFormProps) {
       <button
         type="submit"
         disabled={!selectedFile || isLoading}
-        className="whitespace-nowrap rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+        className="whitespace-nowrap rounded-lg bg-accent-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
       >
         {isLoading ? "Analyzing…" : "Analyze Email"}
       </button>

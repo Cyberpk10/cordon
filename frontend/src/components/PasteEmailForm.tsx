@@ -27,7 +27,7 @@ export default function PasteEmailForm({ onSubmit, isLoading }: PasteEmailFormPr
       <button
         type="submit"
         disabled={!rawText.trim() || isLoading}
-        className="self-start whitespace-nowrap rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+        className="self-start whitespace-nowrap rounded-lg bg-accent-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
       >
         {isLoading ? "Analyzing…" : "Analyze Email"}
       </button>

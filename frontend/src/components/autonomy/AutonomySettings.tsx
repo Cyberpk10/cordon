@@ -111,7 +111,7 @@ export default function AutonomySettings() {
           <button
             onClick={handleHalt}
             disabled={isHalting}
-            className="whitespace-nowrap rounded-lg bg-danger px-5 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-danger/85 disabled:cursor-not-allowed disabled:bg-line-strong"
+            className="whitespace-nowrap rounded-lg bg-danger-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-danger-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
           >
             {isHalting ? "Halting…" : "Halt autonomy"}
           </button>
@@ -259,7 +259,7 @@ export default function AutonomySettings() {
       <button
         onClick={handleSave}
         disabled={isSaving}
-        className="self-start rounded-lg bg-accent px-6 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+        className="self-start rounded-lg bg-accent-fill px-6 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
       >
         {isSaving ? "Saving…" : "Save policy"}
       </button>

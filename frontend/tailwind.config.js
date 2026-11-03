@@ -27,16 +27,30 @@ export default {
           DEFAULT: token("fg"),
           secondary: token("fg-secondary"),
           muted: token("fg-muted"),
+          "on-fill": token("fg-on-fill"),
         },
         accent: {
           DEFAULT: token("accent"),
           hover: token("accent-hover"),
+          fill: token("accent-fill"),
+          "fill-hover": token("accent-fill-hover"),
         },
-        danger: token("danger"),
+        danger: {
+          DEFAULT: token("danger"),
+          fill: token("danger-fill"),
+          "fill-hover": token("danger-fill-hover"),
+        },
         success: token("success"),
         warning: token("warning"),
         caution: token("caution"),
         violet: token("violet"),
+      },
+      // `text-accent` uses the AA-safe text step; bg/border/ring-accent keep the base accent.
+      textColor: {
+        accent: {
+          DEFAULT: token("accent-text"),
+          hover: token("accent-text-hover"),
+        },
       },
       borderRadius: {
         control: "8px",

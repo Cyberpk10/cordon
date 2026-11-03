@@ -12,7 +12,7 @@ export default function CopilotMessage({ question, response, error }: CopilotMes
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="max-w-xl self-end rounded-lg bg-accent px-4 py-2 text-sm text-fg shadow-sm">
+      <div className="max-w-xl self-end rounded-lg bg-accent-fill px-4 py-2 text-sm text-fg-on-fill shadow-sm">
         {question}
       </div>
 

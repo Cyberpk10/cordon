@@ -33,7 +33,7 @@ export default function ForwardingAddressCard({ forwardingAddress }: ForwardingA
         <button
           type="button"
           onClick={handleCopy}
-          className="shrink-0 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-fg transition hover:bg-accent-hover"
+          className="shrink-0 rounded-lg bg-accent-fill px-3 py-2 text-sm font-semibold text-fg-on-fill transition hover:bg-accent-fill-hover"
         >
           {copied ? "Copied!" : "Copy"}
         </button>

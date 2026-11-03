@@ -19,7 +19,7 @@ export default function WelcomeForwardingScreen({ onContinue }: WelcomeForwardin
       <button
         type="button"
         onClick={onContinue}
-        className="mt-6 flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-fg transition hover:bg-accent-hover"
+        className="mt-6 flex w-full items-center justify-center rounded-lg bg-accent-fill px-4 py-2.5 text-sm font-semibold text-fg-on-fill transition hover:bg-accent-fill-hover"
       >
         Continue to dashboard
       </button>
