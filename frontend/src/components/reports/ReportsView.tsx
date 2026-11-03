@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FilePlus2 } from "lucide-react";
 import {
   downloadSecurityComplianceReport,
   generateSecurityComplianceReport,
@@ -7,7 +8,8 @@ import {
 import type { SecurityComplianceReportDetail } from "../../types/analysis";
 import ReportPreview from "./ReportPreview";
 import RecentSecurityComplianceReportsList from "./RecentSecurityComplianceReportsList";
-import { Button, ErrorState, Field, Input } from "../ui";
+import { Button, DateRangeFilter, ErrorState } from "../ui";
+import PageActions from "../shell/PageActions";
 
 export default function ReportsView() {
   const [dateFrom, setDateFrom] = useState("");
@@ -61,39 +63,25 @@ export default function ReportsView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-line bg-surface-panel p-5 shadow-sm">
-        <div>
-          <h2 className="text-lg font-semibold text-fg">Security &amp; Compliance Report</h2>
-          <p className="text-sm text-fg-secondary">
-            A board- and auditor-ready summary of real detection, containment, and compliance
-            activity for a selected period.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <Field label="From">
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
-            />
-          </Field>
-          <Field label="To">
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(event) => setDateTo(event.target.value)}
-            />
-          </Field>
-          <Button
-            variant="primary"
-            onClick={handleGenerate}
-            loading={isGenerating}
-            loadingText="Generating…"
-          >
-            Generate Report
-          </Button>
-        </div>
-      </div>
+      <PageActions>
+        <DateRangeFilter
+          label="Report period"
+          from={dateFrom}
+          to={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
+        />
+        <Button
+          variant="primary"
+          size="sm"
+          icon={FilePlus2}
+          onClick={handleGenerate}
+          loading={isGenerating}
+          loadingText="Generating…"
+        >
+          Generate Report
+        </Button>
+      </PageActions>
 
       {error && <ErrorState message={error} />}
 

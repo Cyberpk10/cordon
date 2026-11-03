@@ -4,6 +4,7 @@
 export { default as Button } from "./Button";
 export type { ButtonProps, ButtonVariant, ButtonTone, ButtonSize } from "./Button";
 export { Input, Textarea, Select, Field } from "./Input";
+export { default as DateRangeFilter } from "./DateRangeFilter";
 export { Card, CardHeader, CardBody, SectionHeading } from "./Card";
 export { Tabs, TabPanel, SegmentedControl } from "./Tabs";
 export type { TabItem } from "./Tabs";

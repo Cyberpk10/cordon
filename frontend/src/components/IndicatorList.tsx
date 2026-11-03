@@ -11,11 +11,14 @@ const SEVERITY_TONE: Record<Severity, BadgeTone> = {
 interface IndicatorListProps {
   indicators: Indicator[];
   emptyMessage?: string;
+  /** Gives each item an id (`${idPrefix}${indicator.id}`) so summaries can link to it. */
+  idPrefix?: string;
 }
 
 export default function IndicatorList({
   indicators,
   emptyMessage = "No phishing indicators were detected in this email.",
+  idPrefix,
 }: IndicatorListProps) {
   if (indicators.length === 0) {
     return (
@@ -28,7 +31,11 @@ export default function IndicatorList({
   return (
     <ul className="flex flex-col gap-3">
       {indicators.map((indicator) => (
-        <li key={indicator.id} className="rounded-card border border-line bg-surface-card p-4 shadow-sm">
+        <li
+          key={indicator.id}
+          id={idPrefix ? `${idPrefix}${indicator.id}` : undefined}
+          className="scroll-mt-24 rounded-card border border-line bg-surface-card p-4 shadow-sm target:border-accent/60 target:ring-1 target:ring-accent/40"
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold text-fg">{indicator.title}</h3>
             <Badge tone={SEVERITY_TONE[indicator.severity]} caps>

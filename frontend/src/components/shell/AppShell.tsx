@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Menu, X } from "lucide-react";
 import clsx from "clsx";
 import SidebarContent from "./Sidebar";
+import { TopBarSlotsContext } from "./PageActions";
 import type { UserResponse } from "../../types/auth";
 import { PAGE_META, type Tab } from "../../navigation";
 
@@ -10,10 +11,9 @@ interface AppShellProps {
   onSelectTab: (tab: Tab) => void;
   user: UserResponse | null;
   onLogout: () => void;
-  /** Right-aligned top-bar actions for the current screen. */
-  actions?: ReactNode;
-  /** Narrow screens (forms, detail views) read better at a constrained width. */
-  contentWidth?: "narrow" | "wide";
+  /** Narrow screens (forms, detail views) read better at a constrained width. Screens put
+   * their own top-bar controls in via <PageActions>. */
+  contentWidth?: "narrow" | "medium" | "wide";
   children: ReactNode;
 }
 
@@ -26,11 +26,12 @@ export default function AppShell({
   onSelectTab,
   user,
   onLogout,
-  actions,
   contentWidth = "wide",
   children,
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null);
+  const [contextSlot, setContextSlot] = useState<HTMLSpanElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const meta = PAGE_META[tab];
@@ -108,8 +109,8 @@ export default function AppShell({
       )}
 
       <div className="md:pl-16 lg:pl-[184px]">
-        <header className="sticky top-0 z-20 border-b border-line bg-surface-page/85 backdrop-blur">
-          <div className="flex min-h-16 items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <header className="relative z-20 border-b border-line bg-surface-page/85 backdrop-blur sm:sticky sm:top-0">
+          <div className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6 lg:px-8">
             <button
               ref={menuButtonRef}
               type="button"
@@ -120,17 +121,33 @@ export default function AppShell({
             >
               <Menu aria-hidden="true" className="h-5 w-5" />
             </button>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-56">
               <h1 className="truncate text-lg font-semibold leading-tight text-fg">{meta.title}</h1>
-              <p className="truncate text-sm text-fg-secondary">{meta.subtitle}</p>
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-secondary">
+                <p className="min-w-0 max-w-full truncate">{meta.subtitle}</p>
+                <p
+                  ref={setContextSlot}
+                  className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-fg-muted empty:hidden"
+                />
+              </div>
             </div>
-            {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+            <div
+              ref={setActionsSlot}
+              className="flex w-full flex-wrap items-center gap-2 empty:hidden sm:ml-auto sm:w-auto sm:justify-end"
+            />
           </div>
         </header>
 
         <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <div className={clsx("mx-auto w-full", contentWidth === "narrow" ? "max-w-3xl" : "max-w-6xl")}>
-            {children}
+          <div
+            className={clsx(
+              "mx-auto w-full",
+              contentWidth === "narrow" ? "max-w-3xl" : contentWidth === "medium" ? "max-w-4xl" : "max-w-6xl"
+            )}
+          >
+            <TopBarSlotsContext.Provider value={{ actions: actionsSlot, context: contextSlot }}>
+              {children}
+            </TopBarSlotsContext.Provider>
           </div>
         </main>
       </div>

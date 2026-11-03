@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getFinancialRisk } from "../../api/client";
+import { formatPeriod } from "../../format";
 import type { FinancialRiskResponse, RiskAttackTypeBreakdown } from "../../types/analysis";
 import { Button, Card, CardHeader, ErrorState, LoadingState, Table, TableContainer, TBody, TD, TH } from "../ui";
 
@@ -83,7 +84,7 @@ export default function ExposureAvoidedCard() {
     <Card padding="none" as="div">
       <CardHeader
         title="Estimated Exposure Avoided This Quarter"
-        description={`${new Date(risk.period_start).toLocaleDateString()} – ${new Date(risk.period_end).toLocaleDateString()}`}
+        description={formatPeriod(risk.period_start, risk.period_end)}
         actions={
           <Button
             variant="link"

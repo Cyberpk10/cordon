@@ -51,14 +51,11 @@ export default function EarlyWarningsView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-semibold text-fg">Early Warnings</h2>
-        <p className="text-sm text-fg-secondary">
-          Actors with multiple corroborating precursor signals at different kill-chain stages —
-          an attack appears to be forming, before any incident exists. Nothing here executes any
-          action automatically.
-        </p>
-      </div>
+      <p className="max-w-3xl text-sm text-fg-secondary">
+        Actors with multiple corroborating precursor signals at different kill-chain stages — an
+        attack appears to be forming, before any incident exists. Nothing here executes any action
+        automatically.
+      </p>
 
       {error && <ErrorState message={error} />}
 

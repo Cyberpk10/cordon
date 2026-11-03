@@ -6,7 +6,9 @@ import DepartmentBreakdownTable from "./DepartmentBreakdownTable";
 import LureEffectivenessTable from "./LureEffectivenessTable";
 import RiskiestUsersTable from "./RiskiestUsersTable";
 import TrainingRecommendationsWidget from "./TrainingRecommendationsWidget";
-import { ErrorState, Field, Input, LoadingState } from "../ui";
+import { DateRangeFilter, ErrorState, LoadingState } from "../ui";
+import PageActions, { PageContext } from "../shell/PageActions";
+import { formatPeriod } from "../../format";
 
 export default function HumanRiskView() {
   const [dateFrom, setDateFrom] = useState("");
@@ -41,32 +43,16 @@ export default function HumanRiskView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-line bg-surface-panel p-5 shadow-sm">
-        <div>
-          <h2 className="text-lg font-semibold text-fg">Human Risk</h2>
-          <p className="text-sm text-fg-secondary">
-            {summary
-              ? `${new Date(summary.period_start).toLocaleDateString()} – ${new Date(summary.period_end).toLocaleDateString()}`
-              : "Loading period…"}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Field label="From">
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
-            />
-          </Field>
-          <Field label="To">
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(event) => setDateTo(event.target.value)}
-            />
-          </Field>
-        </div>
-      </div>
+      <PageActions>
+        <DateRangeFilter
+          label="Human risk period"
+          from={dateFrom}
+          to={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
+        />
+      </PageActions>
+      {summary && <PageContext>{formatPeriod(summary.period_start, summary.period_end)}</PageContext>}
 
       {error && <ErrorState message={error} />}
 

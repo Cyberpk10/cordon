@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { FileDown } from "lucide-react";
 import { downloadAuditReport, generateAuditReport, getAuditEvidence } from "../../api/client";
 import type { AuditEvidenceResponse, AuditFrameworkAlias } from "../../types/analysis";
 import EvidenceTable from "./EvidenceTable";
 import RecentReportsList from "./RecentReportsList";
-import { Button, Card, ErrorState, Field, Input, LoadingState, Select } from "../ui";
+import { Button, Card, DateRangeFilter, ErrorState, LoadingState, Select } from "../ui";
+import PageActions, { PageContext } from "../shell/PageActions";
+import { formatPeriod } from "../../format";
 
 const FRAMEWORK_OPTIONS: { value: AuditFrameworkAlias; label: string }[] = [
   { value: "mitre", label: "MITRE ATT&CK" },
@@ -66,44 +69,43 @@ export default function AuditView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-line bg-surface-panel p-5 shadow-sm">
-        <div>
-          <h2 className="text-lg font-semibold text-fg">Audit Mode</h2>
-          <p className="text-sm text-fg-secondary">
-            {evidence
-              ? `${evidence.framework_name} · ${new Date(evidence.period_start).toLocaleDateString()} – ${new Date(evidence.period_end).toLocaleDateString()}`
-              : "Loading…"}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Field label="Framework">
-            <Select
-              value={framework}
-              onChange={(event) => setFramework(event.target.value as AuditFrameworkAlias)}
-            >
-              {FRAMEWORK_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="From">
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
-            />
-          </Field>
-          <Field label="To">
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(event) => setDateTo(event.target.value)}
-            />
-          </Field>
-        </div>
-      </div>
+      <PageActions>
+        <Select
+          controlSize="sm"
+          aria-label="Framework"
+          value={framework}
+          onChange={(event) => setFramework(event.target.value as AuditFrameworkAlias)}
+          className="w-full sm:w-40"
+        >
+          {FRAMEWORK_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+        <DateRangeFilter
+          label="Evidence period"
+          from={dateFrom}
+          to={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
+        />
+        <Button
+          variant="primary"
+          size="sm"
+          icon={FileDown}
+          onClick={handleGenerate}
+          loading={isGenerating}
+          loadingText="Generating…"
+        >
+          Generate Evidence Pack
+        </Button>
+      </PageActions>
+      {evidence && (
+        <PageContext>
+          {evidence.framework_name} · {formatPeriod(evidence.period_start, evidence.period_end)}
+        </PageContext>
+      )}
 
       {error && <ErrorState message={error} />}
 
@@ -111,7 +113,7 @@ export default function AuditView() {
 
       {evidence && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Card padding="md" as="div">
               <p className="text-sm font-semibold text-fg-secondary">Total Controls</p>
               <p className="mt-1 text-3xl font-semibold text-fg">{evidence.total_controls}</p>
@@ -119,18 +121,6 @@ export default function AuditView() {
             <Card padding="md" as="div">
               <p className="text-sm font-semibold text-fg-secondary">Operating</p>
               <p className="mt-1 text-3xl font-semibold text-success">{evidence.operating_controls}</p>
-            </Card>
-            <Card padding="md" as="div" className="flex flex-col justify-between">
-              <p className="text-sm font-semibold text-fg-secondary">Evidence Pack</p>
-              <Button
-                variant="primary"
-                className="mt-2"
-                onClick={handleGenerate}
-                loading={isGenerating}
-                loadingText="Generating…"
-              >
-                Generate Evidence Pack
-              </Button>
             </Card>
           </div>
 

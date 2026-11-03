@@ -115,7 +115,7 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
                   className="cursor-pointer transition hover:bg-surface-raised"
                 >
                   <TD>
-                    <VerdictBadge verdict={item.verdict} score={item.score} />
+                    <VerdictBadge verdict={item.verdict} score={item.score} compact />
                   </TD>
                   <TD className="text-fg-secondary">{item.actor}</TD>
                   <TD>
