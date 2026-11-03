@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { ScanSearch } from "lucide-react";
+import { Button, Textarea } from "./ui";
 
 interface PasteEmailFormProps {
   onSubmit: (rawText: string) => void;
@@ -17,20 +19,25 @@ export default function PasteEmailForm({ onSubmit, isLoading }: PasteEmailFormPr
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <textarea
+      <Textarea
         value={rawText}
         onChange={(event) => setRawText(event.target.value)}
         placeholder="Paste the raw email here — full headers and body, or just the subject and body text."
+        aria-label="Raw email"
         rows={12}
-        className="w-full rounded-lg border border-line-strong bg-surface-card p-3 font-mono text-xs text-fg shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+        className="font-mono text-xs"
       />
-      <button
+      <Button
         type="submit"
-        disabled={!rawText.trim() || isLoading}
-        className="self-start whitespace-nowrap rounded-lg bg-accent-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+        variant="primary"
+        icon={ScanSearch}
+        disabled={!rawText.trim()}
+        loading={isLoading}
+        loadingText="Analyzing…"
+        className="self-start"
       >
-        {isLoading ? "Analyzing…" : "Analyze Email"}
-      </button>
+        Analyze Email
+      </Button>
     </form>
   );
 }

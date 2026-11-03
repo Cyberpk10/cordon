@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import {
   deleteIncident,
   getIncident,
@@ -15,6 +16,16 @@ import ResponsePlaybookPanel from "../ResponsePlaybookPanel";
 import VerdictBadge from "../VerdictBadge";
 import EvidenceEventsTable from "./EvidenceEventsTable";
 import FindingList from "./FindingList";
+import {
+  Button,
+  Card,
+  ErrorState,
+  Field,
+  Input,
+  LoadingState,
+  SectionHeading,
+  Select,
+} from "../ui";
 
 interface IncidentDetailProps {
   incidentId: string;
@@ -82,24 +93,17 @@ export default function IncidentDetail({ incidentId, onBack, onDeleted }: Incide
 
   return (
     <div className="flex flex-col gap-6">
-      <button
-        onClick={onBack}
-        className="self-start text-sm font-semibold text-accent hover:text-accent-hover"
-      >
-        ← Back to detections
-      </button>
+      <Button variant="link" icon={ArrowLeft} className="self-start" onClick={onBack}>
+        Back to detections
+      </Button>
 
-      {error && (
-        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState message={error} />}
 
-      {!incident && !error && <p className="text-sm text-fg-secondary">Loading incident…</p>}
+      {!incident && !error && <LoadingState label="Loading incident…" />}
 
       {incident && (
         <>
-          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+          <Card>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex flex-col gap-2">
                 <VerdictBadge verdict={incident.verdict} score={incident.score} />
@@ -117,13 +121,15 @@ export default function IncidentDetail({ incidentId, onBack, onDeleted }: Incide
                   </p>
                 )}
               </div>
-              <button
+              <Button
+                tone="danger"
+                size="sm"
                 onClick={handleDelete}
-                disabled={isDeleting}
-                className="rounded-lg border border-danger/35 px-3 py-1.5 text-sm font-semibold text-danger hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
+                loading={isDeleting}
+                loadingText="Deleting…"
               >
-                {isDeleting ? "Deleting…" : "Delete incident"}
-              </button>
+                Delete incident
+              </Button>
             </div>
             <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
               <div>
@@ -146,48 +152,45 @@ export default function IncidentDetail({ incidentId, onBack, onDeleted }: Incide
                 <dd className="inline">{new Date(incident.created_at).toLocaleString()}</dd>
               </div>
             </dl>
-          </section>
+          </Card>
 
-          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-fg">Analyst Feedback</h2>
+          <Card>
+            <h2 className="text-base font-semibold text-fg">Analyst Feedback</h2>
             <p className="mt-1 text-sm text-fg-secondary">
               Agree with the machine verdict as-is, or change it below before submitting to
               correct it. Submitting again relabels the incident — the prior label stays in
               history.
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-                Verdict
-                <select
+              <Field label="Verdict">
+                <Select
                   value={labelVerdict}
                   onChange={(event) => setLabelVerdict(event.target.value as Verdict)}
-                  className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
                 >
                   <option value="safe">Safe</option>
                   <option value="suspicious">Suspicious</option>
                   <option value="malicious">Malicious</option>
-                </select>
-              </label>
-              <label className="flex flex-1 flex-col gap-1 text-sm text-fg-secondary">
-                Note (optional)
-                <input
+                </Select>
+              </Field>
+              <Field label="Note (optional)" className="flex-1">
+                <Input
                   type="text"
                   value={labelNote}
                   onChange={(event) => setLabelNote(event.target.value)}
                   placeholder="Why are you agreeing or correcting this verdict?"
-                  className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
                 />
-              </label>
-              <button
+              </Field>
+              <Button
+                variant="primary"
                 onClick={handleSubmitLabel}
-                disabled={isSubmittingLabel}
-                className="whitespace-nowrap rounded-lg bg-accent-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+                loading={isSubmittingLabel}
+                loadingText="Submitting…"
               >
-                {isSubmittingLabel ? "Submitting…" : "Submit Label"}
-              </button>
+                Submit Label
+              </Button>
             </div>
-            {labelError && <p className="mt-2 text-sm text-danger">{labelError}</p>}
-          </section>
+            {labelError && <ErrorState message={labelError} className="mt-2" />}
+          </Card>
 
           <ResponsePlaybookPanel
             caseId={incident.id}
@@ -202,17 +205,17 @@ export default function IncidentDetail({ incidentId, onBack, onDeleted }: Incide
           />
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-fg">Findings</h2>
+            <SectionHeading>Findings</SectionHeading>
             <FindingList findings={incident.findings} />
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-fg">Evidence Events</h2>
+            <SectionHeading>Evidence Events</SectionHeading>
             <EvidenceEventsTable events={incident.evidence_events} />
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
+            <SectionHeading>Framework Mapping</SectionHeading>
             <FrameworkMappingPanel frameworkMappings={incident.framework_mappings} />
           </section>
         </>

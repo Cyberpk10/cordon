@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CopilotQueryResponse } from "../../types/analysis";
+import { Button, ErrorState } from "../ui";
 
 interface CopilotMessageProps {
   question: string;
@@ -17,17 +18,14 @@ export default function CopilotMessage({ question, response, error }: CopilotMes
       </div>
 
       <div className="max-w-2xl rounded-lg border border-line bg-surface-card p-4 shadow-sm">
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <ErrorState message={error} />}
         {!error && !response && <p className="text-sm text-fg-secondary">Thinking…</p>}
         {response && (
           <>
             <p className="text-sm text-fg">{response.narrative}</p>
-            <button
-              onClick={() => setShowData((value) => !value)}
-              className="mt-2 text-xs font-semibold text-accent hover:text-accent-hover"
-            >
+            <Button variant="link" className="mt-2" onClick={() => setShowData((value) => !value)}>
               {showData ? "Hide data" : "Show data"}
-            </button>
+            </Button>
             {showData && (
               <div className="mt-2 rounded-lg border border-line bg-surface-panel p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-fg-secondary">

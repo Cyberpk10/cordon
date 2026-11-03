@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { FrameworkControlRef } from "../types/analysis";
+import { EmptyState, TabPanel, Tabs } from "./ui";
 
 const FRAMEWORK_LABELS: Record<string, string> = {
   mitre_attack: "MITRE ATT&CK",
@@ -15,6 +16,7 @@ interface FrameworkMappingPanelProps {
 export default function FrameworkMappingPanel({ frameworkMappings }: FrameworkMappingPanelProps) {
   const frameworkKeys = Object.keys(frameworkMappings);
   const [activeKey, setActiveKey] = useState(frameworkKeys[0] ?? "");
+  const idPrefix = useId();
 
   if (frameworkKeys.length === 0) {
     return null;
@@ -26,25 +28,19 @@ export default function FrameworkMappingPanel({ frameworkMappings }: FrameworkMa
   );
 
   return (
-    <div className="rounded-lg border border-line bg-surface-card shadow-sm">
-      <div className="flex border-b border-line">
-        {frameworkKeys.map((key) => (
-          <button
-            key={key}
-            onClick={() => setActiveKey(key)}
-            className={`flex-1 px-3 py-2 text-sm font-semibold transition ${
-              key === activeKey
-                ? "border-b-2 border-accent text-accent"
-                : "text-fg-secondary hover:text-fg"
-            }`}
-          >
-            {FRAMEWORK_LABELS[key] ?? key}
-          </button>
-        ))}
-      </div>
-      <div className="p-4">
+    <div className="rounded-card border border-line bg-surface-card shadow-sm">
+      <Tabs
+        aria-label="Compliance framework"
+        idPrefix={idPrefix}
+        fitted
+        items={frameworkKeys.map((key) => ({ value: key, label: FRAMEWORK_LABELS[key] ?? key }))}
+        value={activeKey}
+        onChange={setActiveKey}
+        className="px-2"
+      />
+      <TabPanel idPrefix={idPrefix} value={activeKey} className="p-4">
         {dedupedControls.length === 0 ? (
-          <p className="text-sm text-fg-secondary">No controls mapped for this framework.</p>
+          <EmptyState variant="inline" title="No controls mapped for this framework." />
         ) : (
           <ul className="flex flex-col gap-2">
             {dedupedControls.map((control) => (
@@ -55,7 +51,7 @@ export default function FrameworkMappingPanel({ frameworkMappings }: FrameworkMa
             ))}
           </ul>
         )}
-      </div>
+      </TabPanel>
     </div>
   );
 }

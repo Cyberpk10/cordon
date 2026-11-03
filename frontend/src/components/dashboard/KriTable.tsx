@@ -1,4 +1,5 @@
 import type { KRIs } from "../../types/analysis";
+import { Card, CardHeader, TBody, TD, Table, TableContainer } from "../ui";
 
 function formatPct(value: number | null): string {
   return value === null ? "—" : `${value}%`;
@@ -29,21 +30,21 @@ export default function KriTable({ kris }: KriTableProps) {
   ];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-      <div className="border-b border-line bg-surface-panel px-6 py-3">
-        <h3 className="text-base font-semibold text-fg">Key Risk Indicators</h3>
-      </div>
-      <table className="w-full text-left text-sm">
-        <tbody className="divide-y divide-line">
-          {rows.map((row) => (
-            <tr key={row.label}>
-              <td className="px-6 py-3 font-semibold text-fg">{row.label}</td>
-              <td className="px-6 py-3 text-xl font-semibold text-fg">{row.value}</td>
-              <td className="px-6 py-3 text-xs text-fg-secondary">{row.note}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Card padding="none" as="div">
+      <CardHeader title="Key Risk Indicators" />
+      <TableContainer>
+        <Table>
+          <TBody>
+            {rows.map((row) => (
+              <tr key={row.label}>
+                <TD density="comfortable" className="font-semibold text-fg">{row.label}</TD>
+                <TD density="comfortable" className="text-xl font-semibold text-fg">{row.value}</TD>
+                <TD density="comfortable" className="text-xs text-fg-secondary">{row.note}</TD>
+              </tr>
+            ))}
+          </TBody>
+        </Table>
+      </TableContainer>
+    </Card>
   );
 }

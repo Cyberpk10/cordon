@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { getRemediationPlaybook, submitRemediationAction } from "../api/client";
 import type { PlaybookStep, RemediationPlaybook } from "../types/analysis";
+import { Check, CheckCheck, ListChecks } from "lucide-react";
+import ControlRefChips from "./ControlRefChips";
+import { Badge, Button, Card, EmptyState, ErrorState, LoadingState, type BadgeTone } from "./ui";
 
-const STATUS_STYLES: Record<string, string> = {
-  recommended: "bg-surface-raised text-fg-secondary border-line-strong",
-  approved: "bg-warning/10 text-warning border-warning/35",
-  done: "bg-success/10 text-success border-success/35",
+const STATUS_TONE: Record<string, BadgeTone> = {
+  recommended: "neutral",
+  approved: "warning",
+  done: "success",
 };
 
 interface ResponsePlaybookPanelProps {
@@ -58,52 +61,41 @@ export default function ResponsePlaybookPanel({
   };
 
   return (
-    <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-fg">Response Playbook</h2>
+    <Card>
+      <h2 className="text-base font-semibold text-fg">Response Playbook</h2>
       <p className="mt-1 text-sm text-fg-secondary">
         Recommended next steps derived from this case&apos;s indicators. Cordon never performs
         these automatically — an operator approves and marks each one done.
       </p>
 
-      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      {error && <ErrorState message={error} className="mt-3" />}
 
-      {!playbook && !error && <p className="mt-3 text-sm text-fg-secondary">Loading playbook…</p>}
+      {!playbook && !error && <LoadingState label="Loading playbook…" className="mt-3" />}
 
       {playbook && playbook.steps.length === 0 && (
-        <p className="mt-3 text-sm text-fg-secondary">
-          No remediation steps recommended for this case.
-        </p>
+        <EmptyState
+          variant="inline"
+          icon={ListChecks}
+          title="No remediation steps recommended for this case."
+          className="justify-start"
+        />
       )}
 
       {playbook && playbook.steps.length > 0 && (
         <ul className="mt-4 flex flex-col gap-3">
           {playbook.steps.map((step) => (
-            <li key={step.step_id} className="rounded-lg border border-line p-4">
+            <li key={step.step_id} className="rounded-control border border-line bg-surface-panel p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h3 className="font-semibold text-fg">{step.title}</h3>
                   <p className="mt-1 text-sm text-fg-secondary">{step.description}</p>
                 </div>
-                <span
-                  className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${STATUS_STYLES[step.status]}`}
-                >
+                <Badge tone={STATUS_TONE[step.status] ?? "neutral"} caps>
                   {step.status}
-                </span>
+                </Badge>
               </div>
 
-              {step.control_refs.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {step.control_refs.map((ref) => (
-                    <span
-                      key={`${ref.framework_key}-${ref.control_id}`}
-                      title={ref.control_name}
-                      className="rounded border border-line bg-surface-panel px-1.5 py-0.5 text-xs text-fg-secondary"
-                    >
-                      {ref.framework_key}: {ref.control_id}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <ControlRefChips refs={step.control_refs} />
 
               {step.actor && (
                 <p className="mt-2 text-xs text-fg-secondary">
@@ -115,28 +107,35 @@ export default function ResponsePlaybookPanel({
 
               <div className="mt-3 flex gap-2">
                 {step.status === "recommended" && (
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={Check}
                     onClick={() => handleAction(step, "approved")}
-                    disabled={actingStepId === step.step_id}
-                    className="rounded-lg bg-accent-fill px-3 py-1.5 text-xs font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+                    loading={actingStepId === step.step_id}
+                    loadingText="Approving…"
                   >
-                    {actingStepId === step.step_id ? "Approving…" : "Approve"}
-                  </button>
+                    Approve
+                  </Button>
                 )}
                 {step.status === "approved" && (
-                  <button
+                  <Button
+                    variant="secondary"
+                    tone="success"
+                    size="sm"
+                    icon={CheckCheck}
                     onClick={() => handleAction(step, "done")}
-                    disabled={actingStepId === step.step_id}
-                    className="rounded-lg border border-success/35 px-3 py-1.5 text-xs font-semibold text-success hover:bg-success/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    loading={actingStepId === step.step_id}
+                    loadingText="Marking…"
                   >
-                    {actingStepId === step.step_id ? "Marking…" : "Mark done"}
-                  </button>
+                    Mark done
+                  </Button>
                 )}
               </div>
             </li>
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   );
 }

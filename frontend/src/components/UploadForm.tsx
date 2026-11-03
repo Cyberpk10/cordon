@@ -1,4 +1,6 @@
 import { useRef, useState } from "react";
+import { ScanSearch } from "lucide-react";
+import { Button } from "./ui";
 
 interface UploadFormProps {
   onSubmit: (file: File) => void;
@@ -26,16 +28,20 @@ export default function UploadForm({ onSubmit, isLoading }: UploadFormProps) {
         ref={inputRef}
         type="file"
         accept=".eml"
+        aria-label="Email file (.eml)"
         onChange={handleFileChange}
-        className="block w-full flex-1 cursor-pointer rounded-lg border border-line-strong bg-surface-card text-sm text-fg-secondary file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-line-strong file:px-4 file:py-2 file:text-sm file:font-semibold file:text-fg hover:file:bg-line"
+        className="block w-full flex-1 cursor-pointer rounded-control border border-line-strong bg-surface-raised text-sm text-fg-secondary file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-line-strong file:px-4 file:py-2 file:text-sm file:font-semibold file:text-fg hover:file:bg-line"
       />
-      <button
+      <Button
         type="submit"
-        disabled={!selectedFile || isLoading}
-        className="whitespace-nowrap rounded-lg bg-accent-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+        variant="primary"
+        icon={ScanSearch}
+        disabled={!selectedFile}
+        loading={isLoading}
+        loadingText="Analyzing…"
       >
-        {isLoading ? "Analyzing…" : "Analyze Email"}
-      </button>
+        Analyze Email
+      </Button>
     </form>
   );
 }

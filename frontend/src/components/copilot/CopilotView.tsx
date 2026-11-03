@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { MessageSquare, Send } from "lucide-react";
 import { queryCopilot } from "../../api/client";
 import type { CopilotQueryResponse } from "../../types/analysis";
 import CopilotMessage from "./CopilotMessage";
+import { Button, Card, EmptyState, Input } from "../ui";
 
 interface ChatTurn {
   question: string;
@@ -48,11 +50,18 @@ export default function CopilotView() {
 
       <div className="flex flex-col gap-4">
         {turns.length === 0 && (
-          <p className="rounded-lg border border-line bg-surface-card p-4 text-sm text-fg-secondary">
-            Try asking things like &quot;how many malicious emails this month,&quot; &quot;how
-            often was alice@example.com targeted,&quot; or &quot;what&apos;s our MITRE
-            coverage.&quot;
-          </p>
+          <Card padding="none">
+            <EmptyState
+              icon={MessageSquare}
+              title="Ask your first question"
+              description={
+                <>
+                  Try &quot;how many malicious emails this month,&quot; &quot;how often was
+                  alice@example.com targeted,&quot; or &quot;what&apos;s our MITRE coverage.&quot;
+                </>
+              }
+            />
+          </Card>
         )}
         {turns.map((turn, index) => (
           <CopilotMessage
@@ -65,20 +74,24 @@ export default function CopilotView() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex gap-3">
-        <input
+        <Input
           type="text"
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           placeholder="Ask a question about your Cordon data…"
-          className="flex-1 rounded-lg border border-line-strong bg-surface-card px-3 py-2 text-sm text-fg"
+          aria-label="Question"
+          className="flex-1"
         />
-        <button
+        <Button
+          variant="primary"
+          icon={Send}
           type="submit"
-          disabled={isLoading || !question.trim()}
-          className="whitespace-nowrap rounded-lg bg-accent-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+          disabled={!question.trim()}
+          loading={isLoading}
+          loadingText="Asking…"
         >
-          {isLoading ? "Asking…" : "Ask"}
-        </button>
+          Ask
+        </Button>
       </form>
     </div>
   );

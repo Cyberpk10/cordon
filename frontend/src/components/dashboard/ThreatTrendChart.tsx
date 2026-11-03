@@ -1,6 +1,9 @@
+import { BarChart3 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { MonthlyThreatCount } from "../../types/analysis";
+import { EmptyState } from "../ui";
 import { chartTheme, color } from "../../theme";
+import { Card } from "../ui";
 
 function toQuarterly(monthly: MonthlyThreatCount[]): { quarter: string; count: number }[] {
   const buckets = new Map<string, number>();
@@ -24,11 +27,11 @@ export default function ThreatTrendChart({ monthlyTrend }: ThreatTrendChartProps
   const chart = chartTheme();
 
   return (
-    <div className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+    <Card as="div">
       <h3 className="text-base font-semibold text-fg">Quarterly Threat Trend</h3>
       <p className="text-xs text-fg-secondary">Suspicious + malicious cases, bucketed by quarter.</p>
       {data.length === 0 ? (
-        <p className="mt-4 text-sm text-fg-secondary">No threats in this period.</p>
+        <EmptyState icon={BarChart3} title="No threats in this period." className="mt-4" />
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={data} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
@@ -45,6 +48,6 @@ export default function ThreatTrendChart({ monthlyTrend }: ThreatTrendChartProps
           </BarChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </Card>
   );
 }

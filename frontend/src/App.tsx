@@ -30,6 +30,7 @@ import WelcomeForwardingScreen from "./auth/WelcomeForwardingScreen";
 import { INITIAL_TAB_STORAGE_KEY } from "./tabStorage";
 import { isTab, type Tab } from "./navigation";
 import AppShell from "./components/shell/AppShell";
+import { Alert, Card, SectionHeading, SegmentedControl } from "./components/ui";
 
 /** Reads the one-shot initial-tab marker DevLoginScreen sets, so a dev auto-login lands on
  * Early Warnings without a real router. A plain reload/normal visit never has this key set,
@@ -176,77 +177,50 @@ function AnalyzerApp() {
 
       {tab === "analyze" && (
         <>
-          <div className="mb-4 inline-flex rounded-lg border border-line bg-surface-raised p-1">
-            <button
-              type="button"
-              onClick={() => setInputType("email")}
-              className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-                inputType === "email"
-                  ? "bg-surface-card text-accent shadow-sm"
-                  : "text-fg-secondary hover:text-fg"
-              }`}
-            >
-              Email
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputType("activity-log")}
-              className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-                inputType === "activity-log"
-                  ? "bg-surface-card text-accent shadow-sm"
-                  : "text-fg-secondary hover:text-fg"
-              }`}
-            >
-              Activity Log
-            </button>
-          </div>
+          <SegmentedControl
+            aria-label="Input type"
+            className="mb-4"
+            items={[
+              { value: "email", label: "Email" },
+              { value: "activity-log", label: "Activity Log" },
+            ]}
+            value={inputType}
+            onChange={setInputType}
+          />
         </>
       )}
 
       {tab === "analyze" && inputType === "email" && (
         <>
-          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-            <div className="mb-4 inline-flex rounded-lg border border-line bg-surface-raised p-1">
-              <button
-                type="button"
-                onClick={() => setAnalyzeMode("upload")}
-                className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-                  analyzeMode === "upload"
-                    ? "bg-surface-card text-accent shadow-sm"
-                    : "text-fg-secondary hover:text-fg"
-                }`}
-              >
-                Upload email
-              </button>
-              <button
-                type="button"
-                onClick={() => setAnalyzeMode("paste")}
-                className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-                  analyzeMode === "paste"
-                    ? "bg-surface-card text-accent shadow-sm"
-                    : "text-fg-secondary hover:text-fg"
-                }`}
-              >
-                Paste email
-              </button>
-            </div>
+          <Card>
+            <SegmentedControl
+              aria-label="Email input method"
+              size="sm"
+              className="mb-4"
+              items={[
+                { value: "upload", label: "Upload email" },
+                { value: "paste", label: "Paste email" },
+              ]}
+              value={analyzeMode}
+              onChange={setAnalyzeMode}
+            />
 
             {analyzeMode === "upload" ? (
               <UploadForm onSubmit={handleAnalyzeFile} isLoading={isLoading} />
             ) : (
               <PasteEmailForm onSubmit={handleAnalyzeText} isLoading={isLoading} />
             )}
-          </section>
+          </Card>
 
           {error && (
-            <div className="mt-6 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
+            <Alert tone="danger" className="mt-6">
               {error}
-            </div>
+            </Alert>
           )}
 
           {result && (
             <div className="mt-8 flex flex-col gap-6">
-              <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+              <Card>
                 <VerdictBadge verdict={result.verdict} score={result.score} />
                 <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
                   <div>
@@ -273,19 +247,19 @@ function AnalyzerApp() {
                     </dd>
                   </div>
                 </dl>
-              </section>
+              </Card>
 
               <AiAuthoredFlag indicators={result.indicators} />
 
               <AIAnalystSummary narrative={result.analyst_narrative} model={result.analyst_model} />
 
               <section>
-                <h2 className="mb-3 text-lg font-semibold text-fg">Indicators</h2>
+                <SectionHeading>Indicators</SectionHeading>
                 <IndicatorList indicators={result.indicators} />
               </section>
 
               <section>
-                <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
+                <SectionHeading>Framework Mapping</SectionHeading>
                 <FrameworkMappingPanel frameworkMappings={result.framework_mappings} />
               </section>
             </div>
@@ -295,19 +269,19 @@ function AnalyzerApp() {
 
       {tab === "analyze" && inputType === "activity-log" && (
         <>
-          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+          <Card>
             <ActivityLogForm onSubmit={handleAnalyzeActivityLog} isLoading={isActivityLogLoading} />
-          </section>
+          </Card>
 
           {activityLogError && (
-            <div className="mt-6 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
+            <Alert tone="danger" className="mt-6">
               {activityLogError}
-            </div>
+            </Alert>
           )}
 
           {activityLogResult && (
             <div className="mt-8 flex flex-col gap-6">
-              <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+              <Card>
                 <VerdictBadge verdict={activityLogResult.verdict} score={activityLogResult.score} />
                 <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
                   <div>
@@ -341,7 +315,7 @@ function AnalyzerApp() {
                     also detected in this log — showing the highest-risk result.
                   </p>
                 )}
-              </section>
+              </Card>
 
               <AIAnalystSummary
                 narrative={activityLogResult.analyst_narrative}
@@ -349,7 +323,7 @@ function AnalyzerApp() {
               />
 
               <section>
-                <h2 className="mb-3 text-lg font-semibold text-fg">Findings</h2>
+                <SectionHeading>Findings</SectionHeading>
                 <IndicatorList
                   indicators={activityLogResult.indicators}
                   emptyMessage="No intrusion findings were detected in this activity log."
@@ -357,7 +331,7 @@ function AnalyzerApp() {
               </section>
 
               <section>
-                <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
+                <SectionHeading>Framework Mapping</SectionHeading>
                 <FrameworkMappingPanel frameworkMappings={activityLogResult.framework_mappings} />
               </section>
             </div>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getMonitoringControls } from "../../api/client";
 import type { ControlHealth, ControlHealthStatus } from "../../types/analysis";
+import { ShieldQuestion } from "lucide-react";
+import { Card, EmptyState, ErrorState, Select } from "../ui";
 
 const STATUS_STYLES: Record<ControlHealthStatus, string> = {
   operating: "border-success/35 bg-success/10 text-success",
@@ -41,33 +43,30 @@ export default function ControlGrid() {
   }, [framework]);
 
   return (
-    <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+    <Card>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-fg">Control health</h2>
-        <select
+        <h2 className="text-base font-semibold text-fg">Control health</h2>
+        <Select
           value={framework}
           onChange={(e) => setFramework(e.target.value)}
-          className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm"
+          aria-label="Framework"
+          className="w-48"
         >
           {FRAMEWORKS.map((fw) => (
             <option key={fw.value} value={fw.value}>
               {fw.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
-      {error && (
-        <div className="mt-4 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState message={error} className="mt-4" />}
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((c) => (
           <div
             key={`${c.framework_key}-${c.control_id}`}
-            className={`rounded-lg border p-3 ${STATUS_STYLES[c.status]}`}
+            className={`rounded-control border p-3 ${STATUS_STYLES[c.status]}`}
           >
             <div className="text-xs font-semibold uppercase tracking-wide opacity-70">
               {c.framework_key}
@@ -87,11 +86,9 @@ export default function ControlGrid() {
           </div>
         ))}
         {items.length === 0 && !error && (
-          <div className="col-span-full py-8 text-center text-sm text-fg-secondary">
-            No controls loaded yet.
-          </div>
+          <EmptyState icon={ShieldQuestion} title="No controls loaded yet." className="col-span-full" />
         )}
       </div>
-    </section>
+    </Card>
   );
 }

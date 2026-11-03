@@ -1,4 +1,6 @@
+import { ListX } from "lucide-react";
 import type { ActivityEvent } from "../../types/analysis";
+import { Card, EmptyState, TBody, TD, TH, THead, Table, TableContainer } from "../ui";
 
 interface EvidenceEventsTableProps {
   events: ActivityEvent[];
@@ -7,42 +9,44 @@ interface EvidenceEventsTableProps {
 export default function EvidenceEventsTable({ events }: EvidenceEventsTableProps) {
   if (events.length === 0) {
     return (
-      <p className="rounded-lg border border-line bg-surface-panel p-4 text-sm text-fg-secondary">
-        No evidence events recorded.
-      </p>
+      <div className="rounded-card border border-line bg-surface-card">
+        <EmptyState variant="inline" icon={ListX} title="No evidence events recorded." />
+      </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-surface-card shadow-sm">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
-          <tr>
-            <th className="px-4 py-3 font-semibold">Time</th>
-            <th className="px-4 py-3 font-semibold">Action</th>
-            <th className="px-4 py-3 font-semibold">Source IP</th>
-            <th className="px-4 py-3 font-semibold">Target</th>
-            <th className="px-4 py-3 font-semibold">Bytes</th>
-            <th className="px-4 py-3 font-semibold">Outcome</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line">
-          {events.map((event) => (
-            <tr key={event.id ?? event.timestamp}>
-              <td className="px-4 py-3 text-fg-secondary">
-                {new Date(event.timestamp).toLocaleString()}
-              </td>
-              <td className="px-4 py-3 text-fg">{event.action}</td>
-              <td className="px-4 py-3 text-fg-secondary">{event.source_ip ?? "—"}</td>
-              <td className="px-4 py-3 text-fg-secondary">{event.target ?? "—"}</td>
-              <td className="px-4 py-3 text-fg-secondary">
-                {event.bytes !== null ? event.bytes.toLocaleString() : "—"}
-              </td>
-              <td className="px-4 py-3 text-fg-secondary">{event.outcome ?? "—"}</td>
+    <Card padding="none" as="div" className="overflow-x-auto">
+      <TableContainer>
+        <Table>
+          <THead>
+            <tr>
+              <TH>Time</TH>
+              <TH>Action</TH>
+              <TH>Source IP</TH>
+              <TH>Target</TH>
+              <TH>Bytes</TH>
+              <TH>Outcome</TH>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </THead>
+          <TBody>
+            {events.map((event) => (
+              <tr key={event.id ?? event.timestamp}>
+                <TD className="text-fg-secondary">
+                  {new Date(event.timestamp).toLocaleString()}
+                </TD>
+                <TD className="text-fg">{event.action}</TD>
+                <TD className="text-fg-secondary">{event.source_ip ?? "—"}</TD>
+                <TD className="text-fg-secondary">{event.target ?? "—"}</TD>
+                <TD className="text-fg-secondary">
+                  {event.bytes !== null ? event.bytes.toLocaleString() : "—"}
+                </TD>
+                <TD className="text-fg-secondary">{event.outcome ?? "—"}</TD>
+              </tr>
+            ))}
+          </TBody>
+        </Table>
+      </TableContainer>
+    </Card>
   );
 }

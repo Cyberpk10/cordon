@@ -1,4 +1,5 @@
 import type { FrameworkCoverage } from "../../types/analysis";
+import { Card, CardHeader } from "../ui";
 
 interface FrameworkCoveragePanelProps {
   coverage: FrameworkCoverage[];
@@ -6,10 +7,8 @@ interface FrameworkCoveragePanelProps {
 
 export default function FrameworkCoveragePanel({ coverage }: FrameworkCoveragePanelProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-      <div className="border-b border-line bg-surface-panel px-6 py-3">
-        <h3 className="text-base font-semibold text-fg">Control Framework Coverage</h3>
-      </div>
+    <Card padding="none" as="div">
+      <CardHeader title="Control Framework Coverage" />
       <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4">
         {coverage.map((framework) => (
           <div key={framework.framework_key} className="rounded-lg border border-line p-4">
@@ -27,6 +26,6 @@ export default function FrameworkCoveragePanel({ coverage }: FrameworkCoveragePa
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

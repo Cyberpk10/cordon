@@ -1,8 +1,21 @@
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import type { CampaignDetailResponse } from "../../types/analysis";
 import CampaignBuilder from "./CampaignBuilder";
 import CampaignDetail from "./CampaignDetail";
 import { CampaignStatusBadge } from "./SimulationStatusBadge";
+import {
+  Button,
+  Card,
+  EmptyState,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Table,
+  TableContainer,
+  TableMessageRow,
+} from "../ui";
 
 // No GET /api/sim/campaigns list endpoint exists on the backend (Stage 1 shipped exactly
 // six endpoints, lookup only by id) — this list is session-local, populated as campaigns
@@ -40,12 +53,9 @@ export default function CampaignsView() {
   if (isBuilding) {
     return (
       <div className="flex flex-col gap-4">
-        <button
-          onClick={() => setIsBuilding(false)}
-          className="self-start text-sm font-semibold text-accent hover:text-accent-hover"
-        >
-          &larr; Back to campaigns
-        </button>
+        <Button variant="link" icon={ArrowLeft} className="self-start" onClick={() => setIsBuilding(false)}>
+          Back to campaigns
+        </Button>
         <CampaignBuilder
           onCreated={(campaign) => {
             upsertEntry(campaign);
@@ -64,45 +74,42 @@ export default function CampaignsView() {
           Campaigns created this session. Reloading the page clears this list — pick a
           campaign right after creating it, or keep its link handy.
         </p>
-        <button
-          onClick={() => setIsBuilding(true)}
-          className="whitespace-nowrap rounded-lg bg-accent-fill px-4 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover"
-        >
+        <Button variant="primary" onClick={() => setIsBuilding(true)}>
           New campaign
-        </button>
+        </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
-            <tr>
-              <th className="px-6 py-3 font-semibold">Name</th>
-              <th className="px-6 py-3 font-semibold">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {campaigns.map((campaign) => (
-              <tr
-                key={campaign.id}
-                onClick={() => setSelectedId(campaign.id)}
-                className="cursor-pointer transition hover:bg-surface-raised"
-              >
-                <td className="px-6 py-3 font-semibold text-fg">{campaign.name}</td>
-                <td className="px-6 py-3">
-                  <CampaignStatusBadge status={campaign.status} />
-                </td>
-              </tr>
-            ))}
-            {campaigns.length === 0 && (
+      <Card padding="none" as="div">
+        <TableContainer>
+          <Table>
+            <THead>
               <tr>
-                <td colSpan={2} className="px-6 py-8 text-center text-fg-secondary">
-                  No campaigns yet this session.
-                </td>
+                <TH density="comfortable">Name</TH>
+                <TH density="comfortable">Status</TH>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </THead>
+            <TBody>
+              {campaigns.map((campaign) => (
+                <tr
+                  key={campaign.id}
+                  onClick={() => setSelectedId(campaign.id)}
+                  className="cursor-pointer transition hover:bg-surface-raised"
+                >
+                  <TD density="comfortable" className="font-semibold text-fg">{campaign.name}</TD>
+                  <TD density="comfortable">
+                    <CampaignStatusBadge status={campaign.status} />
+                  </TD>
+                </tr>
+              ))}
+              {campaigns.length === 0 && (
+                <TableMessageRow colSpan={2}>
+                  <EmptyState variant="inline" title="No campaigns yet this session." />
+                </TableMessageRow>
+              )}
+            </TBody>
+          </Table>
+        </TableContainer>
+      </Card>
     </div>
   );
 }

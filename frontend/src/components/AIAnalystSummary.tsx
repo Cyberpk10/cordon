@@ -1,3 +1,6 @@
+import { Sparkles } from "lucide-react";
+import { Badge, Card } from "./ui";
+
 interface AIAnalystSummaryProps {
   narrative: string | null;
   model: string | null;
@@ -9,16 +12,15 @@ export default function AIAnalystSummary({ narrative, model }: AIAnalystSummaryP
   }
 
   return (
-    <section className="rounded-xl border border-accent/25 bg-accent/10 p-6 shadow-sm">
+    <Card tone="accent">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-accent">AI Analyst Summary</h2>
-        {model && (
-          <span className="rounded-full border border-accent/35 bg-surface-card px-2.5 py-0.5 text-xs font-semibold text-accent">
-            {model}
-          </span>
-        )}
+        <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
+          <Sparkles aria-hidden="true" className="h-4 w-4 text-accent" />
+          AI Analyst Summary
+        </h2>
+        {model && <Badge tone="accent">{model}</Badge>}
       </div>
-      <p className="mt-2 text-sm text-accent">{narrative}</p>
-    </section>
+      <p className="mt-2 text-sm leading-relaxed text-fg-secondary">{narrative}</p>
+    </Card>
   );
 }

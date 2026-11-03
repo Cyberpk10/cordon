@@ -1,6 +1,7 @@
 import { useState } from "react";
 import CampaignsView from "./CampaignsView";
 import HumanRiskView from "./HumanRiskView";
+import { TabPanel, Tabs } from "../ui";
 
 type SubTab = "campaigns" | "human-risk";
 
@@ -9,24 +10,21 @@ export default function SimulationsView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <nav className="flex gap-1 border-b border-line">
-        {(["campaigns", "human-risk"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setSubTab(t)}
-            className={`px-4 py-2 text-sm font-semibold transition ${
-              subTab === t
-                ? "border-b-2 border-accent text-accent"
-                : "text-fg-secondary hover:text-fg"
-            }`}
-          >
-            {t === "campaigns" ? "Campaigns" : "Human Risk"}
-          </button>
-        ))}
-      </nav>
+      <Tabs
+        aria-label="Simulations"
+        idPrefix="simulations"
+        items={[
+          { value: "campaigns", label: "Campaigns" },
+          { value: "human-risk", label: "Human Risk" },
+        ]}
+        value={subTab}
+        onChange={setSubTab}
+      />
 
-      {subTab === "campaigns" && <CampaignsView />}
-      {subTab === "human-risk" && <HumanRiskView />}
+      <TabPanel idPrefix="simulations" value={subTab}>
+        {subTab === "campaigns" && <CampaignsView />}
+        {subTab === "human-risk" && <HumanRiskView />}
+      </TabPanel>
     </div>
   );
 }

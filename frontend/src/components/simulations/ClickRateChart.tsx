@@ -1,6 +1,9 @@
+import { BarChart3 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ClickRatePeriod } from "../../types/analysis";
+import { EmptyState } from "../ui";
 import { chartTheme, color } from "../../theme";
+import { Card } from "../ui";
 
 // Same status-color convention as VerdictDonut.tsx (amber=warning, red=critical) — click
 // and submit are two severities of the same underlying event, not unrelated categories, so
@@ -20,11 +23,11 @@ export default function ClickRateChart({ periods }: ClickRateChartProps) {
   }));
 
   return (
-    <div className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+    <Card as="div">
       <h3 className="text-base font-semibold text-fg">Click Rate Over Time</h3>
       <p className="text-xs text-fg-secondary">% of recipients per period who clicked or submitted.</p>
       {data.length === 0 ? (
-        <p className="mt-4 text-sm text-fg-secondary">No campaigns sent in this period.</p>
+        <EmptyState icon={BarChart3} title="No campaigns sent in this period." className="mt-4" />
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={data} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
@@ -44,6 +47,6 @@ export default function ClickRateChart({ periods }: ClickRateChartProps) {
           </BarChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </Card>
   );
 }

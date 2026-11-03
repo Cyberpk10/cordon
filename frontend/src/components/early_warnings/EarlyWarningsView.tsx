@@ -1,21 +1,21 @@
 import { useEffect, useState } from "react";
+import { CheckCheck, ShieldCheck } from "lucide-react";
 import { acknowledgeEarlyWarning, getEarlyWarnings } from "../../api/client";
 import type { EarlyWarningAlertEntry } from "../../types/analysis";
+import { Badge, Button, Card, EmptyState, ErrorState, LoadingState, type BadgeTone } from "../ui";
 
-const BAND_STYLES: Record<string, string> = {
-  normal: "border-line-strong bg-surface-raised text-fg-secondary",
-  elevated: "border-warning/35 bg-warning/10 text-warning",
-  attack_forming: "border-caution/50 bg-caution/10 text-caution",
-  active_incident: "border-danger/50 bg-danger/10 text-danger",
+const BAND_TONE: Record<string, BadgeTone> = {
+  normal: "neutral",
+  elevated: "warning",
+  attack_forming: "caution",
+  active_incident: "danger",
 };
 
 function BandBadge({ band }: { band: string }) {
   return (
-    <span
-      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${BAND_STYLES[band] ?? BAND_STYLES.normal}`}
-    >
+    <Badge tone={BAND_TONE[band] ?? BAND_TONE.normal}>
       {band.replace("_", " ")}
-    </span>
+    </Badge>
   );
 }
 
@@ -60,35 +60,38 @@ export default function EarlyWarningsView() {
         </p>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
-      )}
+      {error && <ErrorState message={error} />}
 
-      {isLoading && <p className="text-sm text-fg-secondary">Loading early warnings…</p>}
+      {isLoading && <LoadingState label="Loading early warnings…" />}
 
       {!isLoading && alerts.length === 0 && (
-        <div className="rounded-xl border border-line bg-surface-card p-8 text-center text-sm text-fg-secondary shadow-sm">
-          No actors currently showing signs of a forming attack.
-        </div>
+        <Card padding="none" as="div">
+          <EmptyState
+            icon={ShieldCheck}
+            title="No actors currently showing signs of a forming attack."
+            description="Early warnings appear here when several precursor signals line up for the same account."
+          />
+        </Card>
       )}
 
       <div className="flex flex-col gap-4">
         {alerts.map((alert) => (
-          <div key={alert.id} className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
+          <Card padding="none" as="div" key={alert.id}>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface-panel px-6 py-3">
               <div className="flex items-center gap-3">
                 <h3 className="text-base font-semibold text-fg">{alert.actor}</h3>
                 <BandBadge band={alert.band} />
                 <span className="text-sm text-fg-secondary">score {alert.score.toFixed(1)}</span>
               </div>
-              <button
-                type="button"
+              <Button
+                size="sm"
+                icon={CheckCheck}
                 onClick={() => handleAck(alert.id)}
-                disabled={ackingId === alert.id}
-                className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm font-semibold text-fg transition hover:bg-surface-raised disabled:opacity-50"
+                loading={ackingId === alert.id}
+                loadingText="Acknowledging…"
               >
-                {ackingId === alert.id ? "Acknowledging…" : "Acknowledge"}
-              </button>
+                Acknowledge
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
@@ -123,7 +126,7 @@ export default function EarlyWarningsView() {
                 </ul>
               </div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>

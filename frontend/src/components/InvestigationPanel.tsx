@@ -4,17 +4,20 @@ import {
   investigateCase,
 } from "../api/client";
 import type { Investigation } from "../types/analysis";
+import { FileSearch, Sparkles } from "lucide-react";
+import ControlRefChips from "./ControlRefChips";
+import { Badge, Button, Card, EmptyState, ErrorState, LoadingState, type BadgeTone } from "./ui";
 
-const SEVERITY_STYLES: Record<string, string> = {
-  strong: "bg-success/10 text-success border-success/35",
-  moderate: "bg-warning/10 text-warning border-warning/35",
-  thin: "bg-surface-raised text-fg-secondary border-line-strong",
+const EVIDENCE_TONE: Record<string, BadgeTone> = {
+  strong: "success",
+  moderate: "warning",
+  thin: "neutral",
 };
 
-const BAND_STYLES: Record<string, string> = {
-  normal: "bg-surface-raised text-fg-secondary border-line-strong",
-  elevated: "bg-warning/10 text-warning border-warning/35",
-  attack_forming: "bg-danger/10 text-danger border-danger/35",
+const BAND_TONE: Record<string, BadgeTone> = {
+  normal: "neutral",
+  elevated: "warning",
+  attack_forming: "danger",
 };
 
 interface InvestigationPanelProps {
@@ -80,10 +83,10 @@ export default function InvestigationPanel({
   };
 
   return (
-    <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+    <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-fg">Investigation</h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold text-fg">Investigation</h2>
           <p className="mt-1 text-sm text-fg-secondary">
             Correlates Cordon&apos;s own signals for the actor(s) involved — sender history,
             related cases and incidents, threat-intel hits, early-warning threat level, and
@@ -91,25 +94,30 @@ export default function InvestigationPanel({
             Recommends only; nothing here executes automatically.
           </p>
         </div>
-        <button
+        <Button
+          variant="primary"
+          icon={FileSearch}
           onClick={handleRun}
-          disabled={isRunning}
-          className="whitespace-nowrap rounded-lg bg-accent-fill px-4 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+          loading={isRunning}
+          loadingText="Investigating…"
         >
-          {isRunning ? "Investigating…" : investigation ? "Re-investigate" : "Investigate"}
-        </button>
+          {investigation ? "Re-investigate" : "Investigate"}
+        </Button>
       </div>
 
-      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
-      {status === "loading" && <p className="mt-3 text-sm text-fg-secondary">Loading…</p>}
+      {error && <ErrorState message={error} className="mt-3" />}
+      {status === "loading" && <LoadingState label="Loading investigation…" className="mt-3" />}
       {status === "none" && !error && (
-        <p className="mt-3 text-sm text-fg-secondary">
-          No investigation has been run yet. Click Investigate to assemble one now.
-        </p>
+        <EmptyState
+          icon={FileSearch}
+          title="No investigation has been run yet."
+          description="Click Investigate to assemble one now."
+          className="mt-3 rounded-control border border-dashed border-line"
+        />
       )}
 
       {investigation && <InvestigationBody investigation={investigation} />}
-    </section>
+    </Card>
   );
 }
 
@@ -117,29 +125,28 @@ function InvestigationBody({ investigation: inv }: { investigation: Investigatio
   return (
     <div className="mt-5 flex flex-col gap-5">
       <div className="flex flex-wrap items-center gap-3 text-xs text-fg-secondary">
-        <span className="rounded-full border border-line-strong bg-surface-panel px-2.5 py-0.5 font-semibold uppercase tracking-wide">
-          {inv.trigger === "auto" ? "Auto-triggered" : "On-demand"}
-        </span>
+        <Badge caps>{inv.trigger === "auto" ? "Auto-triggered" : "On-demand"}</Badge>
         {inv.actor && <span>Actor: {inv.actor}</span>}
         <span>Updated {new Date(inv.updated_at).toLocaleString()}</span>
       </div>
 
       {/* Grounded narrative */}
-      <div className="rounded-lg border border-accent/25 bg-accent/10 p-4">
+      <div className="rounded-control border border-accent/25 bg-accent/10 p-4">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-accent">Investigation Summary</h3>
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-fg">
+            <Sparkles aria-hidden="true" className="h-4 w-4 text-accent" />
+            Investigation Summary
+          </h3>
           {inv.summary_evidence_strength && (
-            <span
-              className={`rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${SEVERITY_STYLES[inv.summary_evidence_strength]}`}
-            >
+            <Badge tone={EVIDENCE_TONE[inv.summary_evidence_strength] ?? "neutral"} caps>
               {inv.summary_evidence_strength} evidence
-            </span>
+            </Badge>
           )}
         </div>
         {inv.summary ? (
-          <p className="mt-2 text-sm leading-relaxed text-accent">{inv.summary}</p>
+          <p className="mt-2 text-sm leading-relaxed text-fg-secondary">{inv.summary}</p>
         ) : (
-          <p className="mt-2 text-sm text-accent">
+          <p className="mt-2 text-sm text-fg-secondary">
             No AI narrative available for this investigation — the deterministic findings
             below are unaffected. (Either the AI reasoning layer is disabled, or there wasn&apos;t
             enough gathered evidence to ground one.)
@@ -151,21 +158,13 @@ function InvestigationBody({ investigation: inv }: { investigation: Investigatio
       <div>
         <h3 className="text-sm font-semibold text-fg">Scope</h3>
         <div className="mt-2 flex flex-wrap gap-2">
-          <span
-            className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-              inv.scope.possible_account_compromise
-                ? "border-danger/35 bg-danger/10 text-danger"
-                : "border-success/35 bg-success/10 text-success"
-            }`}
-          >
+          <Badge tone={inv.scope.possible_account_compromise ? "danger" : "success"}>
             {inv.scope.possible_account_compromise
               ? "Possible account compromise"
               : "No compromise signals found"}
-          </span>
+          </Badge>
           {inv.scope.possible_additional_targets && (
-            <span className="rounded-full border border-warning/35 bg-warning/10 px-2.5 py-0.5 text-xs font-semibold text-warning">
-              Other recipients likely targeted
-            </span>
+            <Badge tone="warning">Other recipients likely targeted</Badge>
           )}
         </div>
         {inv.scope.compromise_signals.length > 0 && (
@@ -204,11 +203,9 @@ function InvestigationBody({ investigation: inv }: { investigation: Investigatio
         <div>
           <h3 className="text-sm font-semibold text-fg">Early-Warning Threat Level</h3>
           <div className="mt-2 flex items-center gap-2">
-            <span
-              className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${BAND_STYLES[inv.threat_level.band] ?? BAND_STYLES.normal}`}
-            >
+            <Badge tone={BAND_TONE[inv.threat_level.band] ?? "neutral"} caps>
               {inv.threat_level.band.replace("_", " ")}
-            </span>
+            </Badge>
             <span className="text-sm text-fg-secondary">
               {inv.threat_level.score.toFixed(0)}/100, trend {inv.threat_level.trend}
             </span>
@@ -239,7 +236,7 @@ function InvestigationBody({ investigation: inv }: { investigation: Investigatio
             {inv.ueba_findings.map((finding, i) => (
               <li
                 key={`${finding.id}-${i}`}
-                className="rounded-lg border border-line bg-surface-panel p-3 text-sm"
+                className="rounded-control border border-line bg-surface-panel p-3 text-sm"
               >
                 <span className="font-semibold text-fg">{finding.title}</span>
                 <span className="text-fg-secondary"> — {finding.description}</span>
@@ -297,22 +294,10 @@ function InvestigationBody({ investigation: inv }: { investigation: Investigatio
           </p>
           <ul className="mt-2 flex flex-col gap-2">
             {inv.recommended_steps.map((step) => (
-              <li key={step.step_id} className="rounded-lg border border-line p-3">
+              <li key={step.step_id} className="rounded-control border border-line bg-surface-panel p-3">
                 <p className="text-sm font-semibold text-fg">{step.title}</p>
                 <p className="mt-0.5 text-sm text-fg-secondary">{step.description}</p>
-                {step.control_refs.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {step.control_refs.map((ref) => (
-                      <span
-                        key={`${ref.framework_key}-${ref.control_id}`}
-                        title={ref.control_name}
-                        className="rounded border border-line bg-surface-panel px-1.5 py-0.5 text-xs text-fg-secondary"
-                      >
-                        {ref.framework_key}: {ref.control_id}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <ControlRefChips refs={step.control_refs} />
               </li>
             ))}
           </ul>

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
+import { ShieldCheck } from "lucide-react";
 import { getMonitoringDrift } from "../../api/client";
 import type { DriftAlert, DriftAlertSeverity } from "../../types/analysis";
+import { Badge, Card, CardHeader, EmptyState, ErrorState, type BadgeTone } from "../ui";
 
-const SEVERITY_STYLES: Record<DriftAlertSeverity, string> = {
-  medium: "bg-warning/10 text-warning border-warning/35",
-  high: "bg-caution/10 text-caution border-caution/35",
-  critical: "bg-danger/10 text-danger border-danger/35",
+const SEVERITY_TONE: Record<DriftAlertSeverity, BadgeTone> = {
+  medium: "warning",
+  high: "caution",
+  critical: "danger",
 };
 
 const TYPE_LABELS: Record<DriftAlert["type"], string> = {
@@ -25,20 +27,14 @@ export default function DriftAlertFeed() {
   }, []);
 
   return (
-    <section className="rounded-xl border border-line bg-surface-card shadow-sm">
-      <div className="border-b border-line px-6 py-4">
-        <h2 className="text-lg font-semibold text-fg">Drift alerts</h2>
-        <p className="mt-0.5 text-sm text-fg-secondary">
-          Controls that have gone quiet, authentication pass-rates falling, or framework
-          coverage dropping.
-        </p>
-      </div>
+    <Card padding="none">
+      <CardHeader
+        level={2}
+        title="Drift alerts"
+        description="Controls that have gone quiet, authentication pass-rates falling, or framework coverage dropping."
+      />
 
-      {error && (
-        <div className="m-6 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState message={error} className="m-6" />}
 
       <div className="divide-y divide-line">
         {items.map((alert, i) => (
@@ -48,11 +44,9 @@ export default function DriftAlertFeed() {
           >
             <div>
               <div className="flex items-center gap-2">
-                <span
-                  className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${SEVERITY_STYLES[alert.severity]}`}
-                >
+                <Badge tone={SEVERITY_TONE[alert.severity]} caps>
                   {alert.severity}
-                </span>
+                </Badge>
                 <span className="text-sm font-semibold text-fg">
                   {alert.control_id ? `${alert.control_id} — ${alert.control_name}` : alert.control_name}
                 </span>
@@ -66,11 +60,9 @@ export default function DriftAlertFeed() {
           </div>
         ))}
         {items.length === 0 && !error && (
-          <div className="px-6 py-8 text-center text-sm text-fg-secondary">
-            No active drift alerts.
-          </div>
+          <EmptyState icon={ShieldCheck} title="No active drift alerts." description="Every monitored control is reporting as expected." />
         )}
       </div>
-    </section>
+    </Card>
   );
 }

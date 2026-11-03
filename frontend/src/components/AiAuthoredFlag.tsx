@@ -1,4 +1,6 @@
+import { Bot } from "lucide-react";
 import type { Indicator } from "../types/analysis";
+import { Badge, Card } from "./ui";
 
 interface AiAuthoredFlagProps {
   indicators: Indicator[];
@@ -13,16 +15,17 @@ export default function AiAuthoredFlag({ indicators }: AiAuthoredFlagProps) {
   const reason = indicator.evidence[0] ?? indicator.description;
 
   return (
-    <section className="rounded-xl border border-violet/35 bg-violet/10 p-4 shadow-sm">
+    <Card tone="violet" padding="sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-violet">
+        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-violet">
+          <Bot aria-hidden="true" className="h-4 w-4" />
           Likely AI-generated
         </h2>
-        <span className="rounded-full border border-violet/35 bg-surface-card px-2.5 py-0.5 text-xs font-semibold text-violet">
+        <Badge tone="violet">
           {indicator.evidence.length} stylistic signal{indicator.evidence.length === 1 ? "" : "s"}
-        </span>
+        </Badge>
       </div>
-      <p className="mt-1 text-sm text-violet">{reason}</p>
-    </section>
+      <p className="mt-1 text-sm text-fg-secondary">{reason}</p>
+    </Card>
   );
 }

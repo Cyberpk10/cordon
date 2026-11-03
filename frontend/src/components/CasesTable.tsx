@@ -3,6 +3,25 @@ import { getCases } from "../api/client";
 import type { CaseSummary, MessageChannel, Verdict } from "../types/analysis";
 import ChannelBadge from "./ChannelBadge";
 import VerdictBadge from "./VerdictBadge";
+import { ChevronLeft, ChevronRight, FolderOpen } from "lucide-react";
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  Field,
+  Input,
+  LoadingState,
+  Select,
+  Table,
+  TableContainer,
+  TableMessageRow,
+  TBody,
+  TD,
+  TH,
+  THead,
+  TR,
+} from "./ui";
 
 const PAGE_SIZE = 20;
 
@@ -73,136 +92,138 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-4">
-        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-          Verdict
-          <select
+        <Field label="Verdict">
+          <Select
             value={verdict}
             onChange={(event) => {
               setPage(1);
               setVerdict(event.target.value as Verdict | "");
             }}
-            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
+            className="w-40"
           >
             {VERDICT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-          Channel
-          <select
+          </Select>
+        </Field>
+        <Field label="Channel">
+          <Select
             value={channel}
             onChange={(event) => {
               setPage(1);
               setChannel(event.target.value as MessageChannel | "");
             }}
-            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
+            className="w-40"
           >
             {CHANNEL_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-          From
-          <input
+          </Select>
+        </Field>
+        <Field label="From">
+          <Input
             type="date"
             value={dateFrom}
             onChange={(event) => {
               setPage(1);
               setDateFrom(event.target.value);
             }}
-            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-          To
-          <input
+        </Field>
+        <Field label="To">
+          <Input
             type="date"
             value={dateTo}
             onChange={(event) => {
               setPage(1);
               setDateTo(event.target.value);
             }}
-            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
           />
-        </label>
+        </Field>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState message={error} />}
 
-      <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Verdict / Score</th>
-              <th className="px-4 py-3 font-semibold">Channel</th>
-              <th className="px-4 py-3 font-semibold">Sender</th>
-              <th className="px-4 py-3 font-semibold">Subject</th>
-              <th className="px-4 py-3 font-semibold">Date</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {items.map((item) => (
-              <tr
-                key={item.id}
-                onClick={() => onSelectCase(item.id)}
-                className="cursor-pointer transition hover:bg-surface-raised"
-              >
-                <td className="px-4 py-3">
-                  <VerdictBadge verdict={item.verdict} score={item.score} />
-                </td>
-                <td className="px-4 py-3">
-                  <ChannelBadge channel={item.channel} />
-                </td>
-                <td className="px-4 py-3 text-fg-secondary">{item.from_addr ?? "—"}</td>
-                <td className="px-4 py-3 text-fg-secondary">{item.subject ?? item.filename}</td>
-                <td className="px-4 py-3 text-fg-secondary">
-                  {new Date(item.created_at).toLocaleString()}
-                </td>
-              </tr>
-            ))}
-            {!isLoading && items.length === 0 && (
+      <Card padding="none">
+        <TableContainer>
+          <Table>
+            <THead>
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-fg-secondary">
-                  No cases match these filters.
-                </td>
+                <TH>Verdict / Score</TH>
+                <TH>Channel</TH>
+                <TH>Sender</TH>
+                <TH>Subject</TH>
+                <TH>Date</TH>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </THead>
+            <TBody>
+              {isLoading && items.length === 0 && (
+                <TableMessageRow colSpan={5}>
+                  <LoadingState label="Loading cases…" lines={4} />
+                </TableMessageRow>
+              )}
+              {items.map((item) => (
+                <TR
+                  key={item.id}
+                  onActivate={() => onSelectCase(item.id)}
+                  aria-label={`Open case: ${item.subject ?? item.filename}`}
+                >
+                  <TD>
+                    <VerdictBadge verdict={item.verdict} score={item.score} />
+                  </TD>
+                  <TD>
+                    <ChannelBadge channel={item.channel} />
+                  </TD>
+                  <TD className="whitespace-nowrap text-fg-secondary">{item.from_addr ?? "—"}</TD>
+                  <TD className="min-w-[16rem] text-fg-secondary">{item.subject ?? item.filename}</TD>
+                  <TD className="whitespace-nowrap text-fg-secondary">
+                    {new Date(item.created_at).toLocaleString()}
+                  </TD>
+                </TR>
+              ))}
+              {!error && !isLoading && items.length === 0 && (
+                <TableMessageRow colSpan={5}>
+                  <EmptyState
+                    icon={FolderOpen}
+                    title="No cases match these filters."
+                    description="Try widening the date range or clearing the verdict and channel filters."
+                  />
+                </TableMessageRow>
+              )}
+            </TBody>
+          </Table>
+        </TableContainer>
+      </Card>
 
       <div className="flex items-center justify-between text-sm text-fg-secondary">
         <span>
           {total} case{total === 1 ? "" : "s"}
         </span>
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            size="sm"
+            icon={ChevronLeft}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1 || isLoading}
-            className="rounded-lg border border-line-strong px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Previous
-          </button>
-          <span>
+          </Button>
+          <span aria-live="polite">
             Page {page} of {totalPages}
           </span>
-          <button
+          <Button
+            size="sm"
+            icon={ChevronRight}
+            iconPosition="end"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages || isLoading}
-            className="rounded-lg border border-line-strong px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
-          </button>
+          </Button>
         </div>
       </div>
     </div>

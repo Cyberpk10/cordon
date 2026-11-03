@@ -4,6 +4,7 @@ import AuthLayout from "./AuthLayout";
 import { ErrorBanner, FormField, SubmitButton } from "./formFields";
 import { useAuth } from "./AuthContext";
 import { AuthError } from "../api/authClient";
+import { Button } from "../components/ui";
 
 interface OnboardingScreenProps {
   onSwitchToLogin: () => void;
@@ -39,13 +40,9 @@ export default function OnboardingScreen({ onSwitchToLogin }: OnboardingScreenPr
       footer={
         <>
           Already have an account?{" "}
-          <button
-            type="button"
-            onClick={onSwitchToLogin}
-            className="font-semibold text-accent hover:underline"
-          >
+          <Button variant="link" onClick={onSwitchToLogin}>
             Sign in
-          </button>
+          </Button>
         </>
       }
     >

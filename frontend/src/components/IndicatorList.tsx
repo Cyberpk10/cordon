@@ -1,9 +1,11 @@
+import { ShieldCheck } from "lucide-react";
 import type { Indicator, Severity } from "../types/analysis";
+import { Badge, EmptyState, type BadgeTone } from "./ui";
 
-const SEVERITY_STYLES: Record<Severity, string> = {
-  low: "bg-surface-raised text-fg border-line-strong",
-  medium: "bg-warning/10 text-warning border-warning/35",
-  high: "bg-danger/10 text-danger border-danger/35",
+const SEVERITY_TONE: Record<Severity, BadgeTone> = {
+  low: "neutral",
+  medium: "warning",
+  high: "danger",
 };
 
 interface IndicatorListProps {
@@ -17,23 +19,21 @@ export default function IndicatorList({
 }: IndicatorListProps) {
   if (indicators.length === 0) {
     return (
-      <p className="rounded-lg border border-line bg-surface-panel p-4 text-sm text-fg-secondary">
-        {emptyMessage}
-      </p>
+      <div className="rounded-card border border-line bg-surface-card">
+        <EmptyState variant="inline" icon={ShieldCheck} title={emptyMessage} />
+      </div>
     );
   }
 
   return (
     <ul className="flex flex-col gap-3">
       {indicators.map((indicator) => (
-        <li key={indicator.id} className="rounded-lg border border-line bg-surface-card p-4 shadow-sm">
+        <li key={indicator.id} className="rounded-card border border-line bg-surface-card p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold text-fg">{indicator.title}</h3>
-            <span
-              className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${SEVERITY_STYLES[indicator.severity]}`}
-            >
+            <Badge tone={SEVERITY_TONE[indicator.severity]} caps>
               {indicator.severity} · +{indicator.score}
-            </span>
+            </Badge>
           </div>
           <p className="mt-1 text-sm text-fg-secondary">{indicator.description}</p>
           {indicator.evidence.length > 0 && (

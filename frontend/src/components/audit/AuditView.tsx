@@ -3,6 +3,7 @@ import { downloadAuditReport, generateAuditReport, getAuditEvidence } from "../.
 import type { AuditEvidenceResponse, AuditFrameworkAlias } from "../../types/analysis";
 import EvidenceTable from "./EvidenceTable";
 import RecentReportsList from "./RecentReportsList";
+import { Button, Card, ErrorState, Field, Input, LoadingState, Select } from "../ui";
 
 const FRAMEWORK_OPTIONS: { value: AuditFrameworkAlias; label: string }[] = [
   { value: "mitre", label: "MITRE ATT&CK" },
@@ -75,75 +76,65 @@ export default function AuditView() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-            Framework
-            <select
+          <Field label="Framework">
+            <Select
               value={framework}
               onChange={(event) => setFramework(event.target.value as AuditFrameworkAlias)}
-              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             >
               {FRAMEWORK_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-            From
-            <input
+            </Select>
+          </Field>
+          <Field label="From">
+            <Input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-            To
-            <input
+          </Field>
+          <Field label="To">
+            <Input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
-          </label>
+          </Field>
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
-      )}
+      {error && <ErrorState message={error} />}
 
-      {isLoading && !evidence && <p className="text-sm text-fg-secondary">Loading evidence…</p>}
+      {isLoading && !evidence && <LoadingState label="Loading evidence…" />}
 
       {evidence && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-line bg-surface-card p-5 shadow-sm">
+            <Card padding="md" as="div">
               <p className="text-sm font-semibold text-fg-secondary">Total Controls</p>
               <p className="mt-1 text-3xl font-semibold text-fg">{evidence.total_controls}</p>
-            </div>
-            <div className="rounded-xl border border-line bg-surface-card p-5 shadow-sm">
+            </Card>
+            <Card padding="md" as="div">
               <p className="text-sm font-semibold text-fg-secondary">Operating</p>
               <p className="mt-1 text-3xl font-semibold text-success">{evidence.operating_controls}</p>
-            </div>
-            <div className="flex flex-col justify-between rounded-xl border border-line bg-surface-card p-5 shadow-sm">
+            </Card>
+            <Card padding="md" as="div" className="flex flex-col justify-between">
               <p className="text-sm font-semibold text-fg-secondary">Evidence Pack</p>
-              <button
+              <Button
+                variant="primary"
+                className="mt-2"
                 onClick={handleGenerate}
-                disabled={isGenerating}
-                className="mt-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+                loading={isGenerating}
+                loadingText="Generating…"
               >
-                {isGenerating ? "Generating…" : "Generate Evidence Pack"}
-              </button>
-            </div>
+                Generate Evidence Pack
+              </Button>
+            </Card>
           </div>
 
-          {generateError && (
-            <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
-              {generateError}
-            </div>
-          )}
+          {generateError && <ErrorState message={generateError} />}
 
           <EvidenceTable controls={evidence.controls} />
           <RecentReportsList refreshToken={reportsRefreshToken} />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getFinancialRisk } from "../../api/client";
 import type { FinancialRiskResponse, RiskAttackTypeBreakdown } from "../../types/analysis";
+import { Button, Card, CardHeader, ErrorState, LoadingState, Table, TableContainer, TBody, TD, TH } from "../ui";
 
 const ATTACK_TYPE_LABELS: Record<string, string> = {
   bec: "Business Email Compromise",
@@ -18,28 +19,30 @@ function formatUsd(value: number): string {
 
 function BreakdownTable({ rows }: { rows: RiskAttackTypeBreakdown[] }) {
   return (
-    <table className="w-full text-left text-sm">
-      <thead className="text-xs uppercase tracking-wide text-fg-secondary">
-        <tr>
-          <th className="py-1.5 pr-3 font-semibold">Attack type</th>
-          <th className="py-1.5 pr-3 font-semibold">Count</th>
-          <th className="py-1.5 pr-3 font-semibold">Avg loss</th>
-          <th className="py-1.5 font-semibold">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-line">
-        {rows.map((row) => (
-          <tr key={row.attack_type}>
-            <td className="py-1.5 pr-3 text-fg">
-              {ATTACK_TYPE_LABELS[row.attack_type] ?? row.attack_type}
-            </td>
-            <td className="py-1.5 pr-3 text-fg-secondary">{row.count}</td>
-            <td className="py-1.5 pr-3 text-fg-secondary">{formatUsd(row.avg_loss_usd)}</td>
-            <td className="py-1.5 font-semibold text-fg">{formatUsd(row.subtotal_usd)}</td>
+    <TableContainer>
+      <Table>
+        <thead className="text-xs uppercase tracking-wide text-fg-secondary">
+          <tr>
+            <TH density="none" className="py-1.5 pr-3">Attack type</TH>
+            <TH density="none" className="py-1.5 pr-3">Count</TH>
+            <TH density="none" className="py-1.5 pr-3">Avg loss</TH>
+            <TH density="none" className="py-1.5">Subtotal</TH>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <TBody>
+          {rows.map((row) => (
+            <tr key={row.attack_type}>
+              <TD density="none" className="py-1.5 pr-3 text-fg">
+                {ATTACK_TYPE_LABELS[row.attack_type] ?? row.attack_type}
+              </TD>
+              <TD density="none" className="py-1.5 pr-3 text-fg-secondary">{row.count}</TD>
+              <TD density="none" className="py-1.5 pr-3 text-fg-secondary">{formatUsd(row.avg_loss_usd)}</TD>
+              <TD density="none" className="py-1.5 font-semibold text-fg">{formatUsd(row.subtotal_usd)}</TD>
+            </tr>
+          ))}
+        </TBody>
+      </Table>
+    </TableContainer>
   );
 }
 
@@ -65,40 +68,33 @@ export default function ExposureAvoidedCard() {
   }, []);
 
   if (error) {
-    return (
-      <div className="rounded-xl border border-danger/35 bg-danger/10 p-5 text-sm text-danger shadow-sm">
-        {error}
-      </div>
-    );
+    return <ErrorState message={error} />;
   }
 
   if (!risk) {
     return (
-      <div className="rounded-xl border border-line bg-surface-card p-5 text-sm text-fg-secondary shadow-sm">
-        Loading financial risk…
-      </div>
+      <Card padding="md" as="div">
+        <LoadingState label="Loading financial risk…" />
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-xl border border-line bg-surface-card shadow-sm">
-      <div className="border-b border-line bg-surface-panel px-6 py-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div>
-            <h3 className="text-base font-semibold text-fg">Estimated Exposure Avoided This Quarter</h3>
-            <p className="text-xs text-fg-secondary">
-              {new Date(risk.period_start).toLocaleDateString()} –{" "}
-              {new Date(risk.period_end).toLocaleDateString()}
-            </p>
-          </div>
-          <button
+    <Card padding="none" as="div">
+      <CardHeader
+        title="Estimated Exposure Avoided This Quarter"
+        description={`${new Date(risk.period_start).toLocaleDateString()} – ${new Date(risk.period_end).toLocaleDateString()}`}
+        actions={
+          <Button
+            variant="link"
+            aria-expanded={showAssumptions}
+            aria-controls="exposure-assumptions"
             onClick={() => setShowAssumptions((v) => !v)}
-            className="text-xs font-semibold text-accent hover:text-accent-hover"
           >
             {showAssumptions ? "Hide assumptions" : "View assumptions"}
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
         <div>
@@ -126,30 +122,32 @@ export default function ExposureAvoidedCard() {
       </div>
 
       {showAssumptions && (
-        <div className="border-t border-line bg-surface-panel px-6 py-4">
+        <div id="exposure-assumptions" className="border-t border-line bg-surface-panel px-6 py-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-fg-secondary">
             Assumptions used for this calculation
           </p>
-          <table className="mt-2 w-full text-left text-sm">
-            <thead className="text-xs uppercase tracking-wide text-fg-secondary">
-              <tr>
-                <th className="py-1.5 pr-3 font-semibold">Assumption</th>
-                <th className="py-1.5 pr-3 font-semibold">Value</th>
-                <th className="py-1.5 font-semibold">Source</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {Object.entries(risk.assumptions).map(([key, assumption]) => (
-                <tr key={key}>
-                  <td className="py-1.5 pr-3 font-mono text-xs text-fg">{key}</td>
-                  <td className="py-1.5 pr-3 text-fg">{assumption.value}</td>
-                  <td className="py-1.5 text-xs text-fg-secondary">{assumption.source}</td>
+          <TableContainer className="mt-2">
+            <Table>
+              <thead className="text-xs uppercase tracking-wide text-fg-secondary">
+                <tr>
+                  <TH density="none" className="py-1.5 pr-3">Assumption</TH>
+                  <TH density="none" className="py-1.5 pr-3">Value</TH>
+                  <TH density="none" className="py-1.5">Source</TH>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <TBody>
+                {Object.entries(risk.assumptions).map(([key, assumption]) => (
+                  <tr key={key}>
+                    <TD density="none" className="py-1.5 pr-3 font-mono text-xs text-fg">{key}</TD>
+                    <TD density="none" className="py-1.5 pr-3 text-fg">{assumption.value}</TD>
+                    <TD density="none" className="py-1.5 text-xs text-fg-secondary">{assumption.source}</TD>
+                  </tr>
+                ))}
+              </TBody>
+            </Table>
+          </TableContainer>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

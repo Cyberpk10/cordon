@@ -1,4 +1,17 @@
 import type { AuditControlEvidence } from "../../types/analysis";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Table,
+  TableContainer,
+  TableMessageRow,
+} from "../ui";
 
 interface EvidenceTableProps {
   controls: AuditControlEvidence[];
@@ -6,66 +19,52 @@ interface EvidenceTableProps {
 
 export default function EvidenceTable({ controls }: EvidenceTableProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-      <div className="border-b border-line bg-surface-panel px-6 py-3">
-        <h3 className="text-base font-semibold text-fg">Per-Control Evidence</h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
+    <Card padding="none" as="div">
+      <CardHeader title="Per-Control Evidence" />
+      <TableContainer>
+        <Table>
+          <THead>
             <tr>
-              <th className="px-6 py-3 font-semibold">Control</th>
-              <th className="px-6 py-3 font-semibold">Name</th>
-              <th className="px-6 py-3 font-semibold">Detections</th>
-              <th className="px-6 py-3 font-semibold">Status</th>
-              <th className="px-6 py-3 font-semibold">Sample Cases</th>
+              <TH density="comfortable">Control</TH>
+              <TH density="comfortable">Name</TH>
+              <TH density="comfortable">Detections</TH>
+              <TH density="comfortable">Status</TH>
+              <TH density="comfortable">Sample Cases</TH>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
+          </THead>
+          <TBody>
             {controls.map((control) => (
               <tr key={control.control_id}>
-                <td className="px-6 py-3 font-mono text-xs text-fg">{control.control_id}</td>
-                <td className="px-6 py-3 text-fg">{control.control_name}</td>
-                <td className="px-6 py-3 text-fg-secondary">{control.detection_count}</td>
-                <td className="px-6 py-3">
-                  <span
-                    className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                      control.operating
-                        ? "border-success/35 bg-success/10 text-success"
-                        : "border-line-strong bg-surface-raised text-fg-secondary"
-                    }`}
-                  >
+                <TD density="comfortable" className="font-mono text-xs text-fg">{control.control_id}</TD>
+                <TD density="comfortable" className="text-fg">{control.control_name}</TD>
+                <TD density="comfortable" className="text-fg-secondary">{control.detection_count}</TD>
+                <TD density="comfortable">
+                  <Badge tone={control.operating ? "success" : "neutral"}>
                     {control.operating ? "Operating" : "No evidence"}
-                  </span>
-                </td>
-                <td className="px-6 py-3">
+                  </Badge>
+                </TD>
+                <TD density="comfortable">
                   <div className="flex flex-wrap gap-1">
                     {control.sample_cases.length === 0 && (
                       <span className="text-xs text-fg-muted">—</span>
                     )}
                     {control.sample_cases.map((sample) => (
-                      <span
-                        key={sample.id}
-                        title={new Date(sample.created_at).toLocaleString()}
-                        className="rounded border border-line bg-surface-panel px-1.5 py-0.5 text-xs text-fg-secondary"
-                      >
+                      <Badge key={sample.id} size="sm" title={new Date(sample.created_at).toLocaleString()}>
                         {sample.id.slice(0, 8)} · {sample.verdict}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
-                </td>
+                </TD>
               </tr>
             ))}
             {controls.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-fg-secondary">
-                  No controls found for this framework.
-                </td>
-              </tr>
+              <TableMessageRow colSpan={5}>
+                <EmptyState variant="inline" title="No controls found for this framework." />
+              </TableMessageRow>
             )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </TBody>
+        </Table>
+      </TableContainer>
+    </Card>
   );
 }

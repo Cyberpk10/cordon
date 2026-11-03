@@ -1,6 +1,9 @@
+import { PieChart as PieChartIcon } from "lucide-react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { VerdictCounts } from "../../types/analysis";
+import { EmptyState } from "../ui";
 import { chartTheme, color, type ColorToken } from "../../theme";
+import { Card } from "../ui";
 
 // Same verdict -> status-token convention as VerdictBadge.tsx (success/warning/danger).
 // Legend + direct segment labels mean the chart never relies on fill color alone.
@@ -24,10 +27,10 @@ export default function VerdictDonut({ verdictCounts }: VerdictDonutProps) {
   const chart = chartTheme();
 
   return (
-    <div className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+    <Card as="div">
       <h3 className="text-base font-semibold text-fg">Verdict Distribution</h3>
       {total === 0 ? (
-        <p className="mt-4 text-sm text-fg-secondary">No cases in this period.</p>
+        <EmptyState icon={PieChartIcon} title="No cases in this period." className="mt-4" />
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <PieChart>
@@ -50,6 +53,6 @@ export default function VerdictDonut({ verdictCounts }: VerdictDonutProps) {
           </PieChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </Card>
   );
 }

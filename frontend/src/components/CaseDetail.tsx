@@ -8,6 +8,8 @@ import IndicatorList from "./IndicatorList";
 import InvestigationPanel from "./InvestigationPanel";
 import ResponsePlaybookPanel from "./ResponsePlaybookPanel";
 import VerdictBadge from "./VerdictBadge";
+import { ArrowLeft, Trash2 } from "lucide-react";
+import { Button, Card, ErrorState, Field, Input, LoadingState, SectionHeading, Select, useToast } from "./ui";
 
 interface CaseDetailProps {
   caseId: string;
@@ -23,6 +25,7 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
   const [labelNote, setLabelNote] = useState("");
   const [isSubmittingLabel, setIsSubmittingLabel] = useState(false);
   const [labelError, setLabelError] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +69,7 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
         note: labelNote.trim() || undefined,
       });
       setCaseData((prev) => (prev ? { ...prev, latest_label: label } : prev));
+      toast({ title: "Label submitted", description: `Case labeled ${label.analyst_verdict}.` });
     } catch (err) {
       setLabelError(err instanceof Error ? err.message : "Failed to submit label.");
     } finally {
@@ -75,24 +79,21 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
 
   return (
     <div className="flex flex-col gap-6">
-      <button
-        onClick={onBack}
-        className="self-start text-sm font-semibold text-accent hover:text-accent-hover"
-      >
-        ← Back to cases
-      </button>
+      <Button variant="link" icon={ArrowLeft} onClick={onBack} className="self-start">
+        Back to cases
+      </Button>
 
-      {error && (
-        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
-          {error}
-        </div>
+      {error && <ErrorState message={error} />}
+
+      {!caseData && !error && (
+        <Card>
+          <LoadingState label="Loading case…" lines={4} />
+        </Card>
       )}
-
-      {!caseData && !error && <p className="text-sm text-fg-secondary">Loading case…</p>}
 
       {caseData && (
         <>
-          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+          <Card>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex flex-col gap-2">
                 <VerdictBadge verdict={caseData.verdict} score={caseData.score} />
@@ -110,13 +111,17 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
                   </p>
                 )}
               </div>
-              <button
+              <Button
+                variant="secondary"
+                tone="danger"
+                size="sm"
+                icon={Trash2}
                 onClick={handleDelete}
-                disabled={isDeleting}
-                className="rounded-lg border border-danger/35 px-3 py-1.5 text-sm font-semibold text-danger hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
+                loading={isDeleting}
+                loadingText="Deleting…"
               >
-                {isDeleting ? "Deleting…" : "Delete case"}
-              </button>
+                Delete case
+              </Button>
             </div>
             <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
               <div>
@@ -136,47 +141,45 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
                 <dd className="inline">{new Date(caseData.created_at).toLocaleString()}</dd>
               </div>
             </dl>
-          </section>
+          </Card>
 
-          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-fg">Analyst Feedback</h2>
+          <Card>
+            <h2 className="text-base font-semibold text-fg">Analyst Feedback</h2>
             <p className="mt-1 text-sm text-fg-secondary">
               Agree with the machine verdict as-is, or change it below before submitting to
               correct it. Submitting again relabels the case — the prior label stays in history.
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-                Verdict
-                <select
+              <Field label="Verdict">
+                <Select
                   value={labelVerdict}
                   onChange={(event) => setLabelVerdict(event.target.value as Verdict)}
-                  className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
+                  className="sm:w-40"
                 >
                   <option value="safe">Safe</option>
                   <option value="suspicious">Suspicious</option>
                   <option value="malicious">Malicious</option>
-                </select>
-              </label>
-              <label className="flex flex-1 flex-col gap-1 text-sm text-fg-secondary">
-                Note (optional)
-                <input
+                </Select>
+              </Field>
+              <Field label="Note (optional)" className="flex-1">
+                <Input
                   type="text"
                   value={labelNote}
                   onChange={(event) => setLabelNote(event.target.value)}
                   placeholder="Why are you agreeing or correcting this verdict?"
-                  className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
                 />
-              </label>
-              <button
+              </Field>
+              <Button
+                variant="primary"
                 onClick={handleSubmitLabel}
-                disabled={isSubmittingLabel}
-                className="whitespace-nowrap rounded-lg bg-accent-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+                loading={isSubmittingLabel}
+                loadingText="Submitting…"
               >
-                {isSubmittingLabel ? "Submitting…" : "Submit Label"}
-              </button>
+                Submit Label
+              </Button>
             </div>
-            {labelError && <p className="mt-2 text-sm text-danger">{labelError}</p>}
-          </section>
+            {labelError && <ErrorState message={labelError} className="mt-3" />}
+          </Card>
 
           <AiAuthoredFlag indicators={caseData.indicators} />
 
@@ -187,12 +190,12 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
           <InvestigationPanel entityId={caseData.id} />
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-fg">Indicators</h2>
+            <SectionHeading>Indicators</SectionHeading>
             <IndicatorList indicators={caseData.indicators} />
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
+            <SectionHeading>Framework Mapping</SectionHeading>
             <FrameworkMappingPanel frameworkMappings={caseData.framework_mappings} />
           </section>
         </>

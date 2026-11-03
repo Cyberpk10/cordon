@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Play } from "lucide-react";
+import { Button, Textarea } from "./ui";
 
 interface ActivityLogFormProps {
   onSubmit: (rawText: string) => void;
@@ -22,23 +24,29 @@ export default function ActivityLogForm({ onSubmit, isLoading }: ActivityLogForm
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <textarea
+      <Textarea
         value={rawText}
         onChange={(event) => setRawText(event.target.value)}
         placeholder={PLACEHOLDER}
+        aria-label="Activity log CSV"
+        aria-describedby="activity-log-format"
         rows={12}
-        className="w-full rounded-lg border border-line-strong bg-surface-card p-3 font-mono text-xs text-fg shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+        className="font-mono text-xs"
       />
-      <p className="text-xs text-fg-secondary">
+      <p id="activity-log-format" className="text-xs text-fg-secondary">
         Expected CSV header: <code className="font-mono">timestamp,account,source_ip,geo,result</code>
       </p>
-      <button
+      <Button
         type="submit"
-        disabled={!rawText.trim() || isLoading}
-        className="self-start whitespace-nowrap rounded-lg bg-accent-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+        variant="primary"
+        icon={Play}
+        disabled={!rawText.trim()}
+        loading={isLoading}
+        loadingText="Running…"
+        className="self-start"
       >
-        {isLoading ? "Running…" : "Run"}
-      </button>
+        Run
+      </Button>
     </form>
   );
 }

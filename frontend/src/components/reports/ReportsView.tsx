@@ -7,6 +7,7 @@ import {
 import type { SecurityComplianceReportDetail } from "../../types/analysis";
 import ReportPreview from "./ReportPreview";
 import RecentSecurityComplianceReportsList from "./RecentSecurityComplianceReportsList";
+import { Button, ErrorState, Field, Input } from "../ui";
 
 export default function ReportsView() {
   const [dateFrom, setDateFrom] = useState("");
@@ -69,37 +70,32 @@ export default function ReportsView() {
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-            From
-            <input
+          <Field label="From">
+            <Input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-            To
-            <input
+          </Field>
+          <Field label="To">
+            <Input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
-          </label>
-          <button
+          </Field>
+          <Button
+            variant="primary"
             onClick={handleGenerate}
-            disabled={isGenerating}
-            className="rounded-lg bg-accent-fill px-4 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+            loading={isGenerating}
+            loadingText="Generating…"
           >
-            {isGenerating ? "Generating…" : "Generate Report"}
-          </button>
+            Generate Report
+          </Button>
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
-      )}
+      {error && <ErrorState message={error} />}
 
       {report && (
         <ReportPreview report={report} onDownload={handleDownload} isDownloading={isDownloading} />

@@ -1,4 +1,5 @@
 import type { DashboardSummary } from "../../types/analysis";
+import { Card } from "../ui";
 
 type Tone = "positive-up" | "negative-up" | "neutral";
 
@@ -38,7 +39,7 @@ interface KpiCardsProps {
 export default function KpiCards({ summary }: KpiCardsProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="rounded-xl border border-line bg-surface-card p-5 shadow-sm">
+      <Card padding="md" as="div">
         <p className="text-sm font-semibold text-fg-secondary">Total Analyzed</p>
         <p className="mt-1 text-3xl font-semibold text-fg">{summary.total_analyzed.current}</p>
         <div className="mt-1">
@@ -48,17 +49,17 @@ export default function KpiCards({ summary }: KpiCardsProps) {
             tone="neutral"
           />
         </div>
-      </div>
+      </Card>
       {VERDICT_CARDS.map(({ key, label, tone }) => {
         const periodCount = summary.verdict_counts[key];
         return (
-          <div key={key} className="rounded-xl border border-line bg-surface-card p-5 shadow-sm">
+          <Card padding="md" as="div" key={key}>
             <p className="text-sm font-semibold text-fg-secondary">{label}</p>
             <p className="mt-1 text-3xl font-semibold text-fg">{periodCount.current}</p>
             <div className="mt-1">
               <DeltaBadge delta={periodCount.delta} deltaPct={periodCount.delta_pct} tone={tone} />
             </div>
-          </div>
+          </Card>
         );
       })}
     </div>

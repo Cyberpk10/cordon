@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
+import { ShieldCheck } from "lucide-react";
 import { getMonitoringDrift } from "../../api/client";
 import type { DriftAlert, DriftAlertSeverity } from "../../types/analysis";
+import { Badge, Card, CardHeader, EmptyState, ErrorState, type BadgeTone } from "../ui";
 
-const SEVERITY_STYLES: Record<DriftAlertSeverity, string> = {
-  medium: "bg-warning/10 text-warning border-warning/35",
-  high: "bg-caution/10 text-caution border-caution/35",
-  critical: "bg-danger/10 text-danger border-danger/35",
+const SEVERITY_TONE: Record<DriftAlertSeverity, BadgeTone> = {
+  medium: "warning",
+  high: "caution",
+  critical: "danger",
 };
 
 export default function DriftAlertSummary() {
@@ -32,12 +34,9 @@ export default function DriftAlertSummary() {
   const topAlerts = alerts.slice(0, 5);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-      <div className="border-b border-line bg-surface-panel px-6 py-3">
-        <h3 className="text-base font-semibold text-fg">Control Drift</h3>
-        <p className="text-xs text-fg-secondary">Top active drift alerts across all frameworks.</p>
-      </div>
-      {error && <div className="p-4 text-sm text-danger">{error}</div>}
+    <Card padding="none" as="div">
+      <CardHeader title="Control Drift" description="Top active drift alerts across all frameworks." />
+      {error && <ErrorState message={error} className="m-4" />}
       <ul className="divide-y divide-line">
         {topAlerts.map((alert, i) => (
           <li
@@ -47,17 +46,17 @@ export default function DriftAlertSummary() {
             <span className="truncate text-sm text-fg">
               {alert.control_id ? `${alert.control_id} — ${alert.control_name}` : alert.control_name}
             </span>
-            <span
-              className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${SEVERITY_STYLES[alert.severity]}`}
-            >
+            <Badge tone={SEVERITY_TONE[alert.severity]} caps className="shrink-0">
               {alert.severity}
-            </span>
+            </Badge>
           </li>
         ))}
         {topAlerts.length === 0 && !error && (
-          <li className="px-6 py-8 text-center text-sm text-fg-secondary">No active drift alerts.</li>
+          <li>
+            <EmptyState variant="inline" icon={ShieldCheck} title="No active drift alerts." />
+          </li>
         )}
       </ul>
-    </div>
+    </Card>
   );
 }

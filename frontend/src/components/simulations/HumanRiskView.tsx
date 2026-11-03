@@ -6,6 +6,7 @@ import DepartmentBreakdownTable from "./DepartmentBreakdownTable";
 import LureEffectivenessTable from "./LureEffectivenessTable";
 import RiskiestUsersTable from "./RiskiestUsersTable";
 import TrainingRecommendationsWidget from "./TrainingRecommendationsWidget";
+import { ErrorState, Field, Input, LoadingState } from "../ui";
 
 export default function HumanRiskView() {
   const [dateFrom, setDateFrom] = useState("");
@@ -50,30 +51,26 @@ export default function HumanRiskView() {
           </p>
         </div>
         <div className="flex gap-3">
-          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-            From
-            <input
+          <Field label="From">
+            <Input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-            To
-            <input
+          </Field>
+          <Field label="To">
+            <Input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
-          </label>
+          </Field>
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>}
+      {error && <ErrorState message={error} />}
 
-      {isLoading && !summary && <p className="text-sm text-fg-secondary">Loading Human Risk data…</p>}
+      {isLoading && !summary && <LoadingState label="Loading Human Risk data…" />}
 
       {summary && (
         <>

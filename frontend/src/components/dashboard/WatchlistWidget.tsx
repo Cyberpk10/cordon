@@ -1,12 +1,27 @@
 import { useEffect, useState } from "react";
 import { getThreatLevels } from "../../api/client";
 import type { ThreatLevelEntry } from "../../types/analysis";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Table,
+  TableContainer,
+  TableMessageRow,
+  type BadgeTone,
+} from "../ui";
 
-const LEVEL_STYLES: Record<string, string> = {
-  normal: "border-line-strong bg-surface-raised text-fg-secondary",
-  elevated: "border-warning/35 bg-warning/10 text-warning",
-  attack_forming: "border-caution/35 bg-caution/10 text-caution",
-  active_incident: "border-danger/35 bg-danger/10 text-danger",
+const LEVEL_TONE: Record<string, BadgeTone> = {
+  normal: "neutral",
+  elevated: "warning",
+  attack_forming: "caution",
+  active_incident: "danger",
 };
 
 const TREND_ARROW: Record<string, string> = {
@@ -42,52 +57,45 @@ export default function WatchlistWidget() {
     .slice(0, 10);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-      <div className="border-b border-line bg-surface-panel px-6 py-3">
-        <h3 className="text-base font-semibold text-fg">Watchlist</h3>
-        <p className="text-xs text-fg-secondary">
-          Actors whose threat level is rising — precursor signals accumulating before any incident.
-        </p>
-      </div>
-      {error && <div className="p-4 text-sm text-danger">{error}</div>}
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
-          <tr>
-            <th className="px-6 py-3 font-semibold">Actor</th>
-            <th className="px-6 py-3 font-semibold">Score</th>
-            <th className="px-6 py-3 font-semibold">Level</th>
-            <th className="px-6 py-3 font-semibold">Trend</th>
-            <th className="px-6 py-3 font-semibold">Top contributing signal</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line">
-          {rising.map((entry) => {
-            const topSignal = [...entry.contributing_signals].sort((a, b) => b.stage - a.stage)[0];
-            return (
-              <tr key={entry.actor}>
-                <td className="px-6 py-3 text-fg">{entry.actor}</td>
-                <td className="px-6 py-3 text-fg-secondary">{entry.score.toFixed(1)}</td>
-                <td className="px-6 py-3">
-                  <span
-                    className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${LEVEL_STYLES[entry.level] ?? LEVEL_STYLES.normal}`}
-                  >
-                    {entry.level}
-                  </span>
-                </td>
-                <td className="px-6 py-3 text-fg-secondary">{TREND_ARROW[entry.trend] ?? entry.trend}</td>
-                <td className="px-6 py-3 text-fg-secondary">{topSignal?.description ?? "—"}</td>
-              </tr>
-            );
-          })}
-          {rising.length === 0 && (
+    <Card padding="none" as="div">
+      <CardHeader title="Watchlist" description="Actors whose threat level is rising — precursor signals accumulating before any incident." />
+      {error && <ErrorState message={error} className="m-4" />}
+      <TableContainer>
+        <Table>
+          <THead>
             <tr>
-              <td colSpan={5} className="px-6 py-8 text-center text-fg-secondary">
-                No actors currently rising.
-              </td>
+              <TH density="comfortable">Actor</TH>
+              <TH density="comfortable">Score</TH>
+              <TH density="comfortable">Level</TH>
+              <TH density="comfortable">Trend</TH>
+              <TH density="comfortable">Top contributing signal</TH>
             </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+          </THead>
+          <TBody>
+            {rising.map((entry) => {
+              const topSignal = [...entry.contributing_signals].sort((a, b) => b.stage - a.stage)[0];
+              return (
+                <tr key={entry.actor}>
+                  <TD density="comfortable" className="text-fg">{entry.actor}</TD>
+                  <TD density="comfortable" className="text-fg-secondary">{entry.score.toFixed(1)}</TD>
+                  <TD density="comfortable">
+                    <Badge tone={LEVEL_TONE[entry.level] ?? LEVEL_TONE.normal}>
+                      {entry.level}
+                    </Badge>
+                  </TD>
+                  <TD density="comfortable" className="text-fg-secondary">{TREND_ARROW[entry.trend] ?? entry.trend}</TD>
+                  <TD density="comfortable" className="text-fg-secondary">{topSignal?.description ?? "—"}</TD>
+                </tr>
+              );
+            })}
+            {!error && rising.length === 0 && (
+              <TableMessageRow colSpan={5}>
+                <EmptyState variant="inline" title="No actors currently rising." />
+              </TableMessageRow>
+            )}
+          </TBody>
+        </Table>
+      </TableContainer>
+    </Card>
   );
 }

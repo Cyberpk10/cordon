@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import AuthLayout from "./AuthLayout";
 import { ErrorBanner, FormField, SubmitButton } from "./formFields";
 import { AuthError, confirmPasswordReset, requestPasswordReset } from "../api/authClient";
+import { Button } from "../components/ui";
 
 interface ForgotPasswordScreenProps {
   onBackToLogin: () => void;
@@ -65,13 +66,9 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
   if (step === "done") {
     return (
       <AuthLayout title="Password updated" subtitle="You can now sign in with your new password.">
-        <button
-          type="button"
-          onClick={onBackToLogin}
-          className="flex w-full items-center justify-center rounded-lg bg-accent-fill px-4 py-2.5 text-sm font-semibold text-fg-on-fill transition hover:bg-accent-fill-hover"
-        >
+        <Button variant="primary" fullWidth onClick={onBackToLogin}>
           Back to sign in
-        </button>
+        </Button>
       </AuthLayout>
     );
   }
@@ -82,13 +79,9 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
         title="Set a new password"
         subtitle={message ?? undefined}
         footer={
-          <button
-            type="button"
-            onClick={onBackToLogin}
-            className="font-semibold text-accent hover:underline"
-          >
+          <Button variant="link" onClick={onBackToLogin}>
             Back to sign in
-          </button>
+          </Button>
         }
       >
         <form onSubmit={handleConfirm} className="flex flex-col gap-4">
@@ -125,13 +118,9 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
       title="Reset your password"
       subtitle="Enter your email and we'll generate a reset link."
       footer={
-        <button
-          type="button"
-          onClick={onBackToLogin}
-          className="font-semibold text-accent hover:underline"
-        >
+        <Button variant="link" onClick={onBackToLogin}>
           Back to sign in
-        </button>
+        </Button>
       }
     >
       <form onSubmit={handleRequest} className="flex flex-col gap-4">

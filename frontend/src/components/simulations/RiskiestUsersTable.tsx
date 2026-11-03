@@ -1,5 +1,17 @@
 import type { RiskiestUser } from "../../types/analysis";
 import { RiskScoreBadge } from "./SimulationStatusBadge";
+import {
+  Card,
+  CardHeader,
+  EmptyState,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Table,
+  TableContainer,
+  TableMessageRow,
+} from "../ui";
 
 interface RiskiestUsersTableProps {
   users: RiskiestUser[];
@@ -7,49 +19,45 @@ interface RiskiestUsersTableProps {
 
 export default function RiskiestUsersTable({ users }: RiskiestUsersTableProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-      <div className="border-b border-line bg-surface-panel px-6 py-3">
-        <h3 className="text-base font-semibold text-fg">Riskiest Users</h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
+    <Card padding="none" as="div">
+      <CardHeader title="Riskiest Users" />
+      <TableContainer>
+        <Table>
+          <THead>
             <tr>
-              <th className="px-6 py-3 font-semibold">Email</th>
-              <th className="px-6 py-3 font-semibold">Department</th>
-              <th className="px-6 py-3 font-semibold">Risk score</th>
-              <th className="px-6 py-3 font-semibold">Clicks</th>
-              <th className="px-6 py-3 font-semibold">Submits</th>
-              <th className="px-6 py-3 font-semibold">Reports</th>
-              <th className="px-6 py-3 font-semibold">Last failure</th>
+              <TH density="comfortable">Email</TH>
+              <TH density="comfortable">Department</TH>
+              <TH density="comfortable">Risk score</TH>
+              <TH density="comfortable">Clicks</TH>
+              <TH density="comfortable">Submits</TH>
+              <TH density="comfortable">Reports</TH>
+              <TH density="comfortable">Last failure</TH>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
+          </THead>
+          <TBody>
             {users.map((user) => (
               <tr key={user.email}>
-                <td className="px-6 py-3 text-fg">{user.email}</td>
-                <td className="px-6 py-3 text-fg-secondary">{user.department}</td>
-                <td className="px-6 py-3">
+                <TD density="comfortable" className="text-fg">{user.email}</TD>
+                <TD density="comfortable" className="text-fg-secondary">{user.department}</TD>
+                <TD density="comfortable">
                   <RiskScoreBadge score={user.risk_score} />
-                </td>
-                <td className="px-6 py-3 text-fg-secondary">{user.click_count}</td>
-                <td className="px-6 py-3 text-fg-secondary">{user.submit_count}</td>
-                <td className="px-6 py-3 text-fg-secondary">{user.report_count}</td>
-                <td className="px-6 py-3 text-fg-secondary">
+                </TD>
+                <TD density="comfortable" className="text-fg-secondary">{user.click_count}</TD>
+                <TD density="comfortable" className="text-fg-secondary">{user.submit_count}</TD>
+                <TD density="comfortable" className="text-fg-secondary">{user.report_count}</TD>
+                <TD density="comfortable" className="text-fg-secondary">
                   {user.last_failure_at ? new Date(user.last_failure_at).toLocaleDateString() : "—"}
-                </td>
+                </TD>
               </tr>
             ))}
             {users.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-fg-secondary">
-                  No campaign activity in this period.
-                </td>
-              </tr>
+              <TableMessageRow colSpan={7}>
+                <EmptyState variant="inline" title="No campaign activity in this period." />
+              </TableMessageRow>
             )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </TBody>
+        </Table>
+      </TableContainer>
+    </Card>
   );
 }

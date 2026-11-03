@@ -1,9 +1,11 @@
+import { ShieldAlert, ShieldCheck, ShieldX, type LucideIcon } from "lucide-react";
 import type { Verdict } from "../types/analysis";
+import { Badge, type BadgeTone } from "./ui";
 
-const VERDICT_STYLES: Record<Verdict, { label: string; classes: string }> = {
-  safe: { label: "Safe", classes: "bg-success/10 text-success border-success/35" },
-  suspicious: { label: "Suspicious", classes: "bg-warning/10 text-warning border-warning/35" },
-  malicious: { label: "Malicious", classes: "bg-danger/10 text-danger border-danger/35" },
+const VERDICT_STYLES: Record<Verdict, { label: string; tone: BadgeTone; icon: LucideIcon }> = {
+  safe: { label: "Safe", tone: "success", icon: ShieldCheck },
+  suspicious: { label: "Suspicious", tone: "warning", icon: ShieldAlert },
+  malicious: { label: "Malicious", tone: "danger", icon: ShieldX },
 };
 
 interface VerdictBadgeProps {
@@ -15,15 +17,13 @@ export default function VerdictBadge({ verdict, score }: VerdictBadgeProps) {
   const style = VERDICT_STYLES[verdict];
 
   return (
-    <div className="flex items-center gap-4">
-      <span
-        className={`inline-flex items-center rounded-full border px-4 py-1.5 text-lg font-semibold ${style.classes}`}
-      >
+    <div className="flex items-center gap-3">
+      <Badge tone={style.tone} size="lg" icon={style.icon}>
         {style.label}
-      </span>
-      <div className="text-fg">
-        <span className="text-2xl font-semibold">{score}</span>
-        <span className="text-sm text-fg-secondary"> / 100 risk score</span>
+      </Badge>
+      <div className="whitespace-nowrap text-fg">
+        <span className="text-xl font-semibold tabular-nums">{score}</span>
+        <span className="text-xs text-fg-secondary"> / 100 risk score</span>
       </div>
     </div>
   );

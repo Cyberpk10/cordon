@@ -1,9 +1,26 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { getSimulationCampaign, sendSimulationCampaign } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
 import type { CampaignDetailResponse } from "../../types/analysis";
 import AdminOnlyNote from "./AdminOnlyNote";
 import { CampaignStatusBadge, RecipientStatusBadge } from "./SimulationStatusBadge";
+import {
+  Alert,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Table,
+  TableContainer,
+  TableMessageRow,
+} from "../ui";
 
 // Same wording as the backend's app.simulation.policy.AUTHORIZATION_STATEMENT — kept in
 // sync manually since there's no endpoint that serves this text.
@@ -66,17 +83,17 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
 
   return (
     <div className="flex flex-col gap-6">
-      <button onClick={onBack} className="self-start text-sm font-semibold text-accent hover:text-accent-hover">
-        &larr; Back to campaigns
-      </button>
+      <Button variant="link" icon={ArrowLeft} className="self-start" onClick={onBack}>
+        Back to campaigns
+      </Button>
 
-      {error && <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>}
+      {error && <ErrorState message={error} />}
 
-      {!campaign && !error && <p className="text-sm text-fg-secondary">Loading campaign…</p>}
+      {!campaign && !error && <LoadingState label="Loading campaign…" />}
 
       {campaign && (
         <>
-          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+          <Card>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-semibold text-fg">{campaign.name}</h2>
@@ -86,10 +103,10 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
             </div>
             <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
               {campaign.dry_run && (
-                <div className="sm:col-span-2 rounded-lg border border-warning/35 bg-warning/10 px-3 py-2 text-warning">
-                  Dry run — Mailgun isn&apos;t configured on this deployment, so no real email
-                  was sent. Preview links below simulate the recipient experience.
-                </div>
+                <Alert tone="warning" title="Dry run" className="sm:col-span-2">
+                  Mailgun isn&apos;t configured on this deployment, so no real email was sent.
+                  Preview links below simulate the recipient experience.
+                </Alert>
               )}
               <div>
                 <dt className="inline font-semibold text-fg">From: </dt>
@@ -108,13 +125,16 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
                 <dd className="inline">{campaign.recipients.length}</dd>
               </div>
             </dl>
-          </section>
+          </Card>
 
           {campaign.status === "draft" && (
-            <section className="rounded-xl border-2 border-warning/35 bg-warning/10 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-warning">Authorization required to send</h3>
-              <p className="mt-2 text-sm text-warning">{AUTHORIZATION_STATEMENT}</p>
-              <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-warning">
+            <Card tone="warning">
+              <h3 className="flex items-center gap-2 text-base font-semibold text-warning">
+                <ShieldAlert aria-hidden="true" className="h-4 w-4" />
+                Authorization required to send
+              </h3>
+              <p className="mt-2 text-sm text-fg-secondary">{AUTHORIZATION_STATEMENT}</p>
+              <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-fg">
                 <input
                   type="checkbox"
                   checked={authorizationChecked}
@@ -124,58 +144,58 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
                 I accept the authorization statement above.
               </label>
 
-              {sendError && <p className="mt-3 text-sm text-danger">{sendError}</p>}
+              {sendError && <ErrorState message={sendError} className="mt-3" />}
 
               <div className="mt-4 flex items-center gap-3">
-                <button
+                <Button
+                  variant="danger"
                   onClick={handleSend}
-                  disabled={!isAdmin || !authorizationChecked || isSending}
-                  className="rounded-lg bg-danger-fill px-6 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-danger-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+                  disabled={!isAdmin || !authorizationChecked}
+                  loading={isSending}
+                  loadingText="Sending…"
                 >
-                  {isSending ? "Sending…" : "Send campaign"}
-                </button>
+                  Send campaign
+                </Button>
                 {!isAdmin && <AdminOnlyNote />}
               </div>
-            </section>
+            </Card>
           )}
 
-          <section className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-            <div className="border-b border-line bg-surface-panel px-6 py-3">
-              <h3 className="text-base font-semibold text-fg">Results</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
+          <Card padding="none">
+            <CardHeader title="Results" />
+            <TableContainer>
+              <Table>
+                <THead>
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Email</th>
-                    <th className="px-4 py-3 font-semibold">Department</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold">Sent</th>
-                    <th className="px-4 py-3 font-semibold">Clicked</th>
-                    <th className="px-4 py-3 font-semibold">Submitted</th>
-                    <th className="px-4 py-3 font-semibold">Reported</th>
-                    <th className="px-4 py-3 font-semibold">Preview</th>
+                    <TH>Email</TH>
+                    <TH>Department</TH>
+                    <TH>Status</TH>
+                    <TH>Sent</TH>
+                    <TH>Clicked</TH>
+                    <TH>Submitted</TH>
+                    <TH>Reported</TH>
+                    <TH>Preview</TH>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
+                </THead>
+                <TBody>
                   {campaign.recipients.map((recipient) => (
                     <tr key={recipient.id}>
-                      <td className="px-4 py-3 text-fg">{recipient.email}</td>
-                      <td className="px-4 py-3 text-fg-secondary">{recipient.department ?? "—"}</td>
-                      <td className="px-4 py-3">
+                      <TD className="text-fg">{recipient.email}</TD>
+                      <TD className="text-fg-secondary">{recipient.department ?? "—"}</TD>
+                      <TD>
                         <RecipientStatusBadge status={recipient.status} />
-                      </td>
-                      <td className="px-4 py-3 text-fg-secondary">{formatDate(recipient.sent_at)}</td>
-                      <td className="px-4 py-3 text-fg-secondary">
+                      </TD>
+                      <TD className="text-fg-secondary">{formatDate(recipient.sent_at)}</TD>
+                      <TD className="text-fg-secondary">
                         {formatDate(recipient.clicked_at)}
                         {recipient.click_count > 1 && ` (×${recipient.click_count})`}
-                      </td>
-                      <td className="px-4 py-3 text-fg-secondary">{formatDate(recipient.submitted_at)}</td>
-                      <td className="px-4 py-3 text-fg-secondary">
+                      </TD>
+                      <TD className="text-fg-secondary">{formatDate(recipient.submitted_at)}</TD>
+                      <TD className="text-fg-secondary">
                         {formatDate(recipient.reported_at)}
                         {recipient.report_count > 1 && ` (×${recipient.report_count})`}
-                      </td>
-                      <td className="px-4 py-3">
+                      </TD>
+                      <TD>
                         {recipient.dry_run_tracking_url ? (
                           <a
                             href={recipient.dry_run_tracking_url}
@@ -188,20 +208,18 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
                         ) : (
                           "—"
                         )}
-                      </td>
+                      </TD>
                     </tr>
                   ))}
                   {campaign.recipients.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-fg-secondary">
-                        No recipients on this campaign.
-                      </td>
-                    </tr>
+                    <TableMessageRow colSpan={8}>
+                      <EmptyState variant="inline" title="No recipients on this campaign." />
+                    </TableMessageRow>
                   )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                </TBody>
+              </Table>
+            </TableContainer>
+          </Card>
         </>
       )}
     </div>

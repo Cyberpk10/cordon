@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Siren } from "lucide-react";
 import { getEarlyWarnings } from "../../api/client";
 import type { EarlyWarningAlertEntry } from "../../types/analysis";
 
@@ -24,8 +25,11 @@ export default function EarlyWarningBanner() {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-caution/50 bg-caution/10 px-5 py-3 text-sm text-caution shadow-sm">
-      <span className="text-lg">⚠</span>
+    <div
+      role="status"
+      className="flex items-center gap-3 rounded-card border border-caution/50 bg-caution/10 px-5 py-3 text-sm text-fg shadow-sm"
+    >
+      <Siren aria-hidden="true" className="h-5 w-5 shrink-0 text-caution" />
       <p>
         <strong>{alerts.length}</strong> actor{alerts.length === 1 ? "" : "s"} showing signs of an
         attack forming — multiple corroborating precursor signals, before any incident. See the

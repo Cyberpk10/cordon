@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getAutonomyPolicy, haltAutonomy, putAutonomyPolicy } from "../../api/client";
 import type { AutonomyLevel, AutonomyPolicy, AutonomyPolicyRule } from "../../types/analysis";
+import { OctagonX, Save } from "lucide-react";
+import { Badge, Button, Card, ErrorState, Field, Input, LoadingState, Textarea, useToast } from "../ui";
 
 const LEVELS: { level: AutonomyLevel; label: string; description: string }[] = [
   { level: "L0", label: "L0 — Recommend only", description: "Cordon never acts automatically. Every finding stays a human-approved recommendation." },
@@ -22,6 +24,7 @@ export default function AutonomySettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [isHalting, setIsHalting] = useState(false);
   const [exclusionsText, setExclusionsText] = useState("");
+  const toast = useToast();
 
   const load = () => {
     getAutonomyPolicy()
@@ -62,6 +65,7 @@ export default function AutonomySettings() {
       });
       setPolicy(saved);
       setExclusionsText(saved.exclusions.join("\n"));
+      toast({ title: "Autonomy policy saved", description: `Level ${saved.level}.` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save policy.");
     } finally {
@@ -78,6 +82,7 @@ export default function AutonomySettings() {
     try {
       await haltAutonomy();
       load();
+      toast({ tone: "warning", title: "Autonomy halted", description: "Dropped to L0; pending autonomous actions stopped." });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to halt.");
     } finally {
@@ -87,19 +92,22 @@ export default function AutonomySettings() {
 
   if (!policy) {
     return (
-      <div className="rounded-xl border border-line bg-surface-card p-6 text-sm text-fg-secondary shadow-sm">
-        {error ?? "Loading policy…"}
-      </div>
+      <Card as="div">
+        {error ? <ErrorState message={error} /> : <LoadingState label="Loading policy…" />}
+      </Card>
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border-2 border-danger/35 bg-danger/10 p-5 shadow-sm">
+      <Card tone="danger" padding="md">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-danger">Kill switch</h2>
-            <p className="text-sm text-danger">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-danger">
+              <OctagonX aria-hidden="true" className="h-4 w-4" />
+              Kill switch
+            </h2>
+            <p className="mt-1 text-sm text-fg-secondary">
               Immediately drops autonomy to L0 and halts every pending autonomous action.
               {policy.halted_at && (
                 <span className="block text-xs">
@@ -108,27 +116,21 @@ export default function AutonomySettings() {
               )}
             </p>
           </div>
-          <button
-            onClick={handleHalt}
-            disabled={isHalting}
-            className="whitespace-nowrap rounded-lg bg-danger-fill px-5 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-danger-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
-          >
-            {isHalting ? "Halting…" : "Halt autonomy"}
-          </button>
+          <Button variant="danger" onClick={handleHalt} loading={isHalting} loadingText="Halting…">
+            Halt autonomy
+          </Button>
         </div>
-      </section>
+      </Card>
 
-      {error && (
-        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
-      )}
+      {error && <ErrorState message={error} />}
 
-      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-fg">Autonomy level</h2>
+      <Card>
+        <h2 className="text-base font-semibold text-fg">Autonomy level</h2>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {LEVELS.map((l) => (
             <label
               key={l.level}
-              className={`cursor-pointer rounded-lg border p-4 transition ${
+              className={`cursor-pointer rounded-control border p-4 transition-colors duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${
                 policy.level === l.level
                   ? "border-accent bg-accent/10"
                   : "border-line hover:border-line-strong"
@@ -147,10 +149,10 @@ export default function AutonomySettings() {
             </label>
           ))}
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-fg">Action rules</h2>
+      <Card>
+        <h2 className="text-base font-semibold text-fg">Action rules</h2>
         <p className="mt-1 text-sm text-fg-secondary">
           Which action types may auto-run, and above what confidence. Containment actions
           (marked) need L2+; non-containment actions need L1+ regardless of these settings.
@@ -159,7 +161,7 @@ export default function AutonomySettings() {
           {ACTION_TYPES.map(({ type, title, containment }) => {
             const rule = policy.rules.find((r) => r.action_type === type);
             return (
-              <div key={type} className="rounded-lg border border-line p-4">
+              <div key={type} className="rounded-control border border-line bg-surface-panel p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <label className="flex items-center gap-2 font-semibold text-fg">
                     <input
@@ -171,16 +173,16 @@ export default function AutonomySettings() {
                     />
                     {title}
                     {containment && (
-                      <span className="rounded-full border border-warning/35 bg-warning/10 px-2 py-0.5 text-xs text-warning">
+                      <Badge tone="warning" size="sm">
                         containment
-                      </span>
+                      </Badge>
                     )}
                   </label>
                   {rule && (
                     <div className="flex items-center gap-4">
                       <label className="flex items-center gap-2 text-sm text-fg-secondary">
                         Min confidence
-                        <input
+                        <Input
                           type="number"
                           min={0}
                           max={1}
@@ -189,7 +191,8 @@ export default function AutonomySettings() {
                           onChange={(e) =>
                             updateRule(type, { min_confidence: Number(e.target.value) })
                           }
-                          className="w-20 rounded border border-line-strong px-2 py-1 text-sm"
+                          controlSize="sm"
+                          className="w-20"
                         />
                       </label>
                       <label className="flex items-center gap-2 text-sm text-fg-secondary">
@@ -207,62 +210,64 @@ export default function AutonomySettings() {
             );
           })}
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-fg">Exclusion list</h2>
+      <Card>
+        <h2 className="text-base font-semibold text-fg">Exclusion list</h2>
         <p className="mt-1 text-sm text-fg-secondary">
           Protected identities/assets (one per line) — never auto-actioned, at any level, above
           any confidence.
         </p>
-        <textarea
+        <Textarea
           value={exclusionsText}
           onChange={(e) => setExclusionsText(e.target.value)}
           rows={4}
+          aria-label="Exclusion list, one per line"
           placeholder="ceo@corp.com&#10;partner.example.com"
-          className="mt-3 w-full rounded-lg border border-line-strong px-3 py-2 text-sm font-mono"
+          className="mt-3 font-mono"
         />
-      </section>
+      </Card>
 
-      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-fg">Blast-radius rate limit</h2>
+      <Card>
+        <h2 className="text-base font-semibold text-fg">Blast-radius rate limit</h2>
         <p className="mt-1 text-sm text-fg-secondary">
           After this many autonomous actions within the window, further actions require human
           confirmation until the window rolls off.
         </p>
         <div className="mt-3 flex gap-4">
-          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-            Limit
-            <input
+          <Field label="Limit">
+            <Input
               type="number"
               min={1}
               value={policy.blast_radius_limit}
               onChange={(e) => setPolicy({ ...policy, blast_radius_limit: Number(e.target.value) })}
-              className="w-24 rounded border border-line-strong px-2 py-1"
+              className="w-24"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
-            Window (minutes)
-            <input
+          </Field>
+          <Field label="Window (minutes)">
+            <Input
               type="number"
               min={1}
               value={policy.blast_radius_window_minutes}
               onChange={(e) =>
                 setPolicy({ ...policy, blast_radius_window_minutes: Number(e.target.value) })
               }
-              className="w-24 rounded border border-line-strong px-2 py-1"
+              className="w-24"
             />
-          </label>
+          </Field>
         </div>
-      </section>
+      </Card>
 
-      <button
+      <Button
+        variant="primary"
+        icon={Save}
+        className="self-start"
         onClick={handleSave}
-        disabled={isSaving}
-        className="self-start rounded-lg bg-accent-fill px-6 py-2 text-sm font-semibold text-fg-on-fill shadow-sm transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:bg-line-strong"
+        loading={isSaving}
+        loadingText="Saving…"
       >
-        {isSaving ? "Saving…" : "Save policy"}
-      </button>
+        Save policy
+      </Button>
     </div>
   );
 }

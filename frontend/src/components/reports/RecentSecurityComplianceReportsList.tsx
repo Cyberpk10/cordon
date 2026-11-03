@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
 import { downloadSecurityComplianceReport, listSecurityComplianceReports } from "../../api/client";
 import type { SecurityComplianceReportSummary } from "../../types/analysis";
+import {
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Table,
+  TableContainer,
+  TableMessageRow,
+} from "../ui";
 
 interface RecentSecurityComplianceReportsListProps {
   refreshToken: number;
@@ -31,60 +45,55 @@ export default function RecentSecurityComplianceReportsList({
   }, [refreshToken]);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
-      <div className="border-b border-line bg-surface-panel px-6 py-3">
-        <h3 className="text-base font-semibold text-fg">Recent Reports</h3>
-      </div>
-      {error && <div className="p-4 text-sm text-danger">{error}</div>}
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
-          <tr>
-            <th className="px-6 py-3 font-semibold">Generated</th>
-            <th className="px-6 py-3 font-semibold">Period</th>
-            <th className="px-6 py-3 font-semibold">Threats Detected</th>
-            <th className="px-6 py-3 font-semibold">Exposure Avoided</th>
-            <th className="px-6 py-3 font-semibold">View / Download</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line">
-          {reports.map((report) => (
-            <tr key={report.id}>
-              <td className="px-6 py-3 text-fg-secondary">{new Date(report.created_at).toLocaleString()}</td>
-              <td className="px-6 py-3 text-fg-secondary">
-                {new Date(report.period_start).toLocaleDateString()} –{" "}
-                {new Date(report.period_end).toLocaleDateString()}
-              </td>
-              <td className="px-6 py-3 text-fg-secondary">{report.threats_detected}</td>
-              <td className="px-6 py-3 text-fg-secondary">
-                ${report.exposure_avoided_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </td>
-              <td className="px-6 py-3">
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => onView(report.id)}
-                    className="font-semibold text-accent hover:text-accent-hover"
-                  >
-                    View
-                  </button>
-                  <button
-                    onClick={() => downloadSecurityComplianceReport(report.id, "pdf")}
-                    className="font-semibold text-accent hover:text-accent-hover"
-                  >
-                    PDF
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-          {reports.length === 0 && (
+    <Card padding="none" as="div">
+      <CardHeader title="Recent Reports" />
+      {error && <ErrorState message={error} className="m-4" />}
+      <TableContainer>
+        <Table>
+          <THead>
             <tr>
-              <td colSpan={5} className="px-6 py-8 text-center text-fg-secondary">
-                No reports generated yet.
-              </td>
+              <TH density="comfortable">Generated</TH>
+              <TH density="comfortable">Period</TH>
+              <TH density="comfortable">Threats Detected</TH>
+              <TH density="comfortable">Exposure Avoided</TH>
+              <TH density="comfortable">View / Download</TH>
             </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+          </THead>
+          <TBody>
+            {reports.map((report) => (
+              <tr key={report.id}>
+                <TD density="comfortable" className="text-fg-secondary">{new Date(report.created_at).toLocaleString()}</TD>
+                <TD density="comfortable" className="text-fg-secondary">
+                  {new Date(report.period_start).toLocaleDateString()} –{" "}
+                  {new Date(report.period_end).toLocaleDateString()}
+                </TD>
+                <TD density="comfortable" className="text-fg-secondary">{report.threats_detected}</TD>
+                <TD density="comfortable" className="text-fg-secondary">
+                  ${report.exposure_avoided_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </TD>
+                <TD density="comfortable">
+                  <div className="flex gap-3">
+                    <Button variant="link" onClick={() => onView(report.id)}>
+                      View
+                    </Button>
+                    <Button
+                      variant="link"
+                      onClick={() => downloadSecurityComplianceReport(report.id, "pdf")}
+                    >
+                      PDF
+                    </Button>
+                  </div>
+                </TD>
+              </tr>
+            ))}
+            {!error && reports.length === 0 && (
+              <TableMessageRow colSpan={5}>
+                <EmptyState variant="inline" title="No reports generated yet." />
+              </TableMessageRow>
+            )}
+          </TBody>
+        </Table>
+      </TableContainer>
+    </Card>
   );
 }

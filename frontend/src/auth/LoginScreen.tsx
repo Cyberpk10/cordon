@@ -4,6 +4,7 @@ import AuthLayout from "./AuthLayout";
 import { ErrorBanner, FormField, SubmitButton } from "./formFields";
 import { useAuth } from "./AuthContext";
 import { AuthError } from "../api/authClient";
+import { Button } from "../components/ui";
 
 interface LoginScreenProps {
   onSwitchToSignup: () => void;
@@ -37,13 +38,9 @@ export default function LoginScreen({ onSwitchToSignup, onForgotPassword }: Logi
       footer={
         <>
           Don&apos;t have an account?{" "}
-          <button
-            type="button"
-            onClick={onSwitchToSignup}
-            className="font-semibold text-accent hover:underline"
-          >
+          <Button variant="link" onClick={onSwitchToSignup}>
             Create one
-          </button>
+          </Button>
         </>
       }
     >
@@ -68,13 +65,9 @@ export default function LoginScreen({ onSwitchToSignup, onForgotPassword }: Logi
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <button
-            type="button"
-            onClick={onForgotPassword}
-            className="mt-1.5 text-sm font-semibold text-accent hover:underline"
-          >
+          <Button variant="link" className="mt-1.5" onClick={onForgotPassword}>
             Forgot password?
-          </button>
+          </Button>
         </div>
 
         <SubmitButton isLoading={isLoading}>Sign in</SubmitButton>
@@ -85,13 +78,9 @@ export default function LoginScreen({ onSwitchToSignup, onForgotPassword }: Logi
         </div>
 
         <div className="group relative">
-          <button
-            type="button"
-            disabled
-            className="flex w-full cursor-not-allowed items-center justify-center rounded-lg border border-line-strong px-4 py-2.5 text-sm font-semibold text-fg-muted"
-          >
+          <Button fullWidth disabled>
             Continue with SSO
-          </button>
+          </Button>
           <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-line bg-surface-raised px-2 py-1 text-xs text-fg opacity-0 transition group-hover:opacity-100">
             Coming soon
           </div>

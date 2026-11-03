@@ -1,6 +1,19 @@
 import { useEffect, useState } from "react";
 import { getTargets } from "../../api/client";
 import type { TargetSummary } from "../../types/analysis";
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Table,
+  TableContainer,
+  TableMessageRow,
+} from "../ui";
 
 export default function RepeatTargetsWidget() {
   const [targets, setTargets] = useState<TargetSummary[]>([]);
@@ -28,7 +41,7 @@ export default function RepeatTargetsWidget() {
   const topTargets = targets.slice(0, 10);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
+    <Card padding="none" as="div">
       <div className="border-b border-line bg-surface-panel px-6 py-3">
         <h3 className="text-base font-semibold text-fg">Repeat Targets</h3>
         {threshold !== null && (
@@ -37,44 +50,40 @@ export default function RepeatTargetsWidget() {
           </p>
         )}
       </div>
-      {error && <div className="p-4 text-sm text-danger">{error}</div>}
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
-          <tr>
-            <th className="px-6 py-3 font-semibold">Recipient</th>
-            <th className="px-6 py-3 font-semibold">Hits</th>
-            <th className="px-6 py-3 font-semibold">Status</th>
-            <th className="px-6 py-3 font-semibold">Training Recommendation</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line">
-          {topTargets.map((target) => (
-            <tr key={target.recipient}>
-              <td className="px-6 py-3 text-fg">{target.recipient}</td>
-              <td className="px-6 py-3 text-fg-secondary">{target.hit_count}</td>
-              <td className="px-6 py-3">
-                {target.flagged_for_training ? (
-                  <span className="rounded-full border border-danger/35 bg-danger/10 px-2.5 py-0.5 text-xs font-semibold text-danger">
-                    Flagged
-                  </span>
-                ) : (
-                  <span className="rounded-full border border-line-strong bg-surface-raised px-2.5 py-0.5 text-xs font-semibold text-fg-secondary">
-                    Below threshold
-                  </span>
-                )}
-              </td>
-              <td className="px-6 py-3 text-fg-secondary">{target.recommendation ?? "—"}</td>
-            </tr>
-          ))}
-          {topTargets.length === 0 && (
+      {error && <ErrorState message={error} className="m-4" />}
+      <TableContainer>
+        <Table>
+          <THead>
             <tr>
-              <td colSpan={4} className="px-6 py-8 text-center text-fg-secondary">
-                No repeat targets yet.
-              </td>
+              <TH density="comfortable">Recipient</TH>
+              <TH density="comfortable">Hits</TH>
+              <TH density="comfortable">Status</TH>
+              <TH density="comfortable">Training Recommendation</TH>
             </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+          </THead>
+          <TBody>
+            {topTargets.map((target) => (
+              <tr key={target.recipient}>
+                <TD density="comfortable" className="text-fg">{target.recipient}</TD>
+                <TD density="comfortable" className="text-fg-secondary">{target.hit_count}</TD>
+                <TD density="comfortable">
+                  {target.flagged_for_training ? (
+                    <Badge tone="danger">Flagged</Badge>
+                  ) : (
+                    <Badge>Below threshold</Badge>
+                  )}
+                </TD>
+                <TD density="comfortable" className="text-fg-secondary">{target.recommendation ?? "—"}</TD>
+              </tr>
+            ))}
+            {!error && topTargets.length === 0 && (
+              <TableMessageRow colSpan={4}>
+                <EmptyState variant="inline" title="No repeat targets yet." />
+              </TableMessageRow>
+            )}
+          </TBody>
+        </Table>
+      </TableContainer>
+    </Card>
   );
 }
