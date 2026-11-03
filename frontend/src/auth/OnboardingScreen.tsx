@@ -42,7 +42,7 @@ export default function OnboardingScreen({ onSwitchToLogin }: OnboardingScreenPr
           <button
             type="button"
             onClick={onSwitchToLogin}
-            className="font-medium text-brand-blue hover:underline"
+            className="font-semibold text-accent hover:underline"
           >
             Sign in
           </button>
@@ -81,7 +81,7 @@ export default function OnboardingScreen({ onSwitchToLogin }: OnboardingScreenPr
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <p className="-mt-3 text-xs text-slate-500">At least {MIN_PASSWORD_LENGTH} characters.</p>
+        <p className="-mt-3 text-xs text-fg-secondary">At least {MIN_PASSWORD_LENGTH} characters.</p>
 
         <SubmitButton isLoading={isLoading}>Create account</SubmitButton>
       </form>

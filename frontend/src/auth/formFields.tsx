@@ -6,10 +6,10 @@ export function FormField({
 }: { label: string } & InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="mb-1.5 block text-sm font-semibold text-fg">{label}</span>
       <input
         {...props}
-        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/30"
+        className="block w-full rounded-lg border border-line-strong px-3 py-2 text-sm text-fg shadow-sm placeholder:text-fg-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
       />
     </label>
   );
@@ -17,7 +17,7 @@ export function FormField({
 
 export function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <div className="rounded-lg border border-danger/35 bg-danger/10 px-3 py-2 text-sm text-danger">
       {message}
     </div>
   );
@@ -34,7 +34,7 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={isLoading}
-      className="flex w-full items-center justify-center rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-800 disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-fg transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isLoading ? "Please wait…" : children}
     </button>

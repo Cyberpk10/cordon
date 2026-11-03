@@ -24,7 +24,7 @@ export default function EarlyWarningBanner() {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-orange-400 bg-orange-50 px-5 py-3 text-sm text-orange-900 shadow-sm">
+    <div className="flex items-center gap-3 rounded-xl border border-caution/50 bg-caution/10 px-5 py-3 text-sm text-caution shadow-sm">
       <span className="text-lg">⚠</span>
       <p>
         <strong>{alerts.length}</strong> actor{alerts.length === 1 ? "" : "s"} showing signs of an

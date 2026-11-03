@@ -29,17 +29,17 @@ export default function KriTable({ kris }: KriTableProps) {
   ];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-slate-900 px-6 py-3">
-        <h3 className="text-base font-semibold text-white">Key Risk Indicators</h3>
+    <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
+      <div className="border-b border-line bg-surface-panel px-6 py-3">
+        <h3 className="text-base font-semibold text-fg">Key Risk Indicators</h3>
       </div>
       <table className="w-full text-left text-sm">
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-line">
           {rows.map((row) => (
             <tr key={row.label}>
-              <td className="px-6 py-3 font-medium text-slate-700">{row.label}</td>
-              <td className="px-6 py-3 text-xl font-bold text-slate-900">{row.value}</td>
-              <td className="px-6 py-3 text-xs text-slate-500">{row.note}</td>
+              <td className="px-6 py-3 font-semibold text-fg">{row.label}</td>
+              <td className="px-6 py-3 text-xl font-semibold text-fg">{row.value}</td>
+              <td className="px-6 py-3 text-xs text-fg-secondary">{row.note}</td>
             </tr>
           ))}
         </tbody>

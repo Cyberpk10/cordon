@@ -26,16 +26,16 @@ export default function FrameworkMappingPanel({ frameworkMappings }: FrameworkMa
   );
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="flex border-b border-slate-200">
+    <div className="rounded-lg border border-line bg-surface-card shadow-sm">
+      <div className="flex border-b border-line">
         {frameworkKeys.map((key) => (
           <button
             key={key}
             onClick={() => setActiveKey(key)}
-            className={`flex-1 px-3 py-2 text-sm font-medium transition ${
+            className={`flex-1 px-3 py-2 text-sm font-semibold transition ${
               key === activeKey
-                ? "border-b-2 border-indigo-600 text-indigo-700"
-                : "text-slate-500 hover:text-slate-700"
+                ? "border-b-2 border-accent text-accent"
+                : "text-fg-secondary hover:text-fg"
             }`}
           >
             {FRAMEWORK_LABELS[key] ?? key}
@@ -44,13 +44,13 @@ export default function FrameworkMappingPanel({ frameworkMappings }: FrameworkMa
       </div>
       <div className="p-4">
         {dedupedControls.length === 0 ? (
-          <p className="text-sm text-slate-500">No controls mapped for this framework.</p>
+          <p className="text-sm text-fg-secondary">No controls mapped for this framework.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {dedupedControls.map((control) => (
               <li key={control.control_id} className="text-sm">
-                <span className="font-mono font-semibold text-slate-700">{control.control_id}</span>
-                <span className="text-slate-600"> — {control.control_name}</span>
+                <span className="font-mono font-semibold text-fg">{control.control_id}</span>
+                <span className="text-fg-secondary"> — {control.control_name}</span>
               </li>
             ))}
           </ul>

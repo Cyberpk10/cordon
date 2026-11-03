@@ -13,16 +13,16 @@ export default function AiAuthoredFlag({ indicators }: AiAuthoredFlagProps) {
   const reason = indicator.evidence[0] ?? indicator.description;
 
   return (
-    <section className="rounded-xl border border-violet-300 bg-violet-50 p-4 shadow-sm">
+    <section className="rounded-xl border border-violet/35 bg-violet/10 p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-violet-800">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-violet">
           Likely AI-generated
         </h2>
-        <span className="rounded-full border border-violet-300 bg-white px-2.5 py-0.5 text-xs font-medium text-violet-700">
+        <span className="rounded-full border border-violet/35 bg-surface-card px-2.5 py-0.5 text-xs font-semibold text-violet">
           {indicator.evidence.length} stylistic signal{indicator.evidence.length === 1 ? "" : "s"}
         </span>
       </div>
-      <p className="mt-1 text-sm text-violet-900">{reason}</p>
+      <p className="mt-1 text-sm text-violet">{reason}</p>
     </section>
   );
 }

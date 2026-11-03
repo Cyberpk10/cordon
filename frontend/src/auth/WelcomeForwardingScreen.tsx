@@ -19,11 +19,11 @@ export default function WelcomeForwardingScreen({ onContinue }: WelcomeForwardin
       <button
         type="button"
         onClick={onContinue}
-        className="mt-6 flex w-full items-center justify-center rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-800"
+        className="mt-6 flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-fg transition hover:bg-accent-hover"
       >
         Continue to dashboard
       </button>
-      <p className="mt-3 text-center text-xs text-slate-500">
+      <p className="mt-3 text-center text-xs text-fg-secondary">
         You can always find this address again under Settings.
       </p>
     </AuthLayout>

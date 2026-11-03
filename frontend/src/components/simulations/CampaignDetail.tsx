@@ -66,55 +66,55 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
 
   return (
     <div className="flex flex-col gap-6">
-      <button onClick={onBack} className="self-start text-sm font-medium text-indigo-600 hover:text-indigo-500">
+      <button onClick={onBack} className="self-start text-sm font-semibold text-accent hover:text-accent-hover">
         &larr; Back to campaigns
       </button>
 
-      {error && <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>}
 
-      {!campaign && !error && <p className="text-sm text-slate-500">Loading campaign…</p>}
+      {!campaign && !error && <p className="text-sm text-fg-secondary">Loading campaign…</p>}
 
       {campaign && (
         <>
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">{campaign.name}</h2>
-                <p className="text-sm text-slate-500">Template: {campaign.template_id}</p>
+                <h2 className="text-xl font-semibold text-fg">{campaign.name}</h2>
+                <p className="text-sm text-fg-secondary">Template: {campaign.template_id}</p>
               </div>
               <CampaignStatusBadge status={campaign.status} />
             </div>
-            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-slate-600 sm:grid-cols-2">
+            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
               {campaign.dry_run && (
-                <div className="sm:col-span-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-800">
+                <div className="sm:col-span-2 rounded-lg border border-warning/35 bg-warning/10 px-3 py-2 text-warning">
                   Dry run — Mailgun isn&apos;t configured on this deployment, so no real email
                   was sent. Preview links below simulate the recipient experience.
                 </div>
               )}
               <div>
-                <dt className="inline font-medium text-slate-700">From: </dt>
+                <dt className="inline font-semibold text-fg">From: </dt>
                 <dd className="inline">{campaign.from_address ?? "—"}</dd>
               </div>
               <div>
-                <dt className="inline font-medium text-slate-700">Sent: </dt>
+                <dt className="inline font-semibold text-fg">Sent: </dt>
                 <dd className="inline">{formatDate(campaign.sent_at)}</dd>
               </div>
               <div>
-                <dt className="inline font-medium text-slate-700">Authorized: </dt>
+                <dt className="inline font-semibold text-fg">Authorized: </dt>
                 <dd className="inline">{formatDate(campaign.authorized_at)}</dd>
               </div>
               <div>
-                <dt className="inline font-medium text-slate-700">Recipients: </dt>
+                <dt className="inline font-semibold text-fg">Recipients: </dt>
                 <dd className="inline">{campaign.recipients.length}</dd>
               </div>
             </dl>
           </section>
 
           {campaign.status === "draft" && (
-            <section className="rounded-xl border-2 border-amber-300 bg-amber-50 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-amber-900">Authorization required to send</h3>
-              <p className="mt-2 text-sm text-amber-800">{AUTHORIZATION_STATEMENT}</p>
-              <label className="mt-4 flex items-center gap-2 text-sm font-medium text-amber-900">
+            <section className="rounded-xl border-2 border-warning/35 bg-warning/10 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-warning">Authorization required to send</h3>
+              <p className="mt-2 text-sm text-warning">{AUTHORIZATION_STATEMENT}</p>
+              <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-warning">
                 <input
                   type="checkbox"
                   checked={authorizationChecked}
@@ -124,13 +124,13 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
                 I accept the authorization statement above.
               </label>
 
-              {sendError && <p className="mt-3 text-sm text-red-700">{sendError}</p>}
+              {sendError && <p className="mt-3 text-sm text-danger">{sendError}</p>}
 
               <div className="mt-4 flex items-center gap-3">
                 <button
                   onClick={handleSend}
                   disabled={!isAdmin || !authorizationChecked || isSending}
-                  className="rounded-lg bg-red-600 px-6 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  className="rounded-lg bg-danger px-6 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-danger/85 disabled:cursor-not-allowed disabled:bg-line-strong"
                 >
                   {isSending ? "Sending…" : "Send campaign"}
                 </button>
@@ -139,39 +139,39 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
             </section>
           )}
 
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 bg-slate-900 px-6 py-3">
-              <h3 className="text-base font-semibold text-white">Results</h3>
+          <section className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
+            <div className="border-b border-line bg-surface-panel px-6 py-3">
+              <h3 className="text-base font-semibold text-fg">Results</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Email</th>
-                    <th className="px-4 py-3 font-medium">Department</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Sent</th>
-                    <th className="px-4 py-3 font-medium">Clicked</th>
-                    <th className="px-4 py-3 font-medium">Submitted</th>
-                    <th className="px-4 py-3 font-medium">Reported</th>
-                    <th className="px-4 py-3 font-medium">Preview</th>
+                    <th className="px-4 py-3 font-semibold">Email</th>
+                    <th className="px-4 py-3 font-semibold">Department</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Sent</th>
+                    <th className="px-4 py-3 font-semibold">Clicked</th>
+                    <th className="px-4 py-3 font-semibold">Submitted</th>
+                    <th className="px-4 py-3 font-semibold">Reported</th>
+                    <th className="px-4 py-3 font-semibold">Preview</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-line">
                   {campaign.recipients.map((recipient) => (
                     <tr key={recipient.id}>
-                      <td className="px-4 py-3 text-slate-800">{recipient.email}</td>
-                      <td className="px-4 py-3 text-slate-600">{recipient.department ?? "—"}</td>
+                      <td className="px-4 py-3 text-fg">{recipient.email}</td>
+                      <td className="px-4 py-3 text-fg-secondary">{recipient.department ?? "—"}</td>
                       <td className="px-4 py-3">
                         <RecipientStatusBadge status={recipient.status} />
                       </td>
-                      <td className="px-4 py-3 text-slate-500">{formatDate(recipient.sent_at)}</td>
-                      <td className="px-4 py-3 text-slate-500">
+                      <td className="px-4 py-3 text-fg-secondary">{formatDate(recipient.sent_at)}</td>
+                      <td className="px-4 py-3 text-fg-secondary">
                         {formatDate(recipient.clicked_at)}
                         {recipient.click_count > 1 && ` (×${recipient.click_count})`}
                       </td>
-                      <td className="px-4 py-3 text-slate-500">{formatDate(recipient.submitted_at)}</td>
-                      <td className="px-4 py-3 text-slate-500">
+                      <td className="px-4 py-3 text-fg-secondary">{formatDate(recipient.submitted_at)}</td>
+                      <td className="px-4 py-3 text-fg-secondary">
                         {formatDate(recipient.reported_at)}
                         {recipient.report_count > 1 && ` (×${recipient.report_count})`}
                       </td>
@@ -181,7 +181,7 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
                             href={recipient.dry_run_tracking_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-medium text-indigo-600 hover:text-indigo-500"
+                            className="font-semibold text-accent hover:text-accent-hover"
                           >
                             Open
                           </a>
@@ -193,7 +193,7 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
                   ))}
                   {campaign.recipients.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                      <td colSpan={8} className="px-4 py-8 text-center text-fg-secondary">
                         No recipients on this campaign.
                       </td>
                     </tr>

@@ -3,17 +3,17 @@ import { getAutonomyActions, reverseAutonomyAction } from "../../api/client";
 import type { AutonomyActionLogEntry } from "../../types/analysis";
 
 const DECISION_STYLES: Record<string, string> = {
-  auto_execute: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  require_approval: "bg-amber-100 text-amber-800 border-amber-300",
-  skip: "bg-slate-100 text-slate-600 border-slate-300",
+  auto_execute: "bg-success/10 text-success border-success/35",
+  require_approval: "bg-warning/10 text-warning border-warning/35",
+  skip: "bg-surface-raised text-fg-secondary border-line-strong",
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  executed: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  reversed: "bg-slate-100 text-slate-600 border-slate-300",
-  pending_approval: "bg-amber-100 text-amber-800 border-amber-300",
-  skipped: "bg-slate-100 text-slate-500 border-slate-300",
-  halted: "bg-red-100 text-red-800 border-red-300",
+  executed: "bg-success/10 text-success border-success/35",
+  reversed: "bg-surface-raised text-fg-secondary border-line-strong",
+  pending_approval: "bg-warning/10 text-warning border-warning/35",
+  skipped: "bg-surface-raised text-fg-secondary border-line-strong",
+  halted: "bg-danger/10 text-danger border-danger/35",
 };
 
 export default function ActionsLog() {
@@ -60,7 +60,7 @@ export default function ActionsLog() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-4">
-        <label className="flex flex-col gap-1 text-sm text-slate-600">
+        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
           Action type
           <select
             value={actionType}
@@ -68,7 +68,7 @@ export default function ActionsLog() {
               setPage(1);
               setActionType(e.target.value);
             }}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm"
+            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm"
           >
             <option value="">All</option>
             <option value="QUARANTINE_EMAIL">Quarantine email</option>
@@ -77,7 +77,7 @@ export default function ActionsLog() {
             <option value="BLOCK_SENDER_DOMAIN">Block sender domain</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm text-slate-600">
+        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
           Status
           <select
             value={status}
@@ -85,7 +85,7 @@ export default function ActionsLog() {
               setPage(1);
               setStatus(e.target.value);
             }}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm"
+            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm"
           >
             <option value="">All</option>
             <option value="executed">Executed</option>
@@ -98,34 +98,34 @@ export default function ActionsLog() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-line bg-surface-card shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
             <tr>
-              <th className="px-4 py-3 font-medium">When</th>
-              <th className="px-4 py-3 font-medium">Action</th>
-              <th className="px-4 py-3 font-medium">Target</th>
-              <th className="px-4 py-3 font-medium">Why</th>
-              <th className="px-4 py-3 font-medium">Confidence</th>
-              <th className="px-4 py-3 font-medium">Controls</th>
-              <th className="px-4 py-3 font-medium">Decision</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium"></th>
+              <th className="px-4 py-3 font-semibold">When</th>
+              <th className="px-4 py-3 font-semibold">Action</th>
+              <th className="px-4 py-3 font-semibold">Target</th>
+              <th className="px-4 py-3 font-semibold">Why</th>
+              <th className="px-4 py-3 font-semibold">Confidence</th>
+              <th className="px-4 py-3 font-semibold">Controls</th>
+              <th className="px-4 py-3 font-semibold">Decision</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {items.map((item) => (
               <tr key={item.id}>
-                <td className="px-4 py-3 text-slate-500">
+                <td className="px-4 py-3 text-fg-secondary">
                   {new Date(item.created_at).toLocaleString()}
                 </td>
-                <td className="px-4 py-3 text-slate-800">{item.action_type}</td>
-                <td className="px-4 py-3 text-slate-600">{item.target}</td>
-                <td className="px-4 py-3 text-slate-600">{item.trigger_finding_id}</td>
-                <td className="px-4 py-3 text-slate-600">{item.confidence.toFixed(2)}</td>
+                <td className="px-4 py-3 text-fg">{item.action_type}</td>
+                <td className="px-4 py-3 text-fg-secondary">{item.target}</td>
+                <td className="px-4 py-3 text-fg-secondary">{item.trigger_finding_id}</td>
+                <td className="px-4 py-3 text-fg-secondary">{item.confidence.toFixed(2)}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {Object.entries(item.mapped_controls).flatMap(([fw, refs]) =>
@@ -133,7 +133,7 @@ export default function ActionsLog() {
                         <span
                           key={`${fw}-${ref.control_id}`}
                           title={ref.control_name}
-                          className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs text-slate-600"
+                          className="rounded border border-line bg-surface-panel px-1.5 py-0.5 text-xs text-fg-secondary"
                         >
                           {fw}: {ref.control_id}
                         </span>
@@ -143,14 +143,14 @@ export default function ActionsLog() {
                 </td>
                 <td className="px-4 py-3">
                   <span
-                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide ${DECISION_STYLES[item.decision]}`}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${DECISION_STYLES[item.decision]}`}
                   >
                     {item.decision}
                   </span>
                 </td>
                 <td className="px-4 py-3">
                   <span
-                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide ${STATUS_STYLES[item.status]}`}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${STATUS_STYLES[item.status]}`}
                   >
                     {item.status}
                   </span>
@@ -160,7 +160,7 @@ export default function ActionsLog() {
                     <button
                       onClick={() => handleUndo(item.id)}
                       disabled={undoingId === item.id}
-                      className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-line-strong px-3 py-1 text-xs font-semibold text-fg hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {undoingId === item.id ? "Undoing…" : "Undo"}
                     </button>
@@ -170,7 +170,7 @@ export default function ActionsLog() {
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={9} className="px-4 py-8 text-center text-fg-secondary">
                   No autonomy actions recorded yet.
                 </td>
               </tr>
@@ -179,7 +179,7 @@ export default function ActionsLog() {
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-slate-600">
+      <div className="flex items-center justify-between text-sm text-fg-secondary">
         <span>
           {total} action{total === 1 ? "" : "s"}
         </span>
@@ -187,7 +187,7 @@ export default function ActionsLog() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-line-strong px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Previous
           </button>
@@ -197,7 +197,7 @@ export default function ActionsLog() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-line-strong px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
           </button>

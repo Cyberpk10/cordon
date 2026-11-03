@@ -77,35 +77,35 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
     <div className="flex flex-col gap-6">
       <button
         onClick={onBack}
-        className="self-start text-sm font-medium text-indigo-600 hover:text-indigo-500"
+        className="self-start text-sm font-semibold text-accent hover:text-accent-hover"
       >
         ← Back to cases
       </button>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
           {error}
         </div>
       )}
 
-      {!caseData && !error && <p className="text-sm text-slate-500">Loading case…</p>}
+      {!caseData && !error && <p className="text-sm text-fg-secondary">Loading case…</p>}
 
       {caseData && (
         <>
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex flex-col gap-2">
                 <VerdictBadge verdict={caseData.verdict} score={caseData.score} />
                 {caseData.latest_label && (
-                  <p className="text-sm text-slate-600">
-                    <span className="font-medium text-slate-700">Human label:</span>{" "}
+                  <p className="text-sm text-fg-secondary">
+                    <span className="font-semibold text-fg">Human label:</span>{" "}
                     <span className="capitalize">{caseData.latest_label.analyst_verdict}</span>
                     {" by "}
                     {caseData.latest_label.labeled_by}
                     {" · "}
                     {new Date(caseData.latest_label.created_at).toLocaleString()}
                     {caseData.latest_label.note && (
-                      <span className="block text-slate-500">“{caseData.latest_label.note}”</span>
+                      <span className="block text-fg-secondary">“{caseData.latest_label.note}”</span>
                     )}
                   </p>
                 )}
@@ -113,69 +113,69 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-danger/35 px-3 py-1.5 text-sm font-semibold text-danger hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isDeleting ? "Deleting…" : "Delete case"}
               </button>
             </div>
-            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-slate-600 sm:grid-cols-2">
+            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
               <div>
-                <dt className="inline font-medium text-slate-700">Sender: </dt>
+                <dt className="inline font-semibold text-fg">Sender: </dt>
                 <dd className="inline">{caseData.from_addr ?? "—"}</dd>
               </div>
               <div>
-                <dt className="inline font-medium text-slate-700">Subject: </dt>
+                <dt className="inline font-semibold text-fg">Subject: </dt>
                 <dd className="inline">{caseData.subject ?? "—"}</dd>
               </div>
               <div>
-                <dt className="inline font-medium text-slate-700">Filename: </dt>
+                <dt className="inline font-semibold text-fg">Filename: </dt>
                 <dd className="inline">{caseData.filename}</dd>
               </div>
               <div>
-                <dt className="inline font-medium text-slate-700">Analyzed: </dt>
+                <dt className="inline font-semibold text-fg">Analyzed: </dt>
                 <dd className="inline">{new Date(caseData.created_at).toLocaleString()}</dd>
               </div>
             </dl>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-800">Analyst Feedback</h2>
-            <p className="mt-1 text-sm text-slate-500">
+          <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-fg">Analyst Feedback</h2>
+            <p className="mt-1 text-sm text-fg-secondary">
               Agree with the machine verdict as-is, or change it below before submitting to
               correct it. Submitting again relabels the case — the prior label stays in history.
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="flex flex-col gap-1 text-sm text-slate-600">
+              <label className="flex flex-col gap-1 text-sm text-fg-secondary">
                 Verdict
                 <select
                   value={labelVerdict}
                   onChange={(event) => setLabelVerdict(event.target.value as Verdict)}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+                  className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
                 >
                   <option value="safe">Safe</option>
                   <option value="suspicious">Suspicious</option>
                   <option value="malicious">Malicious</option>
                 </select>
               </label>
-              <label className="flex flex-1 flex-col gap-1 text-sm text-slate-600">
+              <label className="flex flex-1 flex-col gap-1 text-sm text-fg-secondary">
                 Note (optional)
                 <input
                   type="text"
                   value={labelNote}
                   onChange={(event) => setLabelNote(event.target.value)}
                   placeholder="Why are you agreeing or correcting this verdict?"
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+                  className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
                 />
               </label>
               <button
                 onClick={handleSubmitLabel}
                 disabled={isSubmittingLabel}
-                className="whitespace-nowrap rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="whitespace-nowrap rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
               >
                 {isSubmittingLabel ? "Submitting…" : "Submit Label"}
               </button>
             </div>
-            {labelError && <p className="mt-2 text-sm text-red-700">{labelError}</p>}
+            {labelError && <p className="mt-2 text-sm text-danger">{labelError}</p>}
           </section>
 
           <AiAuthoredFlag indicators={caseData.indicators} />
@@ -187,12 +187,12 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
           <InvestigationPanel entityId={caseData.id} />
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-slate-800">Indicators</h2>
+            <h2 className="mb-3 text-lg font-semibold text-fg">Indicators</h2>
             <IndicatorList indicators={caseData.indicators} />
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-slate-800">Framework Mapping</h2>
+            <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
             <FrameworkMappingPanel frameworkMappings={caseData.framework_mappings} />
           </section>
         </>

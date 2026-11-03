@@ -40,7 +40,7 @@ export default function LoginScreen({ onSwitchToSignup, onForgotPassword }: Logi
           <button
             type="button"
             onClick={onSwitchToSignup}
-            className="font-medium text-brand-blue hover:underline"
+            className="font-semibold text-accent hover:underline"
           >
             Create one
           </button>
@@ -71,7 +71,7 @@ export default function LoginScreen({ onSwitchToSignup, onForgotPassword }: Logi
           <button
             type="button"
             onClick={onForgotPassword}
-            className="mt-1.5 text-sm font-medium text-brand-blue hover:underline"
+            className="mt-1.5 text-sm font-semibold text-accent hover:underline"
           >
             Forgot password?
           </button>
@@ -79,20 +79,20 @@ export default function LoginScreen({ onSwitchToSignup, onForgotPassword }: Logi
 
         <SubmitButton isLoading={isLoading}>Sign in</SubmitButton>
 
-        <div className="relative py-1 text-center text-xs text-slate-400">
-          <span className="relative bg-slate-50 px-2">or</span>
-          <div className="absolute left-0 right-0 top-1/2 -z-10 border-t border-slate-200" />
+        <div className="relative py-1 text-center text-xs text-fg-muted">
+          <div className="absolute left-0 right-0 top-1/2 border-t border-line" />
+          <span className="relative bg-surface-page px-2">or</span>
         </div>
 
         <div className="group relative">
           <button
             type="button"
             disabled
-            className="flex w-full cursor-not-allowed items-center justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-400"
+            className="flex w-full cursor-not-allowed items-center justify-center rounded-lg border border-line-strong px-4 py-2.5 text-sm font-semibold text-fg-muted"
           >
             Continue with SSO
           </button>
-          <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white opacity-0 transition group-hover:opacity-100">
+          <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-line bg-surface-raised px-2 py-1 text-xs text-fg opacity-0 transition group-hover:opacity-100">
             Coming soon
           </div>
         </div>

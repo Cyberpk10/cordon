@@ -1,5 +1,6 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { MonthlyThreatCount } from "../../types/analysis";
+import { chartTheme, color } from "../../theme";
 
 function toQuarterly(monthly: MonthlyThreatCount[]): { quarter: string; count: number }[] {
   const buckets = new Map<string, number>();
@@ -20,26 +21,27 @@ interface ThreatTrendChartProps {
 
 export default function ThreatTrendChart({ monthlyTrend }: ThreatTrendChartProps) {
   const data = toQuarterly(monthlyTrend);
+  const chart = chartTheme();
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-base font-semibold text-slate-900">Quarterly Threat Trend</h3>
-      <p className="text-xs text-slate-500">Suspicious + malicious cases, bucketed by quarter.</p>
+    <div className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+      <h3 className="text-base font-semibold text-fg">Quarterly Threat Trend</h3>
+      <p className="text-xs text-fg-secondary">Suspicious + malicious cases, bucketed by quarter.</p>
       {data.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-500">No threats in this period.</p>
+        <p className="mt-4 text-sm text-fg-secondary">No threats in this period.</p>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={data} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} vertical={false} />
             <XAxis
               dataKey="quarter"
-              tick={{ fontSize: 12, fill: "#64748b" }}
-              axisLine={{ stroke: "#cbd5e1" }}
+              tick={chart.tick}
+              axisLine={{ stroke: chart.axisLine }}
               tickLine={false}
             />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-            <Tooltip cursor={{ fill: "#f1f5f9" }} />
-            <Bar dataKey="count" fill="#334155" radius={[4, 4, 0, 0]} />
+            <YAxis allowDecimals={false} tick={chart.tick} axisLine={false} tickLine={false} />
+            <Tooltip cursor={chart.cursor} {...chart.tooltip} />
+            <Bar dataKey="count" fill={color("accent")} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}

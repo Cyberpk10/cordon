@@ -71,7 +71,7 @@ type AuthScreen = "login" | "onboarding" | "forgot-password";
 
 function LoadingScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+    <div className="flex min-h-screen items-center justify-center bg-surface-page">
       <AegisLogo className="h-8 w-8 animate-pulse" />
     </div>
   );
@@ -167,7 +167,7 @@ function AnalyzerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-surface-page">
       <div
         className={`mx-auto px-4 py-10 ${
           tab === "dashboard" ||
@@ -187,38 +187,38 @@ function AnalyzerApp() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <AegisLogo className="h-8 w-8" />
-              <h1 className="text-3xl font-bold text-slate-900">Cordon</h1>
+              <h1 className="text-3xl font-semibold text-fg">Cordon</h1>
             </div>
             {user && (
               <div className="flex items-center gap-3 text-sm">
                 <div className="text-right leading-tight">
-                  <p className="font-medium text-slate-800">{user.email}</p>
-                  <p className="text-slate-500">
+                  <p className="font-semibold text-fg">{user.email}</p>
+                  <p className="text-fg-secondary">
                     {user.account_name} &middot; {user.role}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => logout()}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-600 transition hover:bg-slate-100"
+                  className="rounded-lg border border-line-strong px-3 py-1.5 font-semibold text-fg-secondary transition hover:bg-surface-raised"
                 >
                   Log out
                 </button>
               </div>
             )}
           </div>
-          <p className="mt-3 text-slate-600">
+          <p className="mt-3 text-fg-secondary">
             Upload an email for phishing analysis.
           </p>
-          <nav className="mt-4 flex gap-1 border-b border-slate-200">
+          <nav className="mt-4 flex gap-1 border-b border-line">
             {TAB_VALUES.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-4 py-2 text-sm font-medium capitalize transition ${
+                className={`px-4 py-2 text-sm font-semibold capitalize transition ${
                   tab === t
-                    ? "border-b-2 border-indigo-600 text-indigo-700"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "border-b-2 border-accent text-accent"
+                    : "text-fg-secondary hover:text-fg"
                 }`}
               >
                 {t === "early-warnings" ? "Early Warnings" : t}
@@ -251,14 +251,14 @@ function AnalyzerApp() {
 
         {tab === "analyze" && (
           <>
-            <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1">
+            <div className="mb-4 inline-flex rounded-lg border border-line bg-surface-raised p-1">
               <button
                 type="button"
                 onClick={() => setInputType("email")}
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+                className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
                   inputType === "email"
-                    ? "bg-white text-indigo-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-surface-card text-accent shadow-sm"
+                    : "text-fg-secondary hover:text-fg"
                 }`}
               >
                 Email
@@ -266,10 +266,10 @@ function AnalyzerApp() {
               <button
                 type="button"
                 onClick={() => setInputType("activity-log")}
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+                className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
                   inputType === "activity-log"
-                    ? "bg-white text-indigo-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-surface-card text-accent shadow-sm"
+                    : "text-fg-secondary hover:text-fg"
                 }`}
               >
                 Activity Log
@@ -280,15 +280,15 @@ function AnalyzerApp() {
 
         {tab === "analyze" && inputType === "email" && (
           <>
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1">
+            <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+              <div className="mb-4 inline-flex rounded-lg border border-line bg-surface-raised p-1">
                 <button
                   type="button"
                   onClick={() => setAnalyzeMode("upload")}
-                  className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+                  className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
                     analyzeMode === "upload"
-                      ? "bg-white text-indigo-700 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "bg-surface-card text-accent shadow-sm"
+                      : "text-fg-secondary hover:text-fg"
                   }`}
                 >
                   Upload email
@@ -296,10 +296,10 @@ function AnalyzerApp() {
                 <button
                   type="button"
                   onClick={() => setAnalyzeMode("paste")}
-                  className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+                  className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
                     analyzeMode === "paste"
-                      ? "bg-white text-indigo-700 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "bg-surface-card text-accent shadow-sm"
+                      : "text-fg-secondary hover:text-fg"
                   }`}
                 >
                   Paste email
@@ -314,35 +314,35 @@ function AnalyzerApp() {
             </section>
 
             {error && (
-              <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+              <div className="mt-6 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
                 {error}
               </div>
             )}
 
             {result && (
               <div className="mt-8 flex flex-col gap-6">
-                <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
                   <VerdictBadge verdict={result.verdict} score={result.score} />
-                  <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-slate-600 sm:grid-cols-2">
+                  <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
                     <div>
-                      <dt className="inline font-medium text-slate-700">From: </dt>
+                      <dt className="inline font-semibold text-fg">From: </dt>
                       <dd className="inline">
                         {result.summary.from_display} &lt;{result.summary.from_address}&gt;
                       </dd>
                     </div>
                     <div>
-                      <dt className="inline font-medium text-slate-700">Subject: </dt>
+                      <dt className="inline font-semibold text-fg">Subject: </dt>
                       <dd className="inline">{result.summary.subject}</dd>
                     </div>
                     <div>
-                      <dt className="inline font-medium text-slate-700">SPF/DKIM/DMARC: </dt>
+                      <dt className="inline font-semibold text-fg">SPF/DKIM/DMARC: </dt>
                       <dd className="inline">
                         {result.summary.auth_results.spf} / {result.summary.auth_results.dkim} /{" "}
                         {result.summary.auth_results.dmarc}
                       </dd>
                     </div>
                     <div>
-                      <dt className="inline font-medium text-slate-700">Links / Attachments: </dt>
+                      <dt className="inline font-semibold text-fg">Links / Attachments: </dt>
                       <dd className="inline">
                         {result.summary.link_count} / {result.summary.attachment_count}
                       </dd>
@@ -355,12 +355,12 @@ function AnalyzerApp() {
                 <AIAnalystSummary narrative={result.analyst_narrative} model={result.analyst_model} />
 
                 <section>
-                  <h2 className="mb-3 text-lg font-semibold text-slate-800">Indicators</h2>
+                  <h2 className="mb-3 text-lg font-semibold text-fg">Indicators</h2>
                   <IndicatorList indicators={result.indicators} />
                 </section>
 
                 <section>
-                  <h2 className="mb-3 text-lg font-semibold text-slate-800">Framework Mapping</h2>
+                  <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
                   <FrameworkMappingPanel frameworkMappings={result.framework_mappings} />
                 </section>
               </div>
@@ -370,48 +370,48 @@ function AnalyzerApp() {
 
         {tab === "analyze" && inputType === "activity-log" && (
           <>
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
               <ActivityLogForm onSubmit={handleAnalyzeActivityLog} isLoading={isActivityLogLoading} />
             </section>
 
             {activityLogError && (
-              <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+              <div className="mt-6 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
                 {activityLogError}
               </div>
             )}
 
             {activityLogResult && (
               <div className="mt-8 flex flex-col gap-6">
-                <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
                   <VerdictBadge verdict={activityLogResult.verdict} score={activityLogResult.score} />
-                  <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-slate-600 sm:grid-cols-2">
+                  <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
                     <div>
-                      <dt className="inline font-medium text-slate-700">Primary actor: </dt>
+                      <dt className="inline font-semibold text-fg">Primary actor: </dt>
                       <dd className="inline">{activityLogResult.summary.primary_actor ?? "—"}</dd>
                     </div>
                     <div>
-                      <dt className="inline font-medium text-slate-700">Events analyzed: </dt>
+                      <dt className="inline font-semibold text-fg">Events analyzed: </dt>
                       <dd className="inline">
                         {activityLogResult.summary.event_count} across{" "}
                         {activityLogResult.summary.distinct_actor_count} account(s)
                       </dd>
                     </div>
                     <div>
-                      <dt className="inline font-medium text-slate-700">Time range: </dt>
+                      <dt className="inline font-semibold text-fg">Time range: </dt>
                       <dd className="inline">
                         {new Date(activityLogResult.summary.time_range_start).toLocaleString()} –{" "}
                         {new Date(activityLogResult.summary.time_range_end).toLocaleString()}
                       </dd>
                     </div>
                     <div>
-                      <dt className="inline font-medium text-slate-700">Source IP(s): </dt>
+                      <dt className="inline font-semibold text-fg">Source IP(s): </dt>
                       <dd className="inline">
                         {activityLogResult.summary.source_ips.join(", ") || "—"}
                       </dd>
                     </div>
                   </dl>
                   {activityLogResult.summary.other_incidents_detected > 0 && (
-                    <p className="mt-3 text-xs text-amber-700">
+                    <p className="mt-3 text-xs text-warning">
                       {activityLogResult.summary.other_incidents_detected} other incident(s) were
                       also detected in this log — showing the highest-risk result.
                     </p>
@@ -424,7 +424,7 @@ function AnalyzerApp() {
                 />
 
                 <section>
-                  <h2 className="mb-3 text-lg font-semibold text-slate-800">Findings</h2>
+                  <h2 className="mb-3 text-lg font-semibold text-fg">Findings</h2>
                   <IndicatorList
                     indicators={activityLogResult.indicators}
                     emptyMessage="No intrusion findings were detected in this activity log."
@@ -432,7 +432,7 @@ function AnalyzerApp() {
                 </section>
 
                 <section>
-                  <h2 className="mb-3 text-lg font-semibold text-slate-800">Framework Mapping</h2>
+                  <h2 className="mb-3 text-lg font-semibold text-fg">Framework Mapping</h2>
                   <FrameworkMappingPanel frameworkMappings={activityLogResult.framework_mappings} />
                 </section>
               </div>

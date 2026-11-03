@@ -65,22 +65,22 @@ export default function AuditView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
+      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-line bg-surface-panel p-5 shadow-sm">
         <div>
-          <h2 className="text-lg font-semibold text-white">Audit Mode</h2>
-          <p className="text-sm text-slate-300">
+          <h2 className="text-lg font-semibold text-fg">Audit Mode</h2>
+          <p className="text-sm text-fg-secondary">
             {evidence
               ? `${evidence.framework_name} · ${new Date(evidence.period_start).toLocaleDateString()} – ${new Date(evidence.period_end).toLocaleDateString()}`
               : "Loading…"}
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <label className="flex flex-col gap-1 text-sm text-slate-200">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             Framework
             <select
               value={framework}
               onChange={(event) => setFramework(event.target.value as AuditFrameworkAlias)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             >
               {FRAMEWORK_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -89,50 +89,50 @@ export default function AuditView() {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-sm text-slate-200">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             From
             <input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-slate-200">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             To
             <input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
           </label>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
       )}
 
-      {isLoading && !evidence && <p className="text-sm text-slate-500">Loading evidence…</p>}
+      {isLoading && !evidence && <p className="text-sm text-fg-secondary">Loading evidence…</p>}
 
       {evidence && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Total Controls</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{evidence.total_controls}</p>
+            <div className="rounded-xl border border-line bg-surface-card p-5 shadow-sm">
+              <p className="text-sm font-semibold text-fg-secondary">Total Controls</p>
+              <p className="mt-1 text-3xl font-semibold text-fg">{evidence.total_controls}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Operating</p>
-              <p className="mt-1 text-3xl font-bold text-emerald-600">{evidence.operating_controls}</p>
+            <div className="rounded-xl border border-line bg-surface-card p-5 shadow-sm">
+              <p className="text-sm font-semibold text-fg-secondary">Operating</p>
+              <p className="mt-1 text-3xl font-semibold text-success">{evidence.operating_controls}</p>
             </div>
-            <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Evidence Pack</p>
+            <div className="flex flex-col justify-between rounded-xl border border-line bg-surface-card p-5 shadow-sm">
+              <p className="text-sm font-semibold text-fg-secondary">Evidence Pack</p>
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="mt-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
               >
                 {isGenerating ? "Generating…" : "Generate Evidence Pack"}
               </button>
@@ -140,7 +140,7 @@ export default function AuditView() {
           </div>
 
           {generateError && (
-            <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+            <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
               {generateError}
             </div>
           )}

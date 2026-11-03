@@ -37,9 +37,9 @@ export default function CopilotView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-white">Threat Copilot</h2>
-        <p className="text-sm text-slate-300">
+      <div className="rounded-xl border border-line bg-surface-panel p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">Threat Copilot</h2>
+        <p className="text-sm text-fg-secondary">
           Ask questions about your Cordon data in plain English. Every answer is grounded in a
           whitelisted, parameterized query — never free-form SQL — and the underlying figures are
           shown alongside the narrative.
@@ -48,7 +48,7 @@ export default function CopilotView() {
 
       <div className="flex flex-col gap-4">
         {turns.length === 0 && (
-          <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+          <p className="rounded-lg border border-line bg-surface-card p-4 text-sm text-fg-secondary">
             Try asking things like &quot;how many malicious emails this month,&quot; &quot;how
             often was alice@example.com targeted,&quot; or &quot;what&apos;s our MITRE
             coverage.&quot;
@@ -70,12 +70,12 @@ export default function CopilotView() {
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           placeholder="Ask a question about your Cordon data…"
-          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+          className="flex-1 rounded-lg border border-line-strong bg-surface-card px-3 py-2 text-sm text-fg"
         />
         <button
           type="submit"
           disabled={isLoading || !question.trim()}
-          className="whitespace-nowrap rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="whitespace-nowrap rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
         >
           {isLoading ? "Asking…" : "Ask"}
         </button>

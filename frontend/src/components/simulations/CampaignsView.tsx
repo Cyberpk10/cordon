@@ -42,7 +42,7 @@ export default function CampaignsView() {
       <div className="flex flex-col gap-4">
         <button
           onClick={() => setIsBuilding(false)}
-          className="self-start text-sm font-medium text-indigo-600 hover:text-indigo-500"
+          className="self-start text-sm font-semibold text-accent hover:text-accent-hover"
         >
           &larr; Back to campaigns
         </button>
@@ -60,34 +60,34 @@ export default function CampaignsView() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-fg-secondary">
           Campaigns created this session. Reloading the page clears this list — pick a
           campaign right after creating it, or keep its link handy.
         </p>
         <button
           onClick={() => setIsBuilding(true)}
-          className="whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+          className="whitespace-nowrap rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover"
         >
           New campaign
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
             <tr>
-              <th className="px-6 py-3 font-medium">Name</th>
-              <th className="px-6 py-3 font-medium">Status</th>
+              <th className="px-6 py-3 font-semibold">Name</th>
+              <th className="px-6 py-3 font-semibold">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {campaigns.map((campaign) => (
               <tr
                 key={campaign.id}
                 onClick={() => setSelectedId(campaign.id)}
-                className="cursor-pointer transition hover:bg-slate-50"
+                className="cursor-pointer transition hover:bg-surface-raised"
               >
-                <td className="px-6 py-3 font-medium text-slate-800">{campaign.name}</td>
+                <td className="px-6 py-3 font-semibold text-fg">{campaign.name}</td>
                 <td className="px-6 py-3">
                   <CampaignStatusBadge status={campaign.status} />
                 </td>
@@ -95,7 +95,7 @@ export default function CampaignsView() {
             ))}
             {campaigns.length === 0 && (
               <tr>
-                <td colSpan={2} className="px-6 py-8 text-center text-slate-500">
+                <td colSpan={2} className="px-6 py-8 text-center text-fg-secondary">
                   No campaigns yet this session.
                 </td>
               </tr>

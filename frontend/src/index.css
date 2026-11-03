@@ -1,3 +1,74 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Design tokens — the single source of truth for Cordon's visual identity.
+ *
+ * Colors are stored as space-separated RGB channels (not hex) so Tailwind's opacity
+ * modifiers work against them (`bg-danger/10`, `border-accent/30`); see the matching
+ * registration in tailwind.config.js. Recharts can't consume Tailwind classes, so the
+ * charts read these same variables at runtime through src/theme.ts — nothing else in the
+ * app should hard-code a color value.
+ *
+ * Tokens marked "derived" aren't part of the core palette; they exist because the UI needs
+ * a step the core palette doesn't name (a hover/raised surface, a stronger control border,
+ * and two categorical hues for severity ladders and channel badges). */
+@layer base {
+  :root {
+    /* Surfaces */
+    --color-surface-page: 7 11 22; /* #070b16 */
+    --color-surface-panel: 13 19 38; /* #0d1326 */
+    --color-surface-card: 15 21 38; /* #0f1526 */
+    --color-surface-raised: 22 30 54; /* #161e36 — derived: hover rows, inputs, chips */
+    --color-line: 33 43 71; /* #212b47 */
+    --color-line-strong: 46 58 92; /* #2e3a5c — derived: control borders, hover borders */
+
+    /* Text */
+    --color-fg: 238 242 251; /* #eef2fb */
+    --color-fg-secondary: 154 166 194; /* #9aa6c2 */
+    --color-fg-muted: 102 114 143; /* #66728f */
+
+    /* Accent */
+    --color-accent: 90 108 240; /* #5a6cf0 */
+    --color-accent-hover: 106 124 245; /* #6a7cf5 */
+
+    /* Status */
+    --color-danger: 232 86 86; /* #e85656 */
+    --color-success: 78 203 134; /* #4ecb86 */
+    --color-warning: 230 170 70; /* #e6aa46 */
+    --color-caution: 238 132 74; /* #ee844a — derived: "high" step between warning and danger */
+    --color-violet: 160 128 240; /* #a080f0 — derived: AI-authored flag, Slack channel */
+
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    background-color: rgb(var(--color-surface-page));
+    color: rgb(var(--color-fg));
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Native form controls default to a white UA background, which would put light token
+   * text on white. Give every control a dark surface unless a class overrides it. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea {
+    background-color: rgb(var(--color-surface-raised));
+    color: rgb(var(--color-fg));
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    accent-color: rgb(var(--color-accent));
+  }
+
+  ::placeholder {
+    color: rgb(var(--color-fg-muted));
+  }
+}

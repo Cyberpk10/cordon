@@ -60,37 +60,37 @@ export default function ReportsView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
+      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-line bg-surface-panel p-5 shadow-sm">
         <div>
-          <h2 className="text-lg font-semibold text-white">Security &amp; Compliance Report</h2>
-          <p className="text-sm text-slate-300">
+          <h2 className="text-lg font-semibold text-fg">Security &amp; Compliance Report</h2>
+          <p className="text-sm text-fg-secondary">
             A board- and auditor-ready summary of real detection, containment, and compliance
             activity for a selected period.
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-sm text-slate-200">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             From
             <input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-slate-200">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             To
             <input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
           </label>
           <button
             onClick={handleGenerate}
             disabled={isGenerating}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
           >
             {isGenerating ? "Generating…" : "Generate Report"}
           </button>
@@ -98,7 +98,7 @@ export default function ReportsView() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
       )}
 
       {report && (

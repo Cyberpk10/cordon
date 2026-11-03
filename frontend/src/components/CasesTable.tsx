@@ -73,7 +73,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-4">
-        <label className="flex flex-col gap-1 text-sm text-slate-600">
+        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
           Verdict
           <select
             value={verdict}
@@ -81,7 +81,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
               setPage(1);
               setVerdict(event.target.value as Verdict | "");
             }}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
           >
             {VERDICT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -90,7 +90,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm text-slate-600">
+        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
           Channel
           <select
             value={channel}
@@ -98,7 +98,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
               setPage(1);
               setChannel(event.target.value as MessageChannel | "");
             }}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
           >
             {CHANNEL_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -107,7 +107,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm text-slate-600">
+        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
           From
           <input
             type="date"
@@ -116,10 +116,10 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
               setPage(1);
               setDateFrom(event.target.value);
             }}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm text-slate-600">
+        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
           To
           <input
             type="date"
@@ -128,34 +128,34 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
               setPage(1);
               setDateTo(event.target.value);
             }}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
           />
         </label>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
           {error}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
             <tr>
-              <th className="px-4 py-3 font-medium">Verdict / Score</th>
-              <th className="px-4 py-3 font-medium">Channel</th>
-              <th className="px-4 py-3 font-medium">Sender</th>
-              <th className="px-4 py-3 font-medium">Subject</th>
-              <th className="px-4 py-3 font-medium">Date</th>
+              <th className="px-4 py-3 font-semibold">Verdict / Score</th>
+              <th className="px-4 py-3 font-semibold">Channel</th>
+              <th className="px-4 py-3 font-semibold">Sender</th>
+              <th className="px-4 py-3 font-semibold">Subject</th>
+              <th className="px-4 py-3 font-semibold">Date</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {items.map((item) => (
               <tr
                 key={item.id}
                 onClick={() => onSelectCase(item.id)}
-                className="cursor-pointer transition hover:bg-slate-50"
+                className="cursor-pointer transition hover:bg-surface-raised"
               >
                 <td className="px-4 py-3">
                   <VerdictBadge verdict={item.verdict} score={item.score} />
@@ -163,16 +163,16 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
                 <td className="px-4 py-3">
                   <ChannelBadge channel={item.channel} />
                 </td>
-                <td className="px-4 py-3 text-slate-600">{item.from_addr ?? "—"}</td>
-                <td className="px-4 py-3 text-slate-600">{item.subject ?? item.filename}</td>
-                <td className="px-4 py-3 text-slate-500">
+                <td className="px-4 py-3 text-fg-secondary">{item.from_addr ?? "—"}</td>
+                <td className="px-4 py-3 text-fg-secondary">{item.subject ?? item.filename}</td>
+                <td className="px-4 py-3 text-fg-secondary">
                   {new Date(item.created_at).toLocaleString()}
                 </td>
               </tr>
             ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-fg-secondary">
                   No cases match these filters.
                 </td>
               </tr>
@@ -181,7 +181,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-slate-600">
+      <div className="flex items-center justify-between text-sm text-fg-secondary">
         <span>
           {total} case{total === 1 ? "" : "s"}
         </span>
@@ -189,7 +189,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1 || isLoading}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-line-strong px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Previous
           </button>
@@ -199,7 +199,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages || isLoading}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-line-strong px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
           </button>

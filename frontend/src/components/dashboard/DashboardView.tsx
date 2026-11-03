@@ -54,32 +54,32 @@ export default function DashboardView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
+      <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-line bg-surface-panel p-5 shadow-sm">
         <div>
-          <h2 className="text-lg font-semibold text-white">Threat &amp; Compliance Dashboard</h2>
-          <p className="text-sm text-slate-300">
+          <h2 className="text-lg font-semibold text-fg">Threat &amp; Compliance Dashboard</h2>
+          <p className="text-sm text-fg-secondary">
             {summary
               ? `${new Date(summary.period_start).toLocaleDateString()} – ${new Date(summary.period_end).toLocaleDateString()}`
               : "Loading period…"}
           </p>
         </div>
         <div className="flex gap-3">
-          <label className="flex flex-col gap-1 text-sm text-slate-200">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             From
             <input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-slate-200">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             To
             <input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+              className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
             />
           </label>
         </div>
@@ -88,10 +88,10 @@ export default function DashboardView() {
       <EarlyWarningBanner />
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
       )}
 
-      {isLoading && !summary && <p className="text-sm text-slate-500">Loading dashboard…</p>}
+      {isLoading && !summary && <p className="text-sm text-fg-secondary">Loading dashboard…</p>}
 
       {summary && (
         <>

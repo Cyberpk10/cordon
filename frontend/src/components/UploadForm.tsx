@@ -27,12 +27,12 @@ export default function UploadForm({ onSubmit, isLoading }: UploadFormProps) {
         type="file"
         accept=".eml"
         onChange={handleFileChange}
-        className="block w-full flex-1 cursor-pointer rounded-lg border border-slate-300 bg-white text-sm text-slate-600 file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700"
+        className="block w-full flex-1 cursor-pointer rounded-lg border border-line-strong bg-surface-card text-sm text-fg-secondary file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-line-strong file:px-4 file:py-2 file:text-sm file:font-semibold file:text-fg hover:file:bg-line"
       />
       <button
         type="submit"
         disabled={!selectedFile || isLoading}
-        className="whitespace-nowrap rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="whitespace-nowrap rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
       >
         {isLoading ? "Analyzing…" : "Analyze Email"}
       </button>

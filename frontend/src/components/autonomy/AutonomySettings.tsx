@@ -87,7 +87,7 @@ export default function AutonomySettings() {
 
   if (!policy) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+      <div className="rounded-xl border border-line bg-surface-card p-6 text-sm text-fg-secondary shadow-sm">
         {error ?? "Loading policy…"}
       </div>
     );
@@ -95,11 +95,11 @@ export default function AutonomySettings() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border-2 border-red-300 bg-red-50 p-5 shadow-sm">
+      <section className="rounded-xl border-2 border-danger/35 bg-danger/10 p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-red-900">Kill switch</h2>
-            <p className="text-sm text-red-700">
+            <h2 className="text-lg font-semibold text-danger">Kill switch</h2>
+            <p className="text-sm text-danger">
               Immediately drops autonomy to L0 and halts every pending autonomous action.
               {policy.halted_at && (
                 <span className="block text-xs">
@@ -111,7 +111,7 @@ export default function AutonomySettings() {
           <button
             onClick={handleHalt}
             disabled={isHalting}
-            className="whitespace-nowrap rounded-lg bg-red-600 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="whitespace-nowrap rounded-lg bg-danger px-5 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-danger/85 disabled:cursor-not-allowed disabled:bg-line-strong"
           >
             {isHalting ? "Halting…" : "Halt autonomy"}
           </button>
@@ -119,19 +119,19 @@ export default function AutonomySettings() {
       </section>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
       )}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-800">Autonomy level</h2>
+      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">Autonomy level</h2>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {LEVELS.map((l) => (
             <label
               key={l.level}
               className={`cursor-pointer rounded-lg border p-4 transition ${
                 policy.level === l.level
-                  ? "border-indigo-500 bg-indigo-50"
-                  : "border-slate-200 hover:border-slate-300"
+                  ? "border-accent bg-accent/10"
+                  : "border-line hover:border-line-strong"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -141,17 +141,17 @@ export default function AutonomySettings() {
                   checked={policy.level === l.level}
                   onChange={() => setPolicy({ ...policy, level: l.level })}
                 />
-                <span className="font-semibold text-slate-800">{l.label}</span>
+                <span className="font-semibold text-fg">{l.label}</span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">{l.description}</p>
+              <p className="mt-1 text-xs text-fg-secondary">{l.description}</p>
             </label>
           ))}
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-800">Action rules</h2>
-        <p className="mt-1 text-sm text-slate-500">
+      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">Action rules</h2>
+        <p className="mt-1 text-sm text-fg-secondary">
           Which action types may auto-run, and above what confidence. Containment actions
           (marked) need L2+; non-containment actions need L1+ regardless of these settings.
         </p>
@@ -159,9 +159,9 @@ export default function AutonomySettings() {
           {ACTION_TYPES.map(({ type, title, containment }) => {
             const rule = policy.rules.find((r) => r.action_type === type);
             return (
-              <div key={type} className="rounded-lg border border-slate-200 p-4">
+              <div key={type} className="rounded-lg border border-line p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <label className="flex items-center gap-2 font-medium text-slate-800">
+                  <label className="flex items-center gap-2 font-semibold text-fg">
                     <input
                       type="checkbox"
                       checked={!!rule}
@@ -171,14 +171,14 @@ export default function AutonomySettings() {
                     />
                     {title}
                     {containment && (
-                      <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
+                      <span className="rounded-full border border-warning/35 bg-warning/10 px-2 py-0.5 text-xs text-warning">
                         containment
                       </span>
                     )}
                   </label>
                   {rule && (
                     <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 text-sm text-slate-600">
+                      <label className="flex items-center gap-2 text-sm text-fg-secondary">
                         Min confidence
                         <input
                           type="number"
@@ -189,10 +189,10 @@ export default function AutonomySettings() {
                           onChange={(e) =>
                             updateRule(type, { min_confidence: Number(e.target.value) })
                           }
-                          className="w-20 rounded border border-slate-300 px-2 py-1 text-sm"
+                          className="w-20 rounded border border-line-strong px-2 py-1 text-sm"
                         />
                       </label>
-                      <label className="flex items-center gap-2 text-sm text-slate-600">
+                      <label className="flex items-center gap-2 text-sm text-fg-secondary">
                         <input
                           type="checkbox"
                           checked={rule.full_auto}
@@ -209,9 +209,9 @@ export default function AutonomySettings() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-800">Exclusion list</h2>
-        <p className="mt-1 text-sm text-slate-500">
+      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">Exclusion list</h2>
+        <p className="mt-1 text-sm text-fg-secondary">
           Protected identities/assets (one per line) — never auto-actioned, at any level, above
           any confidence.
         </p>
@@ -220,28 +220,28 @@ export default function AutonomySettings() {
           onChange={(e) => setExclusionsText(e.target.value)}
           rows={4}
           placeholder="ceo@corp.com&#10;partner.example.com"
-          className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono"
+          className="mt-3 w-full rounded-lg border border-line-strong px-3 py-2 text-sm font-mono"
         />
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-800">Blast-radius rate limit</h2>
-        <p className="mt-1 text-sm text-slate-500">
+      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">Blast-radius rate limit</h2>
+        <p className="mt-1 text-sm text-fg-secondary">
           After this many autonomous actions within the window, further actions require human
           confirmation until the window rolls off.
         </p>
         <div className="mt-3 flex gap-4">
-          <label className="flex flex-col gap-1 text-sm text-slate-600">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             Limit
             <input
               type="number"
               min={1}
               value={policy.blast_radius_limit}
               onChange={(e) => setPolicy({ ...policy, blast_radius_limit: Number(e.target.value) })}
-              className="w-24 rounded border border-slate-300 px-2 py-1"
+              className="w-24 rounded border border-line-strong px-2 py-1"
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-slate-600">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             Window (minutes)
             <input
               type="number"
@@ -250,7 +250,7 @@ export default function AutonomySettings() {
               onChange={(e) =>
                 setPolicy({ ...policy, blast_radius_window_minutes: Number(e.target.value) })
               }
-              className="w-24 rounded border border-slate-300 px-2 py-1"
+              className="w-24 rounded border border-line-strong px-2 py-1"
             />
           </label>
         </div>
@@ -259,7 +259,7 @@ export default function AutonomySettings() {
       <button
         onClick={handleSave}
         disabled={isSaving}
-        className="self-start rounded-lg bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="self-start rounded-lg bg-accent px-6 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
       >
         {isSaving ? "Saving…" : "Save policy"}
       </button>

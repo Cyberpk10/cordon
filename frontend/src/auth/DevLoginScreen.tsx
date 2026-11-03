@@ -43,7 +43,7 @@ export default function DevLoginScreen() {
   if (error) {
     return (
       <AuthLayout title="Dev auto-login unavailable" subtitle={error}>
-        <a href="/" className="font-medium text-brand-blue hover:underline">
+        <a href="/" className="font-semibold text-accent hover:underline">
           Go to sign in
         </a>
       </AuthLayout>
@@ -52,8 +52,8 @@ export default function DevLoginScreen() {
 
   return (
     <AuthLayout title="Signing you in…" subtitle="Local dev auto-login, no password needed.">
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-        <div className="h-full w-1/3 animate-pulse rounded-full bg-brand-blue" />
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
+        <div className="h-full w-1/3 animate-pulse rounded-full bg-accent" />
       </div>
     </AuthLayout>
   );

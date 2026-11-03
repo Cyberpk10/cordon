@@ -37,7 +37,7 @@ export default function InviteAcceptScreen() {
   if (!token) {
     return (
       <AuthLayout title="Invite link invalid" subtitle="This invite link is missing its token.">
-        <a href="/" className="font-medium text-brand-blue hover:underline">
+        <a href="/" className="font-semibold text-accent hover:underline">
           Go to sign in
         </a>
       </AuthLayout>
@@ -58,7 +58,7 @@ export default function InviteAcceptScreen() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <p className="-mt-3 text-xs text-slate-500">At least {MIN_PASSWORD_LENGTH} characters.</p>
+        <p className="-mt-3 text-xs text-fg-secondary">At least {MIN_PASSWORD_LENGTH} characters.</p>
 
         <SubmitButton isLoading={isLoading}>Join Cordon</SubmitButton>
       </form>

@@ -3,16 +3,16 @@ import { acknowledgeEarlyWarning, getEarlyWarnings } from "../../api/client";
 import type { EarlyWarningAlertEntry } from "../../types/analysis";
 
 const BAND_STYLES: Record<string, string> = {
-  normal: "border-slate-300 bg-slate-100 text-slate-600",
-  elevated: "border-amber-300 bg-amber-100 text-amber-800",
-  attack_forming: "border-orange-400 bg-orange-100 text-orange-800",
-  active_incident: "border-red-400 bg-red-100 text-red-800",
+  normal: "border-line-strong bg-surface-raised text-fg-secondary",
+  elevated: "border-warning/35 bg-warning/10 text-warning",
+  attack_forming: "border-caution/50 bg-caution/10 text-caution",
+  active_incident: "border-danger/50 bg-danger/10 text-danger",
 };
 
 function BandBadge({ band }: { band: string }) {
   return (
     <span
-      className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${BAND_STYLES[band] ?? BAND_STYLES.normal}`}
+      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${BAND_STYLES[band] ?? BAND_STYLES.normal}`}
     >
       {band.replace("_", " ")}
     </span>
@@ -52,8 +52,8 @@ export default function EarlyWarningsView() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Early Warnings</h2>
-        <p className="text-sm text-slate-600">
+        <h2 className="text-lg font-semibold text-fg">Early Warnings</h2>
+        <p className="text-sm text-fg-secondary">
           Actors with multiple corroborating precursor signals at different kill-chain stages —
           an attack appears to be forming, before any incident exists. Nothing here executes any
           action automatically.
@@ -61,31 +61,31 @@ export default function EarlyWarningsView() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">{error}</div>
       )}
 
-      {isLoading && <p className="text-sm text-slate-500">Loading early warnings…</p>}
+      {isLoading && <p className="text-sm text-fg-secondary">Loading early warnings…</p>}
 
       {!isLoading && alerts.length === 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+        <div className="rounded-xl border border-line bg-surface-card p-8 text-center text-sm text-fg-secondary shadow-sm">
           No actors currently showing signs of a forming attack.
         </div>
       )}
 
       <div className="flex flex-col gap-4">
         {alerts.map((alert) => (
-          <div key={alert.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-900 px-6 py-3">
+          <div key={alert.id} className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface-panel px-6 py-3">
               <div className="flex items-center gap-3">
-                <h3 className="text-base font-semibold text-white">{alert.actor}</h3>
+                <h3 className="text-base font-semibold text-fg">{alert.actor}</h3>
                 <BandBadge band={alert.band} />
-                <span className="text-sm text-slate-300">score {alert.score.toFixed(1)}</span>
+                <span className="text-sm text-fg-secondary">score {alert.score.toFixed(1)}</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleAck(alert.id)}
                 disabled={ackingId === alert.id}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm font-semibold text-fg transition hover:bg-surface-raised disabled:opacity-50"
               >
                 {ackingId === alert.id ? "Acknowledging…" : "Acknowledge"}
               </button>
@@ -93,11 +93,11 @@ export default function EarlyWarningsView() {
 
             <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
               <div>
-                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-secondary">
                   Reasoning timeline
                 </h4>
-                <p className="text-sm text-slate-700">{alert.timeline_summary}</p>
-                <ul className="mt-3 space-y-1 text-xs text-slate-500">
+                <p className="text-sm text-fg">{alert.timeline_summary}</p>
+                <ul className="mt-3 space-y-1 text-xs text-fg-secondary">
                   {alert.signal_timeline.map((signal, i) => (
                     <li key={i}>
                       stage {signal.stage} · {signal.type} · {new Date(signal.timestamp).toLocaleString()}
@@ -107,18 +107,18 @@ export default function EarlyWarningsView() {
               </div>
 
               <div>
-                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-secondary">
                   Recommended pre-emptive actions
                 </h4>
                 <ul className="space-y-2">
                   {alert.recommended_actions.map((action) => (
-                    <li key={action.step_id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <p className="text-sm font-medium text-slate-800">{action.title}</p>
-                      <p className="text-xs text-slate-600">{action.description}</p>
+                    <li key={action.step_id} className="rounded-lg border border-line bg-surface-panel p-3">
+                      <p className="text-sm font-semibold text-fg">{action.title}</p>
+                      <p className="text-xs text-fg-secondary">{action.description}</p>
                     </li>
                   ))}
                   {alert.recommended_actions.length === 0 && (
-                    <li className="text-xs text-slate-500">No specific recommendation.</li>
+                    <li className="text-xs text-fg-secondary">No specific recommendation.</li>
                   )}
                 </ul>
               </div>

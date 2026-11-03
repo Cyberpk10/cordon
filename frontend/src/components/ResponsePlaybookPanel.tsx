@@ -3,9 +3,9 @@ import { getRemediationPlaybook, submitRemediationAction } from "../api/client";
 import type { PlaybookStep, RemediationPlaybook } from "../types/analysis";
 
 const STATUS_STYLES: Record<string, string> = {
-  recommended: "bg-slate-100 text-slate-600 border-slate-300",
-  approved: "bg-amber-100 text-amber-800 border-amber-300",
-  done: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  recommended: "bg-surface-raised text-fg-secondary border-line-strong",
+  approved: "bg-warning/10 text-warning border-warning/35",
+  done: "bg-success/10 text-success border-success/35",
 };
 
 interface ResponsePlaybookPanelProps {
@@ -58,19 +58,19 @@ export default function ResponsePlaybookPanel({
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-800">Response Playbook</h2>
-      <p className="mt-1 text-sm text-slate-500">
+    <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-fg">Response Playbook</h2>
+      <p className="mt-1 text-sm text-fg-secondary">
         Recommended next steps derived from this case&apos;s indicators. Cordon never performs
         these automatically — an operator approves and marks each one done.
       </p>
 
-      {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
 
-      {!playbook && !error && <p className="mt-3 text-sm text-slate-500">Loading playbook…</p>}
+      {!playbook && !error && <p className="mt-3 text-sm text-fg-secondary">Loading playbook…</p>}
 
       {playbook && playbook.steps.length === 0 && (
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-sm text-fg-secondary">
           No remediation steps recommended for this case.
         </p>
       )}
@@ -78,14 +78,14 @@ export default function ResponsePlaybookPanel({
       {playbook && playbook.steps.length > 0 && (
         <ul className="mt-4 flex flex-col gap-3">
           {playbook.steps.map((step) => (
-            <li key={step.step_id} className="rounded-lg border border-slate-200 p-4">
+            <li key={step.step_id} className="rounded-lg border border-line p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <h3 className="font-semibold text-slate-800">{step.title}</h3>
-                  <p className="mt-1 text-sm text-slate-600">{step.description}</p>
+                  <h3 className="font-semibold text-fg">{step.title}</h3>
+                  <p className="mt-1 text-sm text-fg-secondary">{step.description}</p>
                 </div>
                 <span
-                  className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide ${STATUS_STYLES[step.status]}`}
+                  className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${STATUS_STYLES[step.status]}`}
                 >
                   {step.status}
                 </span>
@@ -97,7 +97,7 @@ export default function ResponsePlaybookPanel({
                     <span
                       key={`${ref.framework_key}-${ref.control_id}`}
                       title={ref.control_name}
-                      className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs text-slate-600"
+                      className="rounded border border-line bg-surface-panel px-1.5 py-0.5 text-xs text-fg-secondary"
                     >
                       {ref.framework_key}: {ref.control_id}
                     </span>
@@ -106,7 +106,7 @@ export default function ResponsePlaybookPanel({
               )}
 
               {step.actor && (
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-xs text-fg-secondary">
                   {step.status === "done" ? "Marked done" : "Approved"} by {step.actor}
                   {step.acted_at && ` · ${new Date(step.acted_at).toLocaleString()}`}
                   {step.note && <span className="block">“{step.note}”</span>}
@@ -118,7 +118,7 @@ export default function ResponsePlaybookPanel({
                   <button
                     onClick={() => handleAction(step, "approved")}
                     disabled={actingStepId === step.step_id}
-                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
                   >
                     {actingStepId === step.step_id ? "Approving…" : "Approve"}
                   </button>
@@ -127,7 +127,7 @@ export default function ResponsePlaybookPanel({
                   <button
                     onClick={() => handleAction(step, "done")}
                     disabled={actingStepId === step.step_id}
-                    className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-success/35 px-3 py-1.5 text-xs font-semibold text-success hover:bg-success/10 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {actingStepId === step.step_id ? "Marking…" : "Mark done"}
                   </button>

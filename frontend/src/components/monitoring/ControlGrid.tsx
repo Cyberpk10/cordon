@@ -3,10 +3,10 @@ import { getMonitoringControls } from "../../api/client";
 import type { ControlHealth, ControlHealthStatus } from "../../types/analysis";
 
 const STATUS_STYLES: Record<ControlHealthStatus, string> = {
-  operating: "border-emerald-300 bg-emerald-50 text-emerald-800",
-  degraded: "border-amber-300 bg-amber-50 text-amber-800",
-  stale: "border-red-300 bg-red-50 text-red-800",
-  no_evidence: "border-slate-200 bg-slate-50 text-slate-500",
+  operating: "border-success/35 bg-success/10 text-success",
+  degraded: "border-warning/35 bg-warning/10 text-warning",
+  stale: "border-danger/35 bg-danger/10 text-danger",
+  no_evidence: "border-line bg-surface-panel text-fg-secondary",
 };
 
 const STATUS_LABELS: Record<ControlHealthStatus, string> = {
@@ -41,13 +41,13 @@ export default function ControlGrid() {
   }, [framework]);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-800">Control health</h2>
+        <h2 className="text-lg font-semibold text-fg">Control health</h2>
         <select
           value={framework}
           onChange={(e) => setFramework(e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm"
+          className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm"
         >
           {FRAMEWORKS.map((fw) => (
             <option key={fw.value} value={fw.value}>
@@ -58,7 +58,7 @@ export default function ControlGrid() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-4 rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
           {error}
         </div>
       )}
@@ -79,7 +79,7 @@ export default function ControlGrid() {
               {c.control_name}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="rounded-full bg-white/60 px-2 py-0.5 font-medium">
+              <span className="rounded-full bg-surface-page/40 px-2 py-0.5 font-semibold">
                 {STATUS_LABELS[c.status]}
               </span>
               <span className="opacity-70">{formatLastEvidence(c.last_evidence_at)}</span>
@@ -87,7 +87,7 @@ export default function ControlGrid() {
           </div>
         ))}
         {items.length === 0 && !error && (
-          <div className="col-span-full py-8 text-center text-sm text-slate-500">
+          <div className="col-span-full py-8 text-center text-sm text-fg-secondary">
             No controls loaded yet.
           </div>
         )}

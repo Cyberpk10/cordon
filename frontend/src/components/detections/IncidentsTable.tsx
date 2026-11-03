@@ -61,7 +61,7 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-4">
-        <label className="flex flex-col gap-1 text-sm text-slate-600">
+        <label className="flex flex-col gap-1 text-sm text-fg-secondary">
           Verdict
           <select
             value={verdict}
@@ -69,7 +69,7 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
               setPage(1);
               setVerdict(event.target.value as Verdict | "");
             }}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+            className="rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
           >
             {VERDICT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -81,52 +81,52 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-lg border border-danger/35 bg-danger/10 p-4 text-sm text-danger">
           {error}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-line bg-surface-card shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-line bg-surface-panel text-xs uppercase tracking-wide text-fg-secondary">
             <tr>
-              <th className="px-4 py-3 font-medium">Risk</th>
-              <th className="px-4 py-3 font-medium">Actor</th>
-              <th className="px-4 py-3 font-medium">Detection Types</th>
-              <th className="px-4 py-3 font-medium">Time</th>
+              <th className="px-4 py-3 font-semibold">Risk</th>
+              <th className="px-4 py-3 font-semibold">Actor</th>
+              <th className="px-4 py-3 font-semibold">Detection Types</th>
+              <th className="px-4 py-3 font-semibold">Time</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {items.map((item) => (
               <tr
                 key={item.id}
                 onClick={() => onSelectIncident(item.id)}
-                className="cursor-pointer transition hover:bg-slate-50"
+                className="cursor-pointer transition hover:bg-surface-raised"
               >
                 <td className="px-4 py-3">
                   <VerdictBadge verdict={item.verdict} score={item.score} />
                 </td>
-                <td className="px-4 py-3 text-slate-600">{item.actor}</td>
+                <td className="px-4 py-3 text-fg-secondary">{item.actor}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {item.detection_types.map((type) => (
                       <span
                         key={type}
-                        className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs text-slate-600"
+                        className="rounded border border-line bg-surface-panel px-1.5 py-0.5 text-xs text-fg-secondary"
                       >
                         {type}
                       </span>
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-slate-500">
+                <td className="px-4 py-3 text-fg-secondary">
                   {new Date(item.created_at).toLocaleString()}
                 </td>
               </tr>
             ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={4} className="px-4 py-8 text-center text-fg-secondary">
                   No incidents match these filters.
                 </td>
               </tr>
@@ -135,7 +135,7 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-slate-600">
+      <div className="flex items-center justify-between text-sm text-fg-secondary">
         <span>
           {total} incident{total === 1 ? "" : "s"}
         </span>
@@ -143,7 +143,7 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1 || isLoading}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-line-strong px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Previous
           </button>
@@ -153,7 +153,7 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages || isLoading}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-line-strong px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
           </button>

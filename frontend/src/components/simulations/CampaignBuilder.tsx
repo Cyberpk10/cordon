@@ -93,17 +93,17 @@ export default function CampaignBuilder({ onCreated }: CampaignBuilderProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-800">1. Verify a sending domain</h2>
+          <h2 className="text-lg font-semibold text-fg">1. Verify a sending domain</h2>
           {!isAdmin && <AdminOnlyNote />}
         </div>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-fg-secondary">
           A campaign can only target recipients on domains this account has proven DNS control
           of. Enter the domain, then add the returned TXT record with your DNS provider.
         </p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-sm text-slate-600">
+          <label className="flex flex-col gap-1 text-sm text-fg-secondary">
             Domain
             <input
               type="text"
@@ -111,38 +111,38 @@ export default function CampaignBuilder({ onCreated }: CampaignBuilderProps) {
               onChange={(event) => setDomain(event.target.value)}
               placeholder="corp.example.com"
               disabled={!isAdmin}
-              className="w-64 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100"
+              className="w-64 rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg disabled:cursor-not-allowed disabled:bg-surface-raised"
             />
           </label>
           <button
             onClick={handleVerify}
             disabled={!isAdmin || isVerifying || !domain.trim()}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
           >
             {isVerifying ? "Checking…" : "Verify"}
           </button>
         </div>
 
-        {verifyError && <p className="mt-3 text-sm text-red-700">{verifyError}</p>}
+        {verifyError && <p className="mt-3 text-sm text-danger">{verifyError}</p>}
 
         {domainResult && (
-          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
+          <div className="mt-4 rounded-lg border border-line bg-surface-panel p-4 text-sm">
             {domainResult.status === "verified" ? (
-              <p className="font-medium text-emerald-700">
+              <p className="font-semibold text-success">
                 &ldquo;{domainResult.domain}&rdquo; is verified.
               </p>
             ) : (
               <>
-                <p className="font-medium text-slate-700">
+                <p className="font-semibold text-fg">
                   Not verified yet. Add this TXT record, then click Verify again:
                 </p>
-                <dl className="mt-2 space-y-1 font-mono text-xs text-slate-600">
+                <dl className="mt-2 space-y-1 font-mono text-xs text-fg-secondary">
                   <div>
-                    <dt className="inline text-slate-400">Name: </dt>
+                    <dt className="inline text-fg-muted">Name: </dt>
                     <dd className="inline">{domainResult.verification_record_name}</dd>
                   </div>
                   <div>
-                    <dt className="inline text-slate-400">Value: </dt>
+                    <dt className="inline text-fg-muted">Value: </dt>
                     <dd className="inline">{domainResult.verification_record_value}</dd>
                   </div>
                 </dl>
@@ -152,17 +152,17 @@ export default function CampaignBuilder({ onCreated }: CampaignBuilderProps) {
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-800">2. Choose a template</h2>
-        {templatesError && <p className="mt-2 text-sm text-red-700">{templatesError}</p>}
+      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">2. Choose a template</h2>
+        {templatesError && <p className="mt-2 text-sm text-danger">{templatesError}</p>}
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {templates.map((template) => (
             <label
               key={template.id}
               className={`cursor-pointer rounded-lg border p-4 transition ${
                 selectedTemplateId === template.id
-                  ? "border-indigo-500 bg-indigo-50"
-                  : "border-slate-200 hover:border-slate-300"
+                  ? "border-accent bg-accent/10"
+                  : "border-line hover:border-line-strong"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -172,44 +172,44 @@ export default function CampaignBuilder({ onCreated }: CampaignBuilderProps) {
                   checked={selectedTemplateId === template.id}
                   onChange={() => setSelectedTemplateId(template.id)}
                 />
-                <span className="font-semibold text-slate-800">{template.name}</span>
+                <span className="font-semibold text-fg">{template.name}</span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">{template.subject}</p>
+              <p className="mt-1 text-xs text-fg-secondary">{template.subject}</p>
             </label>
           ))}
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-800">3. Name it and add recipients</h2>
-        <label className="mt-4 flex flex-col gap-1 text-sm text-slate-600">
+      <section className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">3. Name it and add recipients</h2>
+        <label className="mt-4 flex flex-col gap-1 text-sm text-fg-secondary">
           Campaign name
           <input
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Q1 awareness test"
-            className="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700"
+            className="w-full max-w-md rounded-lg border border-line-strong bg-surface-card px-3 py-1.5 text-sm text-fg"
           />
         </label>
-        <label className="mt-4 flex flex-col gap-1 text-sm text-slate-600">
+        <label className="mt-4 flex flex-col gap-1 text-sm text-fg-secondary">
           Recipients — one per line, optionally &ldquo;email, department&rdquo;
           <textarea
             value={recipientsText}
             onChange={(event) => setRecipientsText(event.target.value)}
             rows={6}
             placeholder={"alice@corp.example.com, Sales\nbob@corp.example.com"}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono"
+            className="w-full rounded-lg border border-line-strong px-3 py-2 text-sm font-mono"
           />
         </label>
 
-        {createError && <p className="mt-3 text-sm text-red-700">{createError}</p>}
+        {createError && <p className="mt-3 text-sm text-danger">{createError}</p>}
 
         <div className="mt-4 flex items-center gap-3">
           <button
             onClick={handleCreate}
             disabled={!isAdmin || isCreating}
-            className="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="rounded-lg bg-accent px-6 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
           >
             {isCreating ? "Creating…" : "Create campaign"}
           </button>

@@ -19,27 +19,27 @@ export default function ForwardingAddressCard({ forwardingAddress }: ForwardingA
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-800">Your forwarding address</h2>
-      <p className="mt-1 text-sm text-slate-600">
+    <div className="rounded-xl border border-line bg-surface-card p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-fg">Your forwarding address</h2>
+      <p className="mt-1 text-sm text-fg-secondary">
         Forward any suspicious email to this address — Cordon will analyze it automatically and
         add it to your Cases.
       </p>
 
       <div className="mt-4 flex items-center gap-2">
-        <code className="flex-1 truncate rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm text-slate-800">
+        <code className="flex-1 truncate rounded-lg border border-line bg-surface-panel px-3 py-2 font-mono text-sm text-fg">
           {forwardingAddress}
         </code>
         <button
           type="button"
           onClick={handleCopy}
-          className="shrink-0 rounded-lg bg-navy px-3 py-2 text-sm font-medium text-white transition hover:bg-navy-800"
+          className="shrink-0 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-fg transition hover:bg-accent-hover"
         >
           {copied ? "Copied!" : "Copy"}
         </button>
       </div>
 
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-3 text-xs text-fg-secondary">
         Tip: save this as a contact named "Report Phishing" so it's quick to forward to from
         your phone.
       </p>

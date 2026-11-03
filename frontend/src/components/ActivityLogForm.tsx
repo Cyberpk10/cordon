@@ -27,15 +27,15 @@ export default function ActivityLogForm({ onSubmit, isLoading }: ActivityLogForm
         onChange={(event) => setRawText(event.target.value)}
         placeholder={PLACEHOLDER}
         rows={12}
-        className="w-full rounded-lg border border-slate-300 bg-white p-3 font-mono text-xs text-slate-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        className="w-full rounded-lg border border-line-strong bg-surface-card p-3 font-mono text-xs text-fg shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
       />
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-fg-secondary">
         Expected CSV header: <code className="font-mono">timestamp,account,source_ip,geo,result</code>
       </p>
       <button
         type="submit"
         disabled={!rawText.trim() || isLoading}
-        className="self-start whitespace-nowrap rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="self-start whitespace-nowrap rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-fg shadow-sm transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line-strong"
       >
         {isLoading ? "Running…" : "Run"}
       </button>

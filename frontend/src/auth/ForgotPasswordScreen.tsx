@@ -68,7 +68,7 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
         <button
           type="button"
           onClick={onBackToLogin}
-          className="flex w-full items-center justify-center rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-800"
+          className="flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-fg transition hover:bg-accent-hover"
         >
           Back to sign in
         </button>
@@ -85,7 +85,7 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
           <button
             type="button"
             onClick={onBackToLogin}
-            className="font-medium text-brand-blue hover:underline"
+            className="font-semibold text-accent hover:underline"
           >
             Back to sign in
           </button>
@@ -112,7 +112,7 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
-          <p className="-mt-3 text-xs text-slate-500">At least {MIN_PASSWORD_LENGTH} characters.</p>
+          <p className="-mt-3 text-xs text-fg-secondary">At least {MIN_PASSWORD_LENGTH} characters.</p>
 
           <SubmitButton isLoading={isLoading}>Update password</SubmitButton>
         </form>
@@ -128,7 +128,7 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
         <button
           type="button"
           onClick={onBackToLogin}
-          className="font-medium text-brand-blue hover:underline"
+          className="font-semibold text-accent hover:underline"
         >
           Back to sign in
         </button>
