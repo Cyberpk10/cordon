@@ -37,7 +37,7 @@ export default function InviteAcceptScreen() {
   if (!token) {
     return (
       <AuthLayout title="Invite link invalid" subtitle="This invite link is missing its token.">
-        <a href="/" className="font-semibold text-accent hover:underline">
+        <a href="/" className="font-semibold text-accent hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-page">
           Go to sign in
         </a>
       </AuthLayout>

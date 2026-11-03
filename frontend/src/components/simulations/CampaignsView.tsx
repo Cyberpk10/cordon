@@ -12,6 +12,7 @@ import {
   TD,
   TH,
   THead,
+  TR,
   Table,
   TableContainer,
   TableMessageRow,
@@ -90,16 +91,16 @@ export default function CampaignsView() {
             </THead>
             <TBody>
               {campaigns.map((campaign) => (
-                <tr
+                <TR
                   key={campaign.id}
-                  onClick={() => setSelectedId(campaign.id)}
-                  className="cursor-pointer transition hover:bg-surface-raised"
+                  onActivate={() => setSelectedId(campaign.id)}
+                  aria-label={`Open campaign: ${campaign.name}`}
                 >
                   <TD density="comfortable" className="font-semibold text-fg">{campaign.name}</TD>
                   <TD density="comfortable">
                     <CampaignStatusBadge status={campaign.status} />
                   </TD>
-                </tr>
+                </TR>
               ))}
               {campaigns.length === 0 && (
                 <TableMessageRow colSpan={2}>

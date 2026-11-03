@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import {
   deleteIncident,
   getIncident,
@@ -10,22 +10,16 @@ import {
   submitIncidentRemediationAction,
 } from "../../api/client";
 import type { IncidentDetail as IncidentDetailType, Verdict } from "../../types/analysis";
-import FrameworkMappingPanel from "../FrameworkMappingPanel";
 import InvestigationPanel from "../InvestigationPanel";
 import ResponsePlaybookPanel from "../ResponsePlaybookPanel";
-import VerdictBadge from "../VerdictBadge";
+import AnalysisResultCard, { AnalysisResultSkeleton, summarizeIndicators } from "../analyze/AnalysisResultCard";
+import { AnalystFeedbackCard, HumanLabelNote } from "../AnalystLabel";
+import PageActions from "../shell/PageActions";
 import EvidenceEventsTable from "./EvidenceEventsTable";
 import FindingList from "./FindingList";
-import {
-  Button,
-  Card,
-  ErrorState,
-  Field,
-  Input,
-  LoadingState,
-  SectionHeading,
-  Select,
-} from "../ui";
+import { Badge, Button, ErrorState, SectionHeading, useConfirm, useToast } from "../ui";
+
+const FINDING_ANCHOR = "incident-finding-";
 
 interface IncidentDetailProps {
   incidentId: string;
@@ -34,6 +28,8 @@ interface IncidentDetailProps {
 }
 
 export default function IncidentDetail({ incidentId, onBack, onDeleted }: IncidentDetailProps) {
+  const confirm = useConfirm();
+  const toast = useToast();
   const [incident, setIncident] = useState<IncidentDetailType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -63,11 +59,20 @@ export default function IncidentDetail({ incidentId, onBack, onDeleted }: Incide
     };
   }, [incidentId]);
 
+  const signals = (incident?.findings ?? []).map((f) => ({ ...f, score: f.points }));
+
   const handleDelete = async () => {
-    if (!window.confirm("Delete this incident?")) return;
+    const ok = await confirm({
+      title: "Delete this incident?",
+      description: "This permanently removes the incident. This can't be undone.",
+      confirmLabel: "Delete incident",
+      tone: "danger",
+    });
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await deleteIncident(incidentId);
+      toast({ title: "Incident deleted" });
       onDeleted();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete incident.");
@@ -84,6 +89,7 @@ export default function IncidentDetail({ incidentId, onBack, onDeleted }: Incide
         note: labelNote.trim() || undefined,
       });
       setIncident((prev) => (prev ? { ...prev, latest_label: label } : prev));
+      toast({ title: "Label submitted", description: `Incident labeled ${label.analyst_verdict}.` });
     } catch (err) {
       setLabelError(err instanceof Error ? err.message : "Failed to submit label.");
     } finally {
@@ -99,103 +105,78 @@ export default function IncidentDetail({ incidentId, onBack, onDeleted }: Incide
 
       {error && <ErrorState message={error} />}
 
-      {!incident && !error && <LoadingState label="Loading incident…" />}
+      {!incident && !error && <AnalysisResultSkeleton />}
 
       {incident && (
         <>
-          <Card>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex flex-col gap-2">
-                <VerdictBadge verdict={incident.verdict} score={incident.score} />
-                {incident.latest_label && (
-                  <p className="text-sm text-fg-secondary">
-                    <span className="font-semibold text-fg">Human label:</span>{" "}
-                    <span className="capitalize">{incident.latest_label.analyst_verdict}</span>
-                    {" by "}
-                    {incident.latest_label.labeled_by}
-                    {" · "}
-                    {new Date(incident.latest_label.created_at).toLocaleString()}
-                    {incident.latest_label.note && (
-                      <span className="block text-fg-secondary">“{incident.latest_label.note}”</span>
-                    )}
-                  </p>
-                )}
-              </div>
-              <Button
-                tone="danger"
-                size="sm"
-                onClick={handleDelete}
-                loading={isDeleting}
-                loadingText="Deleting…"
-              >
-                Delete incident
-              </Button>
-            </div>
-            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-fg-secondary sm:grid-cols-2">
-              <div>
-                <dt className="inline font-semibold text-fg">Actor: </dt>
-                <dd className="inline">{incident.actor}</dd>
-              </div>
-              <div>
-                <dt className="inline font-semibold text-fg">Title: </dt>
-                <dd className="inline">{incident.title}</dd>
-              </div>
-              <div>
-                <dt className="inline font-semibold text-fg">Detection window: </dt>
-                <dd className="inline">
-                  {new Date(incident.window_start).toLocaleString()} –{" "}
-                  {new Date(incident.window_end).toLocaleString()}
-                </dd>
-              </div>
-              <div>
-                <dt className="inline font-semibold text-fg">Detected: </dt>
-                <dd className="inline">{new Date(incident.created_at).toLocaleString()}</dd>
-              </div>
-            </dl>
-          </Card>
+          <PageActions>
+            <Button
+              tone="danger"
+              size="sm"
+              icon={Trash2}
+              onClick={handleDelete}
+              loading={isDeleting}
+              loadingText="Deleting…"
+            >
+              Delete incident
+            </Button>
+          </PageActions>
 
-          <Card>
-            <h2 className="text-base font-semibold text-fg">Analyst Feedback</h2>
-            <p className="mt-1 text-sm text-fg-secondary">
-              Agree with the machine verdict as-is, or change it below before submitting to
-              correct it. Submitting again relabels the incident — the prior label stays in
-              history.
-            </p>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-              <Field label="Verdict">
-                <Select
-                  value={labelVerdict}
-                  onChange={(event) => setLabelVerdict(event.target.value as Verdict)}
-                >
-                  <option value="safe">Safe</option>
-                  <option value="suspicious">Suspicious</option>
-                  <option value="malicious">Malicious</option>
-                </Select>
-              </Field>
-              <Field label="Note (optional)" className="flex-1">
-                <Input
-                  type="text"
-                  value={labelNote}
-                  onChange={(event) => setLabelNote(event.target.value)}
-                  placeholder="Why are you agreeing or correcting this verdict?"
-                />
-              </Field>
-              <Button
-                variant="primary"
-                onClick={handleSubmitLabel}
-                loading={isSubmittingLabel}
-                loadingText="Submitting…"
-              >
-                Submit Label
-              </Button>
-            </div>
-            {labelError && <ErrorState message={labelError} className="mt-2" />}
-          </Card>
+          <AnalysisResultCard
+            verdict={incident.verdict}
+            score={incident.score}
+            summary={summarizeIndicators(incident.verdict, signals, {
+              none: "No detections fired for this incident.",
+              signal: "finding",
+            })}
+            footnote={
+              incident.latest_label && (
+                <HumanLabelNote label={incident.latest_label} machineVerdict={incident.verdict} />
+              )
+            }
+            details={[
+              { label: "Incident", value: incident.title, wide: true },
+              { label: "Actor", value: incident.actor },
+              {
+                label: "Detection window",
+                value: `${new Date(incident.window_start).toLocaleString()} – ${new Date(incident.window_end).toLocaleString()}`,
+              },
+              {
+                label: "Detections",
+                value: (
+                  <span className="flex flex-wrap gap-1">
+                    {incident.detection_types.map((type) => (
+                      <Badge key={type} size="sm">
+                        {type}
+                      </Badge>
+                    ))}
+                  </span>
+                ),
+              },
+              { label: "Created", value: new Date(incident.created_at).toLocaleString() },
+            ]}
+            indicators={signals}
+            indicatorAnchorPrefix={FINDING_ANCHOR}
+            indicatorsLabel="Top findings"
+            frameworkMappings={incident.framework_mappings}
+          />
+
+          <AnalystFeedbackCard
+            noun="incident"
+            verdict={labelVerdict}
+            note={labelNote}
+            onVerdictChange={setLabelVerdict}
+            onNoteChange={setLabelNote}
+            onSubmit={handleSubmitLabel}
+            isSubmitting={isSubmittingLabel}
+            error={labelError}
+          />
 
           <ResponsePlaybookPanel
             caseId={incident.id}
             fetchPlaybook={getIncidentRemediationPlaybook}
             submitAction={submitIncidentRemediationAction}
+            noun="incident"
           />
 
           <InvestigationPanel
@@ -205,18 +186,13 @@ export default function IncidentDetail({ incidentId, onBack, onDeleted }: Incide
           />
 
           <section>
-            <SectionHeading>Findings</SectionHeading>
-            <FindingList findings={incident.findings} />
+            <SectionHeading>All findings ({incident.findings.length})</SectionHeading>
+            <FindingList findings={incident.findings} idPrefix={FINDING_ANCHOR} />
           </section>
 
           <section>
             <SectionHeading>Evidence Events</SectionHeading>
             <EvidenceEventsTable events={incident.evidence_events} />
-          </section>
-
-          <section>
-            <SectionHeading>Framework Mapping</SectionHeading>
-            <FrameworkMappingPanel frameworkMappings={incident.framework_mappings} />
           </section>
         </>
       )}

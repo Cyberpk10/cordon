@@ -201,9 +201,9 @@ export default function CampaignDetail({ campaignId, onBack, onUpdated }: Campai
                             href={recipient.dry_run_tracking_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-semibold text-accent hover:text-accent-hover"
+                            className="font-semibold text-accent hover:text-accent-hover rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-page"
                           >
-                            Open
+                            Open<span className="sr-only"> preview for {recipient.email} (opens in a new tab)</span>
                           </a>
                         ) : (
                           "—"

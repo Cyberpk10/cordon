@@ -69,13 +69,30 @@ export default function AppShell({
     };
   }, [drawerOpen]);
 
-  // A new screen starts at the top, like a page navigation would.
+  // A new screen starts at the top, like a page navigation would, and gets its own
+  // document title (browser tabs, history, and screen readers all use it).
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [tab]);
+    document.title = `${meta.title} · Cordon`;
+  }, [tab, meta.title]);
 
   return (
     <div className="min-h-screen bg-surface-page text-fg">
+      <a
+        href="#main-content"
+        onClick={(event) => {
+          // Move focus without adding a #hash to the URL.
+          event.preventDefault();
+          document.getElementById("main-content")?.focus();
+        }}
+        className="sr-only z-50 rounded-control bg-accent-fill text-sm font-semibold text-fg-on-fill focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:px-4 focus:py-2 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface-page"
+      >
+        Skip to main content
+      </a>
+      {/* Announces screen changes, since switching tabs doesn't reload the page. */}
+      <p aria-live="polite" className="sr-only">
+        {meta.title}
+      </p>
       {/* Docked sidebar: icon rail at md, full width at lg, hidden below md. */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 border-r border-line bg-surface-panel md:block lg:w-[184px]">
         <SidebarContent tab={tab} onSelect={handleSelect} user={user} onLogout={onLogout} variant="responsive" />
@@ -138,7 +155,7 @@ export default function AppShell({
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main id="main-content" tabIndex={-1} className="px-4 py-6 focus:outline-none sm:px-6 lg:px-8 lg:py-8">
           <div
             className={clsx(
               "mx-auto w-full",

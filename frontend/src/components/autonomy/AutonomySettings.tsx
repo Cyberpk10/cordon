@@ -2,7 +2,18 @@ import { useEffect, useState } from "react";
 import { getAutonomyPolicy, haltAutonomy, putAutonomyPolicy } from "../../api/client";
 import type { AutonomyLevel, AutonomyPolicy, AutonomyPolicyRule } from "../../types/analysis";
 import { OctagonX, Save } from "lucide-react";
-import { Badge, Button, Card, ErrorState, Field, Input, LoadingState, Textarea, useToast } from "../ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ErrorState,
+  Field,
+  Input,
+  LoadingState,
+  Textarea,
+  useConfirm,
+  useToast,
+} from "../ui";
 
 const LEVELS: { level: AutonomyLevel; label: string; description: string }[] = [
   { level: "L0", label: "L0 — Recommend only", description: "Cordon never acts automatically. Every finding stays a human-approved recommendation." },
@@ -25,6 +36,7 @@ export default function AutonomySettings() {
   const [isHalting, setIsHalting] = useState(false);
   const [exclusionsText, setExclusionsText] = useState("");
   const toast = useToast();
+  const confirm = useConfirm();
 
   const load = () => {
     getAutonomyPolicy()
@@ -74,9 +86,13 @@ export default function AutonomySettings() {
   };
 
   const handleHalt = async () => {
-    if (!window.confirm("Halt autonomy? This drops to L0 and stops all pending autonomous actions immediately.")) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Halt autonomy?",
+      description: "This drops autonomy to L0 and stops all pending autonomous actions immediately.",
+      confirmLabel: "Halt autonomy",
+      tone: "danger",
+    });
+    if (!ok) return;
     setIsHalting(true);
     setError(null);
     try {

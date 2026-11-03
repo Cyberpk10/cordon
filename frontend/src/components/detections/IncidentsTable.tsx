@@ -15,6 +15,7 @@ import {
   TD,
   TH,
   THead,
+  TR,
   Table,
   TableContainer,
   TableMessageRow,
@@ -109,13 +110,13 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
             </THead>
             <TBody>
               {items.map((item) => (
-                <tr
+                <TR
                   key={item.id}
-                  onClick={() => onSelectIncident(item.id)}
-                  className="cursor-pointer transition hover:bg-surface-raised"
+                  onActivate={() => onSelectIncident(item.id)}
+                  aria-label={`Open incident: ${item.title}`}
                 >
                   <TD>
-                    <VerdictBadge verdict={item.verdict} score={item.score} compact />
+                    <VerdictBadge verdict={item.verdict} score={item.score} />
                   </TD>
                   <TD className="text-fg-secondary">{item.actor}</TD>
                   <TD>
@@ -130,7 +131,7 @@ export default function IncidentsTable({ onSelectIncident, refreshToken }: Incid
                   <TD className="text-fg-secondary">
                     {new Date(item.created_at).toLocaleString()}
                   </TD>
-                </tr>
+                </TR>
               ))}
               {!error && !isLoading && items.length === 0 && (
                 <TableMessageRow colSpan={4}>

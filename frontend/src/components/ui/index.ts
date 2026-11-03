@@ -13,3 +13,5 @@ export type { BadgeTone } from "./Badge";
 export { TableContainer, Table, THead, TBody, TH, TD, TR, TableMessageRow } from "./Table";
 export { EmptyState, LoadingState, Skeleton, Alert, ErrorState } from "./States";
 export { ToastProvider, useToast } from "./Toast";
+export { Modal, ConfirmProvider, useConfirm } from "./Modal";
+export type { ConfirmOptions } from "./Modal";

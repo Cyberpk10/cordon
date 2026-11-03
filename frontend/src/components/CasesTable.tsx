@@ -173,7 +173,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
                   aria-label={`Open case: ${item.subject ?? item.filename}`}
                 >
                   <TD>
-                    <VerdictBadge verdict={item.verdict} score={item.score} compact />
+                    <VerdictBadge verdict={item.verdict} score={item.score} />
                   </TD>
                   <TD>
                     <ChannelBadge channel={item.channel} />

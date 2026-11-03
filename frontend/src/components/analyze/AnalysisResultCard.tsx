@@ -11,16 +11,24 @@ import type {
   AuthResultValue,
   AuthResults,
   FrameworkControlRef,
-  Indicator,
   Severity,
   Verdict,
 } from "../../types/analysis";
 import { Badge, Button, Card, type BadgeTone } from "../ui";
 import { VERDICT_META } from "../verdict";
 
+/** The minimum the card needs from a fired rule — satisfied by email/chat indicators
+ * directly and by intrusion findings (whose `points` map to `score`). */
+export interface Signal {
+  id: string;
+  title: string;
+  severity: Severity;
+  score: number;
+}
+
 /** Strongest indicators first: score, then severity as a tie-break. */
 const SEVERITY_RANK: Record<Severity, number> = { high: 3, medium: 2, low: 1 };
-export function rankIndicators(indicators: Indicator[]): Indicator[] {
+export function rankIndicators<T extends Signal>(indicators: T[]): T[] {
   return [...indicators].sort(
     (a, b) => b.score - a.score || SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity]
   );
@@ -30,7 +38,7 @@ export function rankIndicators(indicators: Indicator[]): Indicator[] {
  * the strongest indicator's own title plus a count — never invented copy. */
 export function summarizeIndicators(
   verdict: Verdict,
-  indicators: Indicator[],
+  indicators: Signal[],
   noun: { none: string; signal: string }
 ): string {
   const ranked = rankIndicators(indicators);
@@ -92,7 +100,7 @@ interface AnalysisResultCardProps {
   details: DetailItem[];
   /** Email only — activity logs have no SPF/DKIM/DMARC. */
   authResults?: AuthResults;
-  indicators: Indicator[];
+  indicators: Signal[];
   /** Id prefix of the full indicator list below the card, for "jump to details" links. */
   indicatorAnchorPrefix: string;
   indicatorsLabel?: string;

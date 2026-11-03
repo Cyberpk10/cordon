@@ -29,7 +29,8 @@ function useFocusOnArrival(trigger: unknown) {
   useEffect(() => {
     if (trigger && ref.current) {
       ref.current.focus({ preventScroll: true });
-      ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      ref.current.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     }
   }, [trigger]);
   return ref;

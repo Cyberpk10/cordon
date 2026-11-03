@@ -147,6 +147,7 @@ export default function ActionsLog() {
                         refs.map((ref) => (
                           <Badge key={`${fw}-${ref.control_id}`} size="sm" title={ref.control_name}>
                             {fw}: {ref.control_id}
+                            <span className="sr-only"> — {ref.control_name}</span>
                           </Badge>
                         ))
                       )}

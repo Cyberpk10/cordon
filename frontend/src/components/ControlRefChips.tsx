@@ -10,6 +10,7 @@ export default function ControlRefChips({ refs }: { refs: PlaybookStep["control_
       {refs.map((ref) => (
         <Badge key={`${ref.framework_key}-${ref.control_id}`} size="sm" title={ref.control_name}>
           {ref.framework_key}: {ref.control_id}
+          <span className="sr-only"> — {ref.control_name}</span>
         </Badge>
       ))}
     </div>

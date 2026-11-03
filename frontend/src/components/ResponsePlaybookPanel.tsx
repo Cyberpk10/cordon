@@ -23,12 +23,15 @@ interface ResponsePlaybookPanelProps {
     stepId: string,
     params: { status: "approved" | "done"; note?: string }
   ) => Promise<void>;
+  /** "case" (default) or "incident", for the panel's copy. */
+  noun?: "case" | "incident";
 }
 
 export default function ResponsePlaybookPanel({
   caseId,
   fetchPlaybook = getRemediationPlaybook,
   submitAction = submitRemediationAction,
+  noun = "case",
 }: ResponsePlaybookPanelProps) {
   const [playbook, setPlaybook] = useState<RemediationPlaybook | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +67,7 @@ export default function ResponsePlaybookPanel({
     <Card>
       <h2 className="text-base font-semibold text-fg">Response Playbook</h2>
       <p className="mt-1 text-sm text-fg-secondary">
-        Recommended next steps derived from this case&apos;s indicators. Cordon never performs
+        Recommended next steps derived from this {noun}&apos;s {noun === "case" ? "indicators" : "findings"}. Cordon never performs
         these automatically — an operator approves and marks each one done.
       </p>
 
@@ -76,7 +79,7 @@ export default function ResponsePlaybookPanel({
         <EmptyState
           variant="inline"
           icon={ListChecks}
-          title="No remediation steps recommended for this case."
+          title={`No remediation steps recommended for this ${noun}.`}
           className="justify-start"
         />
       )}
