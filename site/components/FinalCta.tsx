@@ -5,7 +5,7 @@ const DEMO_MAILTO =
 
 export default function FinalCta() {
   return (
-    <section id="design-partner" className="relative overflow-hidden bg-surface-page py-24">
+    <section id="design-partner" className="relative overflow-hidden bg-surface-page section-y">
       <Reveal
         y={24}
         className="relative mx-auto max-w-4xl overflow-hidden rounded-card border border-line bg-gradient-to-br from-surface-panel to-surface-raised px-8 py-16 text-center sm:px-16"
@@ -15,7 +15,7 @@ export default function FinalCta() {
           aria-hidden
         />
         <div className="relative">
-          <span className="inline-flex items-center rounded-full border border-line-strong bg-surface-raised/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-fg">
+          <span className="inline-flex items-center rounded-full border border-line-strong bg-surface-raised/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-fg">
             Design-partner program
           </span>
           <h2 className="mt-6 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
@@ -28,7 +28,7 @@ export default function FinalCta() {
           </p>
           <a
             href={DEMO_MAILTO}
-            className="btn-primary mt-8 inline-block rounded-control px-8 py-3.5 text-sm font-semibold text-white"
+            className="btn btn-primary btn-lg mt-8"
           >
             Book a 20-minute demo
           </a>

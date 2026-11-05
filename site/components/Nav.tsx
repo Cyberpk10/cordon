@@ -39,7 +39,7 @@ export default function Nav() {
               className="group relative text-sm font-normal whitespace-nowrap text-fg-secondary transition-colors hover:text-fg"
             >
               {link.label}
-              <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+              <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-[width] duration-150 group-hover:w-full" />
             </a>
           ))}
           <Link
@@ -47,20 +47,20 @@ export default function Nav() {
             className="group relative text-sm font-normal whitespace-nowrap text-fg-secondary transition-colors hover:text-fg"
           >
             Security
-            <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+            <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-[width] duration-150 group-hover:w-full" />
           </Link>
           <Link
             href="/#about-founder"
             className="group relative text-sm font-normal whitespace-nowrap text-fg-secondary transition-colors hover:text-fg"
           >
             About
-            <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+            <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-[width] duration-150 group-hover:w-full" />
           </Link>
         </nav>
 
         <a
           href={DEMO_MAILTO}
-          className="btn-primary rounded-control px-4 py-2 text-sm font-semibold text-white"
+          className="btn btn-primary btn-md"
         >
           Get a demo
         </a>

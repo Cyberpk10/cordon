@@ -1,5 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 import Reveal from "@/components/motion/Reveal";
+import SectionHeading from "@/components/ui/SectionHeading";
 
 const CHECKLIST = [
   "Real-time phishing verdicts, not just SPF/DKIM checks",
@@ -11,12 +12,13 @@ const CHECKLIST = [
 
 export default function WhyAegis() {
   return (
-    <section id="why-aegis" className="bg-surface-page py-24">
+    <section id="why-aegis" className="bg-surface-page section-y">
       <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-2">
         <Reveal>
-          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-            Other tools block. Cordon blocks and proves it.
-          </h2>
+          <SectionHeading
+            title={<>Other tools block. Cordon blocks and proves it.</>}
+            align="left"
+          />
           <ul className="mt-8 space-y-4">
             {CHECKLIST.map((item) => (
               <li key={item} className="flex items-start gap-3">
@@ -29,9 +31,9 @@ export default function WhyAegis() {
 
         <Reveal
           delay={0.12}
-          className="rounded-card border border-line bg-surface-panel p-10 transition-all duration-300 hover:border-line-strong hover:shadow-xl hover:shadow-black/30"
+          className="card p-6 sm:p-8"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
+          <p className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
             Our principle
           </p>
           <p className="mt-4 text-2xl font-semibold leading-snug text-fg sm:text-3xl">

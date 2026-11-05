@@ -1,5 +1,6 @@
 import { Film } from "lucide-react";
 import Reveal from "@/components/motion/Reveal";
+import SectionHeading from "@/components/ui/SectionHeading";
 
 export default function VideoDemo({
   hasWalkthroughVideo,
@@ -7,22 +8,19 @@ export default function VideoDemo({
   hasWalkthroughVideo: boolean;
 }) {
   return (
-    <section className="bg-surface-page py-24">
+    <section className="bg-surface-page section-y">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-            Watch the full Cordon walkthrough
-          </h2>
-          <p className="mt-4 text-lg text-fg-secondary">
-            A 90-second walkthrough: detection, early warning, staff
-            training, and audit-ready compliance.
-          </p>
+          <SectionHeading
+            title={<>Watch the full Cordon walkthrough</>}
+            lede={<>A 90-second walkthrough: detection, early warning, staff training, and audit-ready compliance.</>}
+          />
         </Reveal>
 
         <Reveal
           delay={0.1}
           y={28}
-          className="mx-auto mt-14 max-w-[900px] overflow-hidden rounded-card border border-line shadow-2xl shadow-black/40 transition-shadow duration-300 hover:shadow-accent/10"
+          className="mx-auto mt-12 max-w-[900px] overflow-hidden rounded-card border border-line shadow-2xl shadow-black/40"
         >
           {hasWalkthroughVideo ? (
             <video className="w-full" controls preload="metadata">

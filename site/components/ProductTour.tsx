@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Power, Undo2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ScreenshotFrame from "@/components/ScreenshotFrame";
 import Reveal from "@/components/motion/Reveal";
+import SectionHeading from "@/components/ui/SectionHeading";
 
 function ControlChip({ framework, id }: { framework: string; id: string }) {
   return (
@@ -44,7 +45,7 @@ function StepFindingsToControls() {
   ];
 
   return (
-    <div className="rounded-card border border-line bg-surface-panel p-6">
+    <div className="card p-6">
       <h4 className="text-sm font-semibold text-fg">
         Findings mapped to controls
       </h4>
@@ -78,7 +79,7 @@ function StepAuditMode() {
   ];
 
   return (
-    <div className="rounded-card border border-line bg-surface-panel p-6">
+    <div className="card p-6">
       <h4 className="text-sm font-semibold text-fg">
         Audit Mode: framework coverage
       </h4>
@@ -100,7 +101,7 @@ function StepAuditMode() {
       </div>
       <button
         type="button"
-        className="mt-6 w-full rounded-control bg-accent-fill px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-fill-hover"
+        className="mt-6 w-full rounded-control bg-accent-fill px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-accent-fill-hover"
       >
         Generate SOC 2 evidence pack →
       </button>
@@ -133,7 +134,7 @@ function StepAutonomy() {
   ];
 
   return (
-    <div className="rounded-card border border-line bg-surface-panel p-6">
+    <div className="card p-6">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold text-fg">
           Autonomous response
@@ -164,7 +165,7 @@ function StepAutonomy() {
 
       <div className="mt-5 overflow-hidden rounded-control border border-line">
         <table className="w-full text-left text-xs">
-          <thead className="bg-surface-raised/50 text-fg-muted">
+          <thead className="bg-surface-raised/50 text-fg-secondary">
             <tr>
               <th className="px-3 py-2 font-normal">Action</th>
               <th className="px-3 py-2 font-normal">Status</th>
@@ -233,21 +234,18 @@ export default function ProductTour({
   const [step, setStep] = useState(0);
 
   return (
-    <section id="product-tour" className="bg-surface-panel py-24">
+    <section id="product-tour" className="bg-surface-panel section-y">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-            See Cordon in five steps
-          </h2>
-          <p className="mt-4 text-lg text-fg-secondary">
-            From a landed phish to a signed audit pack: walk through the
-            whole lifecycle.
-          </p>
+          <SectionHeading
+            title={<>See Cordon in five steps</>}
+            lede={<>From a landed phish to a signed audit pack: walk through the whole lifecycle.</>}
+          />
         </Reveal>
 
-        <Reveal delay={0.1} className="mt-14 grid items-center gap-10 lg:grid-cols-2">
+        <Reveal delay={0.1} className="mt-12 grid items-center gap-10 lg:grid-cols-2">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-accent-text">
+            <span className="text-xs font-semibold uppercase tracking-wider text-accent-text">
               Step {step + 1} of {STEPS.length}
             </span>
             <h3 className="mt-2 text-2xl font-semibold text-fg">
@@ -262,7 +260,7 @@ export default function ProductTour({
                 type="button"
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
                 disabled={step === 0}
-                className="btn-secondary inline-flex items-center gap-1 rounded-control px-4 py-2 text-sm font-semibold text-fg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn btn-secondary btn-md"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Back
@@ -273,7 +271,7 @@ export default function ProductTour({
                   setStep((s) => Math.min(STEPS.length - 1, s + 1))
                 }
                 disabled={step === STEPS.length - 1}
-                className="btn-primary inline-flex items-center gap-1 rounded-control px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn btn-primary btn-md"
               >
                 Next
                 <ChevronRight className="h-4 w-4" />
@@ -287,10 +285,10 @@ export default function ProductTour({
                   type="button"
                   aria-label={`Go to step ${i + 1}: ${s.title}`}
                   onClick={() => setStep(i)}
-                  className={`h-1.5 rounded-full transition-all ${
+                  className={`h-1.5 rounded-full transition-[width,background-color] duration-150 ${
                     i === step
                       ? "w-8 bg-accent"
-                      : "w-1.5 bg-line-strong hover:bg-line-strong"
+                      : "w-1.5 bg-line-strong hover:bg-fg-muted"
                   }`}
                 />
               ))}

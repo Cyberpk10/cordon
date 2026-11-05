@@ -21,7 +21,7 @@ const STATS = [
 
 export default function StatStrip() {
   return (
-    <section className="border-y border-line/60 bg-surface-panel">
+    <section className="bg-surface-panel">
       <Reveal
         y={14}
         className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-6 py-12 sm:grid-cols-4"

@@ -7,7 +7,7 @@ const DEMO_MAILTO =
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-line/60 bg-surface-page">
+    <section className="relative overflow-hidden bg-surface-page">
       <div className="bg-grid pointer-events-none absolute inset-0" aria-hidden />
 
       {/* Ambient depth: two soft, slow-breathing glows, never a full-bleed wash */}
@@ -46,13 +46,13 @@ export default function Hero() {
         <Reveal delay={0.24} className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
             href={DEMO_MAILTO}
-            className="btn-primary rounded-control px-6 py-3 text-center text-sm font-semibold text-white"
+            className="btn btn-primary btn-lg"
           >
             Get a live demo
           </a>
           <a
             href="#product-tour"
-            className="btn-secondary rounded-control px-6 py-3 text-center text-sm font-semibold text-fg"
+            className="btn btn-secondary btn-lg"
           >
             Take the product tour
           </a>

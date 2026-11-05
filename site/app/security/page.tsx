@@ -15,6 +15,7 @@ import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/motion/Reveal";
+import SectionHeading from "@/components/ui/SectionHeading";
 
 export const metadata: Metadata = {
   title: "Security & Trust | Cordon",
@@ -91,7 +92,7 @@ export default function SecurityPage() {
     <>
       <Nav />
       <main className="flex-1">
-        <section className="relative overflow-hidden border-b border-line/60 bg-surface-page">
+        <section className="relative overflow-hidden bg-surface-page">
           <div
             className="glow-blob glow-breathe pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 bg-accent/15"
             aria-hidden
@@ -108,19 +109,20 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <section className="bg-surface-page py-24">
+        <section className="bg-surface-page section-y">
           <div className="mx-auto max-w-7xl px-6">
             <Reveal>
-              <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-                How we protect your data
-              </h2>
+              <SectionHeading
+                title={<>How we protect your data</>}
+                align="left"
+              />
             </Reveal>
 
             <div className="mt-12 grid border-t border-line sm:grid-cols-2">
               {DATA_PROTECTION.map((item, i) => (
                 <Reveal key={item.title} delay={Math.min(i * 0.05, 0.2)} y={14}>
                   <div
-                    className={`flex h-full gap-6 border-b border-line py-10 transition-colors duration-300 hover:bg-surface-raised/50 sm:px-10 ${
+                    className={`flex h-full gap-6 border-b border-line py-10 sm:px-10 ${
                       i % 2 === 0 ? "sm:border-r sm:pl-0" : "sm:pl-10"
                     }`}
                   >
@@ -141,11 +143,12 @@ export default function SecurityPage() {
           </div>
         </section>
 
-        <section className="border-y border-line/60 bg-surface-panel py-24">
+        <section className="bg-surface-panel section-y">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-              Authentication and access
-            </h2>
+            <SectionHeading
+              title={<>Authentication and access</>}
+              align="left"
+            />
             <ul className="mt-8 space-y-4">
               {ACCESS_CONTROLS.map((item) => (
                 <li key={item} className="flex items-start gap-3">
@@ -157,11 +160,12 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <section className="bg-surface-page py-24">
+        <section className="bg-surface-page section-y">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-              How we test ourselves
-            </h2>
+            <SectionHeading
+              title={<>How we test ourselves</>}
+              align="left"
+            />
             <ul className="mt-8 space-y-4">
               {TESTING.map((item) => (
                 <li key={item} className="flex items-start gap-3">
@@ -177,14 +181,13 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <section className="bg-surface-page py-24">
+        <section className="bg-surface-panel section-y">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <div className="flex items-center gap-3">
-              <BrainCircuit className="h-5 w-5 text-accent-text" strokeWidth={1.5} />
-              <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-                AI hardened against manipulation
-              </h2>
-            </div>
+            <SectionHeading
+              icon={<BrainCircuit aria-hidden className="h-5 w-5 shrink-0 text-accent-text" strokeWidth={1.5} />}
+              title={<>AI hardened against manipulation</>}
+              align="left"
+            />
             <ul className="mt-8 space-y-4">
               {AI_HARDENING.map((item) => (
                 <li key={item} className="flex items-start gap-3">
@@ -196,14 +199,15 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <section className="border-y border-line/60 bg-surface-panel py-24">
+        <section className="bg-surface-page section-y">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-              Compliance
-            </h2>
+            <SectionHeading
+              title={<>Compliance</>}
+              align="left"
+            />
 
             <div className="mt-8 space-y-4">
-              <div className="flex items-start gap-3 rounded-card border border-line bg-surface-page p-6 transition-colors duration-300 hover:border-line-strong">
+              <div className="card flex items-start gap-3 p-6">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
                 <p className="text-base text-fg-secondary">
                   Every detection auto-maps to ISO 27001, NIST CSF 2.0, SOC 2, and MITRE
@@ -211,10 +215,10 @@ export default function SecurityPage() {
                 </p>
               </div>
 
-              <div className="flex items-start gap-3 rounded-card border border-line bg-surface-page p-6 transition-colors duration-300 hover:border-line-strong">
+              <div className="card flex items-start gap-3 p-6">
                 <Clock className="mt-0.5 h-5 w-5 shrink-0 text-fg-muted" />
                 <div>
-                  <span className="inline-flex items-center rounded-full border border-line-strong bg-surface-raised/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-fg-secondary">
+                  <span className="inline-flex items-center rounded-full border border-line-strong bg-surface-raised/70 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-fg-secondary">
                     On our roadmap
                   </span>
                   <p className="mt-3 text-base text-fg-secondary">
@@ -228,9 +232,9 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <section className="bg-surface-page py-24">
+        <section className="bg-surface-panel section-y">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <div className="rounded-card border border-line bg-surface-panel p-10 transition-all duration-300 hover:border-line-strong hover:shadow-xl hover:shadow-black/30">
+            <div className="card p-6 sm:p-8">
               <div className="flex items-center gap-3">
                 <Server className="h-5 w-5 text-accent-text" strokeWidth={1.5} />
                 <h2 className="text-2xl font-semibold tracking-tight text-fg">
@@ -252,7 +256,7 @@ export default function SecurityPage() {
                 . A current list is available on request. See our{" "}
                 <Link
                   href="/privacy"
-                  className="font-normal text-accent-text hover:underline"
+                  className="link"
                 >
                   Privacy Policy
                 </Link>{" "}
@@ -262,9 +266,9 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <section className="border-t border-line/60 bg-surface-panel py-24">
+        <section className="bg-surface-page section-y">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <div className="rounded-card border border-line bg-surface-page p-10 transition-all duration-300 hover:border-line-strong hover:shadow-xl hover:shadow-black/30">
+            <div className="card p-6 sm:p-8">
               <div className="flex items-center gap-3">
                 <ShieldAlert className="h-5 w-5 text-accent-text" strokeWidth={1.5} />
                 <h2 className="text-2xl font-semibold tracking-tight text-fg">
@@ -275,7 +279,7 @@ export default function SecurityPage() {
                 Found a security issue? We want to hear from you. Email{" "}
                 <a
                   href={SECURITY_MAILTO}
-                  className="font-normal text-accent-text hover:underline"
+                  className="link"
                 >
                   security@cordoncybersec.us
                 </a>{" "}

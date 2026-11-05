@@ -1,5 +1,6 @@
 import { BadgeCheck } from "lucide-react";
 import Reveal from "@/components/motion/Reveal";
+import SectionHeading from "@/components/ui/SectionHeading";
 
 const SKILL_GROUPS = [
   {
@@ -52,12 +53,13 @@ const SKILL_GROUPS = [
 
 export default function AboutFounder() {
   return (
-    <section id="about-founder" className="bg-surface-page py-24">
+    <section id="about-founder" className="bg-surface-page section-y">
       <div className="mx-auto grid max-w-7xl items-start gap-16 px-6 lg:grid-cols-2">
         <Reveal>
-          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-            About the Founder
-          </h2>
+          <SectionHeading
+            title={<>About the Founder</>}
+            align="left"
+          />
 
           <div className="mt-8">
             <p className="text-xl font-semibold text-fg">
@@ -109,7 +111,7 @@ export default function AboutFounder() {
             </p>
           </div>
 
-          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-accent-text">
+          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent-text">
             <BadgeCheck className="h-4 w-4" />
             Certified ISO/IEC 27001 Lead Auditor &middot; GRC Mastery
           </div>
@@ -117,9 +119,9 @@ export default function AboutFounder() {
 
         <Reveal
           delay={0.12}
-          className="rounded-card border border-line bg-surface-panel p-10 transition-all duration-300 hover:border-line-strong hover:shadow-xl hover:shadow-black/30"
+          className="card p-6 sm:p-8"
         >
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-accent-text">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-accent-text">
             Expertise
           </h3>
           <div className="mt-6 space-y-6">
@@ -132,7 +134,7 @@ export default function AboutFounder() {
                   {group.skills.map((skill) => (
                     <span
                       key={skill}
-                      className="inline-flex items-center rounded-full border border-line bg-surface-raised/70 px-3 py-1 text-xs font-normal text-fg transition-colors duration-200 hover:border-accent/30 hover:text-fg"
+                      className="inline-flex items-center rounded-full border border-line bg-surface-raised/70 px-3 py-1 text-xs font-normal text-fg"
                     >
                       {skill}
                     </span>

@@ -9,8 +9,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   ShieldQuestion,
-  CheckCircle2,
-  XCircle,
   Bot,
   FileCheck2,
 } from "lucide-react";
@@ -20,6 +18,9 @@ import {
   type PlaygroundVerdict,
 } from "@/lib/playgroundData";
 import Reveal from "@/components/motion/Reveal";
+import AuthChip from "@/components/ui/AuthChip";
+import WindowChrome from "@/components/ui/WindowChrome";
+import SectionHeading from "@/components/ui/SectionHeading";
 
 type Status = "idle" | "analyzing" | "done";
 
@@ -106,7 +107,7 @@ function renderNarrative(text: string): ReactNode {
       blocks.push(
         <p
           key={blockKey++}
-          className="mt-5 text-xs font-semibold uppercase tracking-wide text-accent-text first:mt-0"
+          className="mt-5 text-xs font-semibold uppercase tracking-wider text-accent-text first:mt-0"
         >
           {renderInline(line.slice(3), `h${blockKey}`)}
         </p>,
@@ -192,41 +193,25 @@ function renderNarrative(text: string): ReactNode {
   return <div>{blocks}</div>;
 }
 
-function AuthChip({ label, result }: { label: string; result: string }) {
-  const pass = result === "pass";
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-control border px-3 py-1.5 text-xs font-semibold ${
-        pass
-          ? "border-success/20 bg-success/5 text-success"
-          : "border-danger/20 bg-danger/5 text-danger"
-      }`}
-    >
-      {pass ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
-      {label}: {result}
-    </span>
-  );
-}
-
 function ResultCard({ sample }: { sample: PlaygroundSample }) {
   const style = VERDICT_STYLES[sample.verdict];
   const Icon = style.icon;
 
   return (
-    <div className="rounded-card border border-line bg-surface-page p-6 sm:p-8">
+    <div className="card p-6 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold uppercase tracking-wide ${style.badge}`}>
+        <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold uppercase tracking-wider ${style.badge}`}>
           <Icon className="h-4 w-4" />
           {style.label}
         </div>
         <div className="text-right">
-          <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">Risk score</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-fg-muted">Risk score</p>
           <p className={`text-2xl font-semibold ${style.ring}`}>{sample.score}/100</p>
         </div>
       </div>
 
       <div className="mt-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
+        <p className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
           Indicators detected ({sample.indicators.length})
         </p>
         <ul className="mt-3 space-y-3">
@@ -243,7 +228,7 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
       </div>
 
       <div className="mt-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
+        <p className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
           Authentication results
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -256,7 +241,7 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
       <div className="mt-6">
         <div className="flex items-center gap-2">
           <FileCheck2 className="h-4 w-4 text-accent-text" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
+          <p className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
             Compliance framework mapping
           </p>
         </div>
@@ -285,7 +270,7 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
       <div className="mt-6 rounded-card border border-line bg-surface-panel p-5">
         <div className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-accent-text" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
+          <p className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
             AI analyst summary
           </p>
         </div>
@@ -301,7 +286,7 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
 
 function AnalyzingPanel() {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-card border border-line bg-surface-page p-16 text-center">
+    <div className="flex flex-col items-center justify-center gap-4 card p-16 text-center">
       <Loader2 className="h-8 w-8 animate-spin text-accent-text" />
       <p className="text-sm font-normal text-fg-secondary">
         Analyzing headers, links, and authentication results...
@@ -312,14 +297,14 @@ function AnalyzingPanel() {
 
 function IdlePanel({ onAnalyze }: { onAnalyze: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-5 rounded-card border border-dashed border-line-strong bg-surface-page p-16 text-center">
+    <div className="flex flex-col items-center justify-center gap-5 rounded-card border border-dashed border-line-strong bg-surface-card p-16 text-center">
       <p className="max-w-xs text-sm text-fg-secondary">
         This email has not been analyzed yet. Click below to run it through Cordon.
       </p>
       <button
         type="button"
         onClick={onAnalyze}
-        className="btn-primary inline-flex items-center gap-2 rounded-control px-6 py-3 text-sm font-semibold text-white"
+        className="btn btn-primary btn-lg"
       >
         <PlayCircle className="h-4 w-4" />
         Analyze this email
@@ -356,19 +341,16 @@ export default function EmailPlayground() {
   }
 
   return (
-    <section id="playground" className="bg-surface-panel py-24">
+    <section id="playground" className="bg-surface-panel section-y">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-            Try it on a real email
-          </h2>
-          <p className="mt-4 text-lg text-fg-secondary">
-            Pick a sample email below and click Analyze to watch Cordon&rsquo;s real verdict
-            render.
-          </p>
+          <SectionHeading
+            title={<>Try it on a real email</>}
+            lede={<>Pick a sample email below and click Analyze to watch Cordon&rsquo;s real verdict render.</>}
+          />
         </Reveal>
 
-        <Reveal delay={0.1} className="mt-10 grid gap-3 sm:grid-cols-3">
+        <Reveal delay={0.1} className="mt-12 grid gap-3 sm:grid-cols-3">
           {PLAYGROUND_SAMPLES.map((s) => {
             const isSelected = s.key === selectedKey;
             const vStyle = VERDICT_STYLES[s.verdict];
@@ -378,10 +360,10 @@ export default function EmailPlayground() {
                 key={s.key}
                 type="button"
                 onClick={() => selectSample(s.key)}
-                className={`rounded-card border px-5 py-4 text-left transition-all duration-200 ${
+                className={`rounded-card border px-5 py-4 text-left transition-[background-color,border-color,transform] duration-150 ${
                   isSelected
                     ? "border-accent/50 bg-surface-raised"
-                    : "border-line bg-surface-page hover:-translate-y-0.5 hover:border-line-strong hover:bg-surface-raised/50"
+                    : "border-line bg-surface-card hover:-translate-y-0.5 hover:border-line-strong hover:bg-surface-raised/50"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -395,13 +377,8 @@ export default function EmailPlayground() {
         </Reveal>
 
         <Reveal delay={0.15} y={28} className="mt-8 grid gap-6 lg:grid-cols-2 lg:items-start">
-          <div className="overflow-hidden rounded-card border border-line bg-surface-page transition-colors duration-300 hover:border-line-strong">
-            <div className="flex items-center gap-1.5 border-b border-line bg-surface-panel px-5 py-3">
-              <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
-              <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
-              <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
-              <span className="ml-2 text-xs font-normal text-fg-muted">Inbox preview</span>
-            </div>
+          <div className="card overflow-hidden">
+            <WindowChrome title="Inbox preview" />
             <div className="space-y-2 border-b border-line px-6 py-5 text-sm">
               <p className="text-fg-secondary">
                 <span className="text-fg-muted">From: </span>
@@ -437,7 +414,7 @@ export default function EmailPlayground() {
                 <button
                   type="button"
                   onClick={runAnalysis}
-                  className="inline-flex items-center gap-2 text-sm font-normal text-fg-secondary transition-colors hover:text-fg"
+                  className="inline-flex items-center gap-2 rounded-control text-sm text-fg-secondary transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-text"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   Run the analysis again

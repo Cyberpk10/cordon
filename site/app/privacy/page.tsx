@@ -49,7 +49,7 @@ export default function PrivacyPage() {
     <>
       <Nav />
       <main className="flex-1">
-        <section className="relative overflow-hidden border-b border-line/60 bg-surface-page">
+        <section className="relative overflow-hidden bg-surface-page">
           <div
             className="glow-blob glow-breathe pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 bg-accent/15"
             aria-hidden
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
           </Reveal>
         </section>
 
-        <section className="bg-surface-page pb-24">
+        <section className="bg-surface-page pb-16 sm:pb-24">
           <Reveal className="mx-auto max-w-3xl px-6">
             <article>
               <P>
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
               <P>
                 The Service is provided by Cordon Cybersecurity, based in Tulsa, Oklahoma and
                 Dallas, Texas, USA. For privacy questions, contact us at{" "}
-                <a href={CONTACT_MAILTO} className="font-normal text-accent-text hover:underline">
+                <a href={CONTACT_MAILTO} className="link">
                   paakowansah@icloud.com
                 </a>
                 .
@@ -196,7 +196,7 @@ export default function PrivacyPage() {
                 Depending on where you live, you may have rights to access, correct, delete, or
                 port your personal information, to object to or restrict certain processing, and
                 to withdraw consent. To exercise any of these, contact us at{" "}
-                <a href={CONTACT_MAILTO} className="font-normal text-accent-text hover:underline">
+                <a href={CONTACT_MAILTO} className="link">
                   paakowansah@icloud.com
                 </a>
                 . We will respond consistent with applicable law (including GDPR and CCPA/CPRA
@@ -229,7 +229,7 @@ export default function PrivacyPage() {
               <H2 id="contact">13. Contact</H2>
               <P>
                 Questions about this Policy or your data:{" "}
-                <a href={CONTACT_MAILTO} className="font-normal text-accent-text hover:underline">
+                <a href={CONTACT_MAILTO} className="link">
                   paakowansah@icloud.com
                 </a>
                 . Cordon Cybersecurity, Tulsa, Oklahoma and Dallas, Texas, USA.
