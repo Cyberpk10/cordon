@@ -99,12 +99,10 @@ function StepAuditMode() {
           </div>
         ))}
       </div>
-      <button
-        type="button"
-        className="mt-6 w-full rounded-control bg-accent-fill px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-accent-fill-hover"
-      >
+      {/* Illustration of the app's control, not a working button here. */}
+      <div className="mt-6 w-full rounded-control bg-accent-fill px-4 py-2.5 text-center text-sm font-semibold text-white">
         Generate SOC 2 evidence pack →
-      </button>
+      </div>
     </div>
   );
 }
@@ -139,13 +137,11 @@ function StepAutonomy() {
         <h4 className="text-sm font-semibold text-fg">
           Autonomous response
         </h4>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-control bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger"
-        >
-          <Power className="h-3.5 w-3.5" />
+        {/* Illustration of the app's control, not a working button here. */}
+        <span className="inline-flex items-center gap-1.5 rounded-control bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger">
+          <Power aria-hidden className="h-3.5 w-3.5" />
           Kill switch
-        </button>
+        </span>
       </div>
 
       <div className="mt-4 grid grid-cols-4 gap-2">
@@ -245,12 +241,15 @@ export default function ProductTour({
 
         <Reveal delay={0.1} className="mt-12 grid items-center gap-10 lg:grid-cols-2">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-accent-text">
-              Step {step + 1} of {STEPS.length}
-            </span>
-            <h3 className="mt-2 text-2xl font-semibold text-fg">
-              {STEPS[step].title}
-            </h3>
+            {/* Announces the new step when Back/Next/a dot changes it. */}
+            <div aria-live="polite" aria-atomic="true">
+              <span className="text-xs font-semibold uppercase tracking-wider text-accent-text">
+                Step {step + 1} of {STEPS.length}
+              </span>
+              <h3 className="mt-2 text-2xl font-semibold text-fg">
+                {STEPS[step].title}
+              </h3>
+            </div>
             <p className="mt-3 text-sm leading-relaxed text-fg-secondary">
               {STEPS[step].description}
             </p>
@@ -259,10 +258,12 @@ export default function ProductTour({
               <button
                 type="button"
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
-                disabled={step === 0}
+                // aria-disabled, not disabled: a disabled button drops keyboard focus to
+                // <body> the moment it is reached; the handler already clamps.
+                aria-disabled={step === 0}
                 className="btn btn-secondary btn-md"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft aria-hidden className="h-4 w-4" />
                 Back
               </button>
               <button
@@ -270,27 +271,34 @@ export default function ProductTour({
                 onClick={() =>
                   setStep((s) => Math.min(STEPS.length - 1, s + 1))
                 }
-                disabled={step === STEPS.length - 1}
+                aria-disabled={step === STEPS.length - 1}
                 className="btn btn-primary btn-md"
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight aria-hidden className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mt-6 flex gap-2">
+            <div className="mt-4 flex">
               {STEPS.map((s, i) => (
+                // 24px hit target (WCAG 2.2 target size) around the 6px visual dot.
                 <button
                   key={s.title}
                   type="button"
                   aria-label={`Go to step ${i + 1}: ${s.title}`}
+                  aria-current={i === step ? "step" : undefined}
                   onClick={() => setStep(i)}
-                  className={`h-1.5 rounded-full transition-[width,background-color] duration-150 ${
-                    i === step
-                      ? "w-8 bg-accent"
-                      : "w-1.5 bg-line-strong hover:bg-fg-muted"
-                  }`}
-                />
+                  className="group flex h-6 min-w-6 items-center justify-center rounded-full px-1"
+                >
+                  <span
+                    aria-hidden
+                    className={`block h-1.5 rounded-full transition-[width,background-color] duration-150 ${
+                      i === step
+                        ? "w-8 bg-accent"
+                        : "w-1.5 bg-line-strong group-hover:bg-fg-muted"
+                    }`}
+                  />
+                </button>
               ))}
             </div>
           </div>

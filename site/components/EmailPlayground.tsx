@@ -359,6 +359,7 @@ export default function EmailPlayground() {
               <button
                 key={s.key}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => selectSample(s.key)}
                 className={`rounded-card border px-5 py-4 text-left transition-[background-color,border-color,transform] duration-150 ${
                   isSelected

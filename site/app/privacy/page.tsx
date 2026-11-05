@@ -48,7 +48,7 @@ export default function PrivacyPage() {
   return (
     <>
       <Nav />
-      <main className="flex-1">
+      <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
         <section className="relative overflow-hidden bg-surface-page">
           <div
             className="glow-blob glow-breathe pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 bg-accent/15"

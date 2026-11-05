@@ -1,23 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
+import MobileMenu from "@/components/MobileMenu";
+import { DEMO_MAILTO, NAV_LINKS } from "@/components/navLinks";
 
-// Trimmed to the essentials (plus Security and About below) so the nav fits on one line.
-// The remaining homepage sections (Early Warning, Training, Product Tour, Autonomy) are
-// still reachable by scrolling the single page, right after Platform.
-const LINKS = [
-  { label: "Platform", href: "/#platform" },
-  { label: "Try It", href: "/#playground" },
-  { label: "Why Cordon", href: "/#why-aegis" },
-];
-
-const DEMO_MAILTO =
-  "mailto:paakowansah@icloud.com?subject=Cordon%20demo%20request";
+const linkClass =
+  "group relative text-sm font-normal whitespace-nowrap text-fg-secondary transition-colors duration-150 hover:text-fg";
+const underline = (
+  <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-[width] duration-150 group-hover:w-full" />
+);
 
 export default function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface-page/90 backdrop-blur supports-[backdrop-filter]:bg-surface-page/80">
+      {/* Same skip link as the app: visible only on keyboard focus. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-4 focus:z-[60] focus:rounded-control focus:bg-surface-card focus:px-4 focus:py-2 focus:text-sm focus:text-fg focus:ring-2 focus:ring-accent-text"
+      >
+        Skip to main content
+      </a>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2 text-fg">
+        <Link href="/" className="flex shrink-0 items-center gap-2 rounded-control text-fg">
           <Image
             src="/cordon-logo.png"
             alt="Cordon"
@@ -31,39 +34,28 @@ export default function Nav() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex">
-          {LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="group relative text-sm font-normal whitespace-nowrap text-fg-secondary transition-colors hover:text-fg"
-            >
-              {link.label}
-              <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-[width] duration-150 group-hover:w-full" />
-            </a>
-          ))}
-          <Link
-            href="/security"
-            className="group relative text-sm font-normal whitespace-nowrap text-fg-secondary transition-colors hover:text-fg"
-          >
-            Security
-            <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-[width] duration-150 group-hover:w-full" />
-          </Link>
-          <Link
-            href="/#about-founder"
-            className="group relative text-sm font-normal whitespace-nowrap text-fg-secondary transition-colors hover:text-fg"
-          >
-            About
-            <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-[width] duration-150 group-hover:w-full" />
-          </Link>
+        <nav aria-label="Main" className="hidden items-center gap-7 lg:flex">
+          {NAV_LINKS.map((link) =>
+            "route" in link ? (
+              <Link key={link.href} href={link.href} className={linkClass}>
+                {link.label}
+                {underline}
+              </Link>
+            ) : (
+              <a key={link.href} href={link.href} className={linkClass}>
+                {link.label}
+                {underline}
+              </a>
+            ),
+          )}
         </nav>
 
-        <a
-          href={DEMO_MAILTO}
-          className="btn btn-primary btn-md"
-        >
-          Get a demo
-        </a>
+        <div className="flex items-center gap-2">
+          <a href={DEMO_MAILTO} className="btn btn-primary btn-md">
+            Get a demo
+          </a>
+          <MobileMenu />
+        </div>
       </div>
     </header>
   );

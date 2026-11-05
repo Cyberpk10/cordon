@@ -21,8 +21,9 @@ export default function Hero() {
       />
 
       <div className="relative mx-auto max-w-4xl px-6 pt-24 pb-4 text-center lg:pt-32">
-        <Reveal className="flex items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
-          <span className="h-px w-6 bg-accent" />
+        <Reveal className="flex items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.12em] text-balance text-fg-muted sm:tracking-[0.2em]">
+          {/* The rule only reads as a lead-in on one line; on phones the label stands alone. */}
+          <span aria-hidden className="hidden h-px w-6 shrink-0 bg-accent sm:block" />
           AI-Native Defensive Security Platform
         </Reveal>
 
@@ -43,7 +44,7 @@ export default function Hero() {
           </p>
         </Reveal>
 
-        <Reveal delay={0.24} className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+        <Reveal delay={0.24} className="mx-auto mt-10 flex max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center sm:gap-4">
           <a
             href={DEMO_MAILTO}
             className="btn btn-primary btn-lg"
