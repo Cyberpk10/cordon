@@ -6,7 +6,6 @@ const VIDEO_DIR = path.join(process.cwd(), "public", "video");
 
 export type ScreenshotAvailability = {
   analyzeMalicious: boolean;
-  analyzeSafe: boolean;
   dashboard: boolean;
   securityComplianceReportSample: boolean;
   walkthroughVideo: boolean;
@@ -25,7 +24,6 @@ export function getScreenshotAvailability(): ScreenshotAvailability {
 
   return {
     analyzeMalicious: exists(SCREENSHOTS_DIR, "analyze-malicious.png"),
-    analyzeSafe: exists(SCREENSHOTS_DIR, "analyze-safe.png"),
     dashboard: exists(SCREENSHOTS_DIR, "dashboard.png"),
     securityComplianceReportSample: exists(
       SCREENSHOTS_DIR,
