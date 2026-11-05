@@ -31,7 +31,7 @@ export default function WhyAegis() {
 
         <Reveal
           delay={0.12}
-          className="card p-6 sm:p-8"
+          className="card card-hover p-6 sm:p-8"
         >
           <p className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
             Our principle

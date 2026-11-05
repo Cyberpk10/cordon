@@ -207,7 +207,7 @@ export default function SecurityPage() {
             />
 
             <div className="mt-8 space-y-4">
-              <div className="card flex items-start gap-3 p-6">
+              <div className="card card-hover flex items-start gap-3 p-6">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
                 <p className="text-base text-fg-secondary">
                   Every detection auto-maps to ISO 27001, NIST CSF 2.0, SOC 2, and MITRE
@@ -215,7 +215,7 @@ export default function SecurityPage() {
                 </p>
               </div>
 
-              <div className="card flex items-start gap-3 p-6">
+              <div className="card card-hover flex items-start gap-3 p-6">
                 <Clock className="mt-0.5 h-5 w-5 shrink-0 text-fg-muted" />
                 <div>
                   <span className="inline-flex items-center rounded-full border border-line-strong bg-surface-raised/70 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-fg-secondary">
@@ -234,7 +234,7 @@ export default function SecurityPage() {
 
         <section className="bg-surface-panel section-y">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <div className="card p-6 sm:p-8">
+            <div className="card card-hover p-6 sm:p-8">
               <div className="flex items-center gap-3">
                 <Server className="h-5 w-5 text-accent-text" strokeWidth={1.5} />
                 <h2 className="text-2xl font-semibold tracking-tight text-fg">
@@ -268,7 +268,7 @@ export default function SecurityPage() {
 
         <section className="bg-surface-page section-y">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <div className="card p-6 sm:p-8">
+            <div className="card card-hover p-6 sm:p-8">
               <div className="flex items-center gap-3">
                 <ShieldAlert className="h-5 w-5 text-accent-text" strokeWidth={1.5} />
                 <h2 className="text-2xl font-semibold tracking-tight text-fg">

@@ -119,7 +119,7 @@ export default function AboutFounder() {
 
         <Reveal
           delay={0.12}
-          className="card p-6 sm:p-8"
+          className="card card-hover p-6 sm:p-8"
         >
           <h3 className="text-xs font-semibold uppercase tracking-wider text-accent-text">
             Expertise

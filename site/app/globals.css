@@ -143,6 +143,25 @@ h2 {
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.25);
   }
 
+  /* Marketing flair on the main feature cards only: a gentle lift and border-brighten,
+     no glow. Chips, pills, rows, and media frames stay static. */
+  .card-hover {
+    transition:
+      border-color 150ms ease,
+      translate 150ms ease;
+  }
+  /* `translate`, not `transform`: several cards are framer-motion Reveal elements whose
+     inline transform would override a transform here. */
+  .card-hover:hover {
+    border-color: var(--color-line-strong);
+    translate: 0 -2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover:hover {
+      translate: none;
+    }
+  }
+
   /* Text links inside prose */
   .link {
     color: var(--color-accent-text);
