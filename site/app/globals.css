@@ -1,18 +1,45 @@
 @import "tailwindcss";
 
 @theme {
-  /* Base dark surfaces — deepest to lightest */
-  --color-navy-950: #05090f;
-  --color-navy-900: #0a1220;
-  --color-navy-800: #10192c;
-  --color-navy: #0b1f3a;
-  --color-navy-700: #17233a;
+  /* Cordon design tokens, mirrored from the app (frontend/src/index.css) so the marketing
+   * site and the product read as one system. The default Tailwind palette is cleared, so
+   * an off-system color (slate-400, blue-500, ...) simply doesn't exist here. */
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-transparent: transparent;
+  --color-current: currentColor;
 
-  /* Single restrained accent */
-  --color-brand-blue: #3b82f6;
+  /* Surfaces */
+  --color-surface-page: #070b16;
+  --color-surface-panel: #0d1326;
+  --color-surface-card: #0f1526;
+  --color-surface-raised: #161e36; /* chips, chrome bars, selected/hover states */
+  --color-line: #212b47;
+  --color-line-strong: #2e3a5c; /* hover borders, control borders */
 
-  /* Kept for legacy references; no longer used in new gradients/badges */
-  --color-brand-purple: #8b5cf6;
+  /* Text */
+  --color-fg: #eef2fb;
+  --color-fg-secondary: #9aa6c2;
+  --color-fg-muted: #7581a0; /* AA on page/panel/card; not on surface-raised (4.2:1) */
+
+  /* Accent: #5a6cf0 is for non-text uses (borders, rules, bars, glows). Text uses
+   * accent-text; filled buttons use accent-fill, which holds 5:1 with a white label. */
+  --color-accent: #5a6cf0;
+  --color-accent-hover: #6a7cf5;
+  --color-accent-text: #6a7cf5;
+  --color-accent-fill: #5363dd;
+  --color-accent-fill-hover: #4c5ccc;
+  --color-violet: #a080f0; /* secondary glow only */
+
+  /* Status */
+  --color-danger: #e85656;
+  --color-success: #4ecb86;
+  --color-warning: #e6aa46;
+
+  /* Radius: 8px controls, 12px cards (same as the app) */
+  --radius-control: 8px;
+  --radius-card: 12px;
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-space-grotesk);
@@ -25,17 +52,16 @@
 }
 
 body {
-  background: var(--color-navy-950);
-  color: #e2e8f0;
+  background: var(--color-surface-page);
+  color: var(--color-fg);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "cv11", "ss01";
 }
 
-/* A distinctive grotesk for headings, tightened and traced — the body stays on Inter. */
+/* Space Grotesk for page and section headlines (the site's own character); card titles
+   (h3/h4) and everything else stay on Inter, like the app. */
 h1,
-h2,
-h3,
-h4 {
+h2 {
   font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   letter-spacing: -0.015em;
   line-height: 1.1;
@@ -44,8 +70,8 @@ h4 {
 /* Faint technical grid texture — used sparingly (hero only), never as a glow */
 .bg-grid {
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgb(33 43 71 / 0.55) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(33 43 71 / 0.55) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
 }
@@ -55,47 +81,50 @@ h4 {
    here) so every real CTA across the site shares one crafted look instead of a flat fill. */
 @layer components {
   .btn-primary {
-    background-image: linear-gradient(180deg, #5b97fb 0%, #2f6fe0 100%);
+    color: var(--color-white);
+    /* A subtle lift on the app's accent fill; the lightest stop still holds 4.6:1 with white. */
+    background-image: linear-gradient(180deg, #5868e2 0%, var(--color-accent-fill-hover) 100%);
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
-      0 8px 20px -10px rgba(59, 130, 246, 0.65);
+      inset 0 1px 0 0 rgb(255 255 255 / 0.16),
+      0 8px 20px -10px rgb(90 108 240 / 0.6);
     transition:
       filter 0.2s ease,
       box-shadow 0.25s ease,
       transform 0.15s ease;
   }
   .btn-primary:hover {
-    filter: brightness(1.08);
+    /* Darken, never lighten: a lighter fill would drop the white label below AA. */
+    filter: brightness(0.93);
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
-      0 10px 28px -8px rgba(59, 130, 246, 0.8);
+      inset 0 1px 0 0 rgb(255 255 255 / 0.16),
+      0 10px 28px -8px rgb(90 108 240 / 0.75);
   }
   .btn-primary:active {
     transform: scale(0.98);
-    filter: brightness(0.98);
+    filter: brightness(0.88);
   }
   .btn-primary:focus-visible {
-    outline: 2px solid #93c5fd;
+    outline: 2px solid var(--color-accent-text);
     outline-offset: 2px;
   }
 
   .btn-secondary {
-    background-color: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background-color: var(--color-surface-panel);
+    border: 1px solid var(--color-line-strong);
     transition:
       background-color 0.2s ease,
       border-color 0.2s ease,
       transform 0.15s ease;
   }
   .btn-secondary:hover {
-    background-color: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.26);
+    background-color: var(--color-surface-raised);
+    border-color: #3d4a70;
   }
   .btn-secondary:active {
     transform: scale(0.98);
   }
   .btn-secondary:focus-visible {
-    outline: 2px solid #93c5fd;
+    outline: 2px solid var(--color-accent-text);
     outline-offset: 2px;
   }
 

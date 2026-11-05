@@ -77,49 +77,49 @@ export default function PlatformCards({
   hasSecurityComplianceReportSample: boolean;
 }) {
   return (
-    <section id="platform" className="bg-navy-950 py-24">
+    <section id="platform" className="bg-surface-page py-24">
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
             One platform, one AI engine
           </h2>
-          <p className="mt-4 text-lg text-slate-400">
+          <p className="mt-4 text-lg text-fg-secondary">
             Every detection surface shares the same reasoning engine, the
             same evidence trail, and the same guardrails.
           </p>
         </Reveal>
 
-        <div className="mt-16 grid border-t border-white/10 sm:grid-cols-2">
+        <div className="mt-16 grid border-t border-line sm:grid-cols-2">
           {CARDS.map((card, i) => (
             <Reveal key={card.title} delay={Math.min(i * 0.06, 0.3)} y={16}>
               <div
-                className={`group flex h-full gap-6 border-b border-white/10 py-10 transition-colors duration-300 hover:bg-white/[0.02] sm:px-10 ${
+                className={`group flex h-full gap-6 border-b border-line py-10 transition-colors duration-300 hover:bg-surface-raised/50 sm:px-10 ${
                   i % 2 === 0 ? "sm:border-r sm:pl-0" : "sm:pl-10"
                 }`}
               >
                 <div className="flex shrink-0 flex-col items-start gap-4">
-                  <span className="font-mono text-xs text-slate-600">
+                  <span className="font-mono text-xs text-fg-muted">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <card.icon
-                    className="h-5 w-5 text-brand-blue transition-transform duration-300 group-hover:scale-110"
+                    className="h-5 w-5 text-accent-text transition-transform duration-300 group-hover:scale-110"
                     strokeWidth={1.5}
                   />
                 </div>
                 <div>
-                  <h3 className="flex items-center gap-2 text-base font-semibold text-white">
+                  <h3 className="flex items-center gap-2 text-base font-semibold text-fg">
                     {card.title}
                     {card.badge && (
-                      <span className="rounded-full border border-brand-blue/30 bg-brand-blue/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-blue">
+                      <span className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-text">
                         {card.badge}
                       </span>
                     )}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
                     {card.description}
                   </p>
                   {card.tagline && (
-                    <p className="mt-3 text-xs font-semibold tracking-wide text-brand-blue">
+                    <p className="mt-3 text-xs font-semibold tracking-wide text-accent-text">
                       {card.tagline}
                     </p>
                   )}
@@ -131,7 +131,7 @@ export default function PlatformCards({
 
         {hasSecurityComplianceReportSample && (
           <Reveal className="mt-16 flex flex-col items-center" y={20}>
-            <p className="text-sm font-medium text-slate-400">
+            <p className="text-sm font-normal text-fg-secondary">
               What a Security &amp; Compliance Report looks like
             </p>
             <div className="mt-6 w-full max-w-sm">
@@ -142,7 +142,7 @@ export default function PlatformCards({
                 aspectClass="aspect-[1275/1650]"
               />
             </div>
-            <p className="mt-4 text-xs text-slate-500">
+            <p className="mt-4 text-xs text-fg-muted">
               Sample report. Illustrative data.
             </p>
           </Reveal>

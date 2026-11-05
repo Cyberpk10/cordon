@@ -30,7 +30,7 @@ const row: Variants = {
 
 function AuthChip({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/5 px-2.5 py-1 text-[11px] font-semibold text-red-400">
+    <span className="inline-flex items-center gap-1.5 rounded-control border border-danger/20 bg-danger/5 px-2.5 py-1 text-[11px] font-semibold text-danger">
       <XCircle className="h-3 w-3" />
       {label}: fail
     </span>
@@ -43,18 +43,18 @@ export default function HeroPanel() {
       initial="hidden"
       animate="visible"
       variants={container}
-      className="overflow-hidden rounded-2xl border border-white/10 bg-navy-900/90 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] backdrop-blur-sm"
+      className="overflow-hidden rounded-card border border-line bg-surface-panel/90 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] backdrop-blur-sm"
     >
       {/* Chrome bar */}
-      <div className="flex items-center gap-2 border-b border-white/10 bg-white/[0.02] px-5 py-3.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-        <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-        <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-        <span className="ml-2 text-xs font-medium text-slate-500">Case review</span>
-        <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+      <div className="flex items-center gap-2 border-b border-line bg-surface-raised/50 px-5 py-3.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+        <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+        <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+        <span className="ml-2 text-xs font-normal text-fg-muted">Case review</span>
+        <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-normal text-fg-muted">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-danger" />
           </span>
           Live verdict
         </span>
@@ -62,14 +62,14 @@ export default function HeroPanel() {
 
       <div className="px-5 py-6 sm:px-7 sm:py-7">
         {/* Sender / subject */}
-        <motion.div variants={row} className="space-y-1 border-b border-white/5 pb-5 text-sm">
-          <p className="text-slate-500">
-            From <span className="text-slate-300">{sample.email.fromDisplay}</span>{" "}
-            <span className="font-mono text-xs text-slate-600">
+        <motion.div variants={row} className="space-y-1 border-b border-line/60 pb-5 text-sm">
+          <p className="text-fg-muted">
+            From <span className="text-fg-secondary">{sample.email.fromDisplay}</span>{" "}
+            <span className="font-mono text-xs text-fg-muted">
               &lt;{sample.email.fromAddress}&gt;
             </span>
           </p>
-          <p className="font-medium text-white">{sample.email.subject}</p>
+          <p className="font-normal text-fg">{sample.email.subject}</p>
         </motion.div>
 
         {/* Verdict + score */}
@@ -77,31 +77,31 @@ export default function HeroPanel() {
           variants={row}
           className="mt-5 flex flex-wrap items-center justify-between gap-4"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-1.5 text-sm font-bold uppercase tracking-wide text-red-400">
+          <div className="inline-flex items-center gap-2 rounded-full border border-danger/30 bg-danger/10 px-4 py-1.5 text-sm font-semibold uppercase tracking-wide text-danger">
             <ShieldAlert className="h-4 w-4" />
             Malicious
           </div>
           <div className="text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
               Risk score
             </p>
-            <p className="font-display text-3xl font-bold text-red-400">
+            <p className="font-display text-3xl font-semibold text-danger">
               {sample.score}
-              <span className="text-base font-semibold text-slate-500">/100</span>
+              <span className="text-base font-semibold text-fg-muted">/100</span>
             </p>
           </div>
         </motion.div>
 
         {/* Top indicators */}
         <motion.div variants={row} className="mt-6">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
             Top indicators ({sample.indicators.length} total)
           </p>
           <ul className="mt-3 space-y-2.5">
             {topIndicators.map((ind) => (
               <li key={ind.id} className="flex items-start gap-2.5">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
-                <span className="text-sm font-medium text-slate-200">{ind.title}</span>
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-danger" />
+                <span className="text-sm font-normal text-fg">{ind.title}</span>
               </li>
             ))}
           </ul>
@@ -113,10 +113,10 @@ export default function HeroPanel() {
         </motion.div>
 
         {/* Frameworks */}
-        <motion.div variants={row} className="mt-6 border-t border-white/5 pt-5">
+        <motion.div variants={row} className="mt-6 border-t border-line/60 pt-5">
           <div className="flex items-center gap-2">
-            <FileCheck2 className="h-3.5 w-3.5 text-brand-blue" />
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <FileCheck2 className="h-3.5 w-3.5 text-accent-text" />
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
               Mapped to compliance frameworks
             </p>
           </div>
@@ -125,12 +125,12 @@ export default function HeroPanel() {
               <span
                 key={fw.key}
                 title={fw.controls[0]?.name}
-                className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-300"
+                className="inline-flex items-center gap-1 rounded-control border border-line bg-surface-raised/70 px-2.5 py-1 text-[11px] font-normal text-fg-secondary"
               >
-                <CheckCircle2 className="h-3 w-3 text-brand-blue" />
+                <CheckCircle2 className="h-3 w-3 text-accent-text" />
                 {fw.label}
                 {fw.controls[0] && (
-                  <span className="font-mono text-slate-500">{fw.controls[0].id}</span>
+                  <span className="font-mono text-fg-secondary">{fw.controls[0].id}</span>
                 )}
               </span>
             ))}

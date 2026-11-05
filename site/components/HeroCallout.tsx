@@ -26,8 +26,8 @@ export default function HeroCallout({
       className={`pointer-events-none absolute hidden w-44 xl:block ${position}`}
     >
       <div className={`flex items-center gap-2 ${side === "right" ? "flex-row-reverse text-right" : ""}`}>
-        <span className="h-px w-6 shrink-0 bg-white/20" />
-        <p className="text-xs leading-snug text-slate-400">{text}</p>
+        <span className="h-px w-6 shrink-0 bg-line-strong" />
+        <p className="text-xs leading-snug text-fg-secondary">{text}</p>
       </div>
     </motion.div>
   );

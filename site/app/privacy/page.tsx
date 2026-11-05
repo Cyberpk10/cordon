@@ -33,7 +33,7 @@ function H2({ children, id }: { children: string; id: string }) {
   return (
     <h2
       id={id}
-      className="mt-14 scroll-mt-24 text-xl font-bold tracking-tight text-white sm:text-2xl"
+      className="mt-14 scroll-mt-24 text-xl font-semibold tracking-tight text-fg sm:text-2xl"
     >
       {children}
     </h2>
@@ -41,7 +41,7 @@ function H2({ children, id }: { children: string; id: string }) {
 }
 
 function P({ children }: { children: ReactNode }) {
-  return <p className="mt-4 text-base leading-relaxed text-slate-300">{children}</p>;
+  return <p className="mt-4 text-base leading-relaxed text-fg-secondary">{children}</p>;
 }
 
 export default function PrivacyPage() {
@@ -49,22 +49,22 @@ export default function PrivacyPage() {
     <>
       <Nav />
       <main className="flex-1">
-        <section className="relative overflow-hidden border-b border-white/5 bg-navy-950">
+        <section className="relative overflow-hidden border-b border-line/60 bg-surface-page">
           <div
-            className="glow-blob glow-breathe pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 bg-brand-blue/15"
+            className="glow-blob glow-breathe pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 bg-accent/15"
             aria-hidden
           />
           <Reveal className="relative mx-auto max-w-3xl px-6 py-24 text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+            <h1 className="text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
               Privacy Policy
             </h1>
-            <p className="mt-6 text-sm font-medium text-slate-500">
+            <p className="mt-6 text-sm font-normal text-fg-muted">
               Last updated: October 15, 2026.
             </p>
           </Reveal>
         </section>
 
-        <section className="bg-navy-950 pb-24">
+        <section className="bg-surface-page pb-24">
           <Reveal className="mx-auto max-w-3xl px-6">
             <article>
               <P>
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
               <P>
                 The Service is provided by Cordon Cybersecurity, based in Tulsa, Oklahoma and
                 Dallas, Texas, USA. For privacy questions, contact us at{" "}
-                <a href={CONTACT_MAILTO} className="font-medium text-brand-blue hover:underline">
+                <a href={CONTACT_MAILTO} className="font-normal text-accent-text hover:underline">
                   paakowansah@icloud.com
                 </a>
                 .
@@ -88,12 +88,12 @@ export default function PrivacyPage() {
 
               <H2 id="information-we-collect">2. Information we collect</H2>
               <P>
-                <strong className="font-semibold text-white">Account information.</strong> When
+                <strong className="font-semibold text-fg">Account information.</strong> When
                 you create an account we collect your name, email address, organization name,
                 and a securely hashed password. We do not store your password in plain text.
               </P>
               <P>
-                <strong className="font-semibold text-white">
+                <strong className="font-semibold text-fg">
                   Content you submit for analysis.
                 </strong>{" "}
                 To analyze email you provide, we process message headers, sender and recipient
@@ -103,19 +103,19 @@ export default function PrivacyPage() {
                 transfer volumes).
               </P>
               <P>
-                <strong className="font-semibold text-white">Data minimization.</strong> By
+                <strong className="font-semibold text-fg">Data minimization.</strong> By
                 design, Cordon does not retain the raw content of analyzed emails by default. We
                 retain the detection results, findings, risk scores, and control mappings needed
                 to provide the Service and its audit evidence, and we minimize the underlying raw
                 data we keep.
               </P>
               <P>
-                <strong className="font-semibold text-white">Usage and technical data.</strong>{" "}
+                <strong className="font-semibold text-fg">Usage and technical data.</strong>{" "}
                 We collect standard technical information such as log data, device and browser
                 type, and timestamps to operate and secure the Service.
               </P>
               <P>
-                <strong className="font-semibold text-white">
+                <strong className="font-semibold text-fg">
                   We do not sell your personal information, and we do not use your submitted
                   email or activity data to train third-party AI models.
                 </strong>
@@ -146,10 +146,10 @@ export default function PrivacyPage() {
               </P>
               <ul className="mt-4 space-y-2">
                 {SUB_PROCESSORS.map((p) => (
-                  <li key={p.name} className="flex gap-2 text-base leading-relaxed text-slate-300">
-                    <span className="text-brand-blue">•</span>
+                  <li key={p.name} className="flex gap-2 text-base leading-relaxed text-fg-secondary">
+                    <span className="text-accent-text">•</span>
                     <span>
-                      <strong className="font-semibold text-white">{p.name}</strong>: {p.purpose}
+                      <strong className="font-semibold text-fg">{p.name}</strong>: {p.purpose}
                     </span>
                   </li>
                 ))}
@@ -164,7 +164,7 @@ export default function PrivacyPage() {
                 If your organization runs authorized phishing-simulation campaigns, Cordon
                 records only whether each recipient opened, clicked, or reported a simulated
                 message, and a resulting human-risk score.{" "}
-                <strong className="font-semibold text-white">
+                <strong className="font-semibold text-fg">
                   Cordon never captures or stores real passwords or credentials entered on a
                   simulation page.
                 </strong>{" "}
@@ -196,7 +196,7 @@ export default function PrivacyPage() {
                 Depending on where you live, you may have rights to access, correct, delete, or
                 port your personal information, to object to or restrict certain processing, and
                 to withdraw consent. To exercise any of these, contact us at{" "}
-                <a href={CONTACT_MAILTO} className="font-medium text-brand-blue hover:underline">
+                <a href={CONTACT_MAILTO} className="font-normal text-accent-text hover:underline">
                   paakowansah@icloud.com
                 </a>
                 . We will respond consistent with applicable law (including GDPR and CCPA/CPRA
@@ -229,7 +229,7 @@ export default function PrivacyPage() {
               <H2 id="contact">13. Contact</H2>
               <P>
                 Questions about this Policy or your data:{" "}
-                <a href={CONTACT_MAILTO} className="font-medium text-brand-blue hover:underline">
+                <a href={CONTACT_MAILTO} className="font-normal text-accent-text hover:underline">
                   paakowansah@icloud.com
                 </a>
                 . Cordon Cybersecurity, Tulsa, Oklahoma and Dallas, Texas, USA.

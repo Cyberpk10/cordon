@@ -8,7 +8,7 @@ import Reveal from "@/components/motion/Reveal";
 
 function ControlChip({ framework, id }: { framework: string; id: string }) {
   return (
-    <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
+    <span className="rounded-control border border-line bg-surface-raised/70 px-2 py-0.5 text-[11px] font-semibold text-fg-secondary">
       {framework}: {id}
     </span>
   );
@@ -44,17 +44,17 @@ function StepFindingsToControls() {
   ];
 
   return (
-    <div className="rounded-xl border border-white/10 bg-navy-900 p-6">
-      <h4 className="text-sm font-semibold text-white">
+    <div className="rounded-card border border-line bg-surface-panel p-6">
+      <h4 className="text-sm font-semibold text-fg">
         Findings mapped to controls
       </h4>
       <ul className="mt-4 space-y-3">
         {findings.map((f) => (
           <li
             key={f.title}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/5 bg-white/[0.02] p-3"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-line/60 bg-surface-raised/50 p-3"
           >
-            <span className="text-sm font-medium text-slate-300">
+            <span className="text-sm font-normal text-fg-secondary">
               {f.title}
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -78,20 +78,20 @@ function StepAuditMode() {
   ];
 
   return (
-    <div className="rounded-xl border border-white/10 bg-navy-900 p-6">
-      <h4 className="text-sm font-semibold text-white">
+    <div className="rounded-card border border-line bg-surface-panel p-6">
+      <h4 className="text-sm font-semibold text-fg">
         Audit Mode: framework coverage
       </h4>
       <div className="mt-4 space-y-4">
         {frameworks.map((fw) => (
           <div key={fw.name}>
-            <div className="flex justify-between text-xs font-medium text-slate-400">
+            <div className="flex justify-between text-xs font-normal text-fg-secondary">
               <span>{fw.name}</span>
               <span>{fw.coverage}%</span>
             </div>
-            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-raised">
               <div
-                className="h-full rounded-full bg-brand-blue"
+                className="h-full rounded-full bg-accent"
                 style={{ width: `${fw.coverage}%` }}
               />
             </div>
@@ -100,7 +100,7 @@ function StepAuditMode() {
       </div>
       <button
         type="button"
-        className="mt-6 w-full rounded-md bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+        className="mt-6 w-full rounded-control bg-accent-fill px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-fill-hover"
       >
         Generate SOC 2 evidence pack →
       </button>
@@ -115,32 +115,32 @@ function StepAutonomy() {
     {
       action: "Quarantine email",
       status: "Executed",
-      statusClass: "text-emerald-400",
+      statusClass: "text-success",
       undo: true,
     },
     {
       action: "Flag account for review",
       status: "Executed",
-      statusClass: "text-emerald-400",
+      statusClass: "text-success",
       undo: true,
     },
     {
       action: "Disable session",
       status: "Pending approval",
-      statusClass: "text-amber-400",
+      statusClass: "text-warning",
       undo: false,
     },
   ];
 
   return (
-    <div className="rounded-xl border border-white/10 bg-navy-900 p-6">
+    <div className="rounded-card border border-line bg-surface-panel p-6">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-white">
+        <h4 className="text-sm font-semibold text-fg">
           Autonomous response
         </h4>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-md bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-400"
+          className="inline-flex items-center gap-1.5 rounded-control bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger"
         >
           <Power className="h-3.5 w-3.5" />
           Kill switch
@@ -151,10 +151,10 @@ function StepAutonomy() {
         {levels.map((level) => (
           <div
             key={level}
-            className={`rounded-md border py-2 text-center text-xs font-bold ${
+            className={`rounded-control border py-2 text-center text-xs font-semibold ${
               level === activeLevel
-                ? "border-brand-blue bg-brand-blue/10 text-brand-blue"
-                : "border-white/10 text-slate-500"
+                ? "border-accent bg-accent/10 text-accent-text"
+                : "border-line text-fg-muted"
             }`}
           >
             {level}
@@ -162,25 +162,25 @@ function StepAutonomy() {
         ))}
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-white/10">
+      <div className="mt-5 overflow-hidden rounded-control border border-line">
         <table className="w-full text-left text-xs">
-          <thead className="bg-white/[0.03] text-slate-500">
+          <thead className="bg-surface-raised/50 text-fg-muted">
             <tr>
-              <th className="px-3 py-2 font-medium">Action</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium" />
+              <th className="px-3 py-2 font-normal">Action</th>
+              <th className="px-3 py-2 font-normal">Status</th>
+              <th className="px-3 py-2 font-normal" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-line/60">
             {rows.map((row) => (
               <tr key={row.action}>
-                <td className="px-3 py-2.5 text-slate-300">{row.action}</td>
+                <td className="px-3 py-2.5 text-fg-secondary">{row.action}</td>
                 <td className={`px-3 py-2.5 font-semibold ${row.statusClass}`}>
                   {row.status}
                 </td>
                 <td className="px-3 py-2.5 text-right">
                   {row.undo && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-fg-muted">
                       <Undo2 className="h-3 w-3" />
                       Undo
                     </span>
@@ -233,13 +233,13 @@ export default function ProductTour({
   const [step, setStep] = useState(0);
 
   return (
-    <section id="product-tour" className="bg-navy-900 py-24">
+    <section id="product-tour" className="bg-surface-panel py-24">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
             See Cordon in five steps
           </h2>
-          <p className="mt-4 text-lg text-slate-400">
+          <p className="mt-4 text-lg text-fg-secondary">
             From a landed phish to a signed audit pack: walk through the
             whole lifecycle.
           </p>
@@ -247,13 +247,13 @@ export default function ProductTour({
 
         <Reveal delay={0.1} className="mt-14 grid items-center gap-10 lg:grid-cols-2">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wide text-brand-blue">
+            <span className="text-xs font-semibold uppercase tracking-wide text-accent-text">
               Step {step + 1} of {STEPS.length}
             </span>
-            <h3 className="mt-2 text-2xl font-semibold text-white">
+            <h3 className="mt-2 text-2xl font-semibold text-fg">
               {STEPS[step].title}
             </h3>
-            <p className="mt-3 text-sm leading-relaxed text-slate-400">
+            <p className="mt-3 text-sm leading-relaxed text-fg-secondary">
               {STEPS[step].description}
             </p>
 
@@ -262,7 +262,7 @@ export default function ProductTour({
                 type="button"
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
                 disabled={step === 0}
-                className="btn-secondary inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-semibold text-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-secondary inline-flex items-center gap-1 rounded-control px-4 py-2 text-sm font-semibold text-fg-secondary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Back
@@ -273,7 +273,7 @@ export default function ProductTour({
                   setStep((s) => Math.min(STEPS.length - 1, s + 1))
                 }
                 disabled={step === STEPS.length - 1}
-                className="btn-primary inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-primary inline-flex items-center gap-1 rounded-control px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Next
                 <ChevronRight className="h-4 w-4" />
@@ -289,8 +289,8 @@ export default function ProductTour({
                   onClick={() => setStep(i)}
                   className={`h-1.5 rounded-full transition-all ${
                     i === step
-                      ? "w-8 bg-brand-blue"
-                      : "w-1.5 bg-white/15 hover:bg-white/25"
+                      ? "w-8 bg-accent"
+                      : "w-1.5 bg-line-strong hover:bg-line-strong"
                   }`}
                 />
               ))}

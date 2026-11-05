@@ -7,27 +7,27 @@ const DEMO_MAILTO =
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-white/5 bg-navy-950">
+    <section className="relative overflow-hidden border-b border-line/60 bg-surface-page">
       <div className="bg-grid pointer-events-none absolute inset-0" aria-hidden />
 
       {/* Ambient depth: two soft, slow-breathing glows, never a full-bleed wash */}
       <div
-        className="glow-blob glow-breathe pointer-events-none absolute -top-40 left-1/2 h-[32rem] w-[32rem] -translate-x-1/2 bg-brand-blue/20"
+        className="glow-blob glow-breathe pointer-events-none absolute -top-40 left-1/2 h-[32rem] w-[32rem] -translate-x-1/2 bg-accent/20"
         aria-hidden
       />
       <div
-        className="glow-blob glow-breathe pointer-events-none absolute top-20 right-[-6rem] h-72 w-72 bg-brand-purple/10 [animation-delay:3s]"
+        className="glow-blob glow-breathe pointer-events-none absolute top-20 right-[-6rem] h-72 w-72 bg-violet/10 [animation-delay:3s]"
         aria-hidden
       />
 
       <div className="relative mx-auto max-w-4xl px-6 pt-24 pb-4 text-center lg:pt-32">
-        <Reveal className="flex items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-          <span className="h-px w-6 bg-brand-blue" />
+        <Reveal className="flex items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
+          <span className="h-px w-6 bg-accent" />
           AI-Native Defensive Security Platform
         </Reveal>
 
         <Reveal delay={0.08}>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-fg sm:text-5xl lg:text-6xl">
             Stop phishing the moment it lands.
             <br />
             Prove your controls the moment auditors ask.
@@ -35,7 +35,7 @@ export default function Hero() {
         </Reveal>
 
         <Reveal delay={0.16}>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-400">
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-fg-secondary">
             Cordon analyzes every email in real time, contains threats
             autonomously within guardrails you control, and turns every
             detection into audit-ready evidence, mapped to MITRE ATT&CK,
@@ -46,13 +46,13 @@ export default function Hero() {
         <Reveal delay={0.24} className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
             href={DEMO_MAILTO}
-            className="btn-primary rounded-md px-6 py-3 text-center text-sm font-semibold text-white"
+            className="btn-primary rounded-control px-6 py-3 text-center text-sm font-semibold text-white"
           >
             Get a live demo
           </a>
           <a
             href="#product-tour"
-            className="btn-secondary rounded-md px-6 py-3 text-center text-sm font-semibold text-white"
+            className="btn-secondary rounded-control px-6 py-3 text-center text-sm font-semibold text-fg"
           >
             Take the product tour
           </a>

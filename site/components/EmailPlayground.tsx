@@ -30,27 +30,27 @@ const VERDICT_STYLES: Record<
   malicious: {
     label: "Malicious",
     icon: ShieldAlert,
-    badge: "border-red-500/30 bg-red-500/10 text-red-400",
-    ring: "text-red-400",
+    badge: "border-danger/30 bg-danger/10 text-danger",
+    ring: "text-danger",
   },
   suspicious: {
     label: "Suspicious",
     icon: ShieldQuestion,
-    badge: "border-yellow-500/30 bg-yellow-500/10 text-yellow-400",
-    ring: "text-yellow-400",
+    badge: "border-warning/30 bg-warning/10 text-warning",
+    ring: "text-warning",
   },
   safe: {
     label: "Safe",
     icon: ShieldCheck,
-    badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-    ring: "text-emerald-400",
+    badge: "border-success/30 bg-success/10 text-success",
+    ring: "text-success",
   },
 };
 
 const SEVERITY_DOT: Record<string, string> = {
-  high: "bg-red-400",
-  medium: "bg-yellow-400",
-  low: "bg-slate-500",
+  high: "bg-danger",
+  medium: "bg-warning",
+  low: "bg-fg-muted",
 };
 
 // --- Tiny, purpose-built renderer for the AI analyst narrative's markdown-lite shape
@@ -68,7 +68,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
     const token = match[0];
     if (token.startsWith("**")) {
       parts.push(
-        <strong key={`${keyPrefix}-b${i++}`} className="font-semibold text-white">
+        <strong key={`${keyPrefix}-b${i++}`} className="font-semibold text-fg">
           {token.slice(2, -2)}
         </strong>,
       );
@@ -76,7 +76,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
       parts.push(
         <code
           key={`${keyPrefix}-c${i++}`}
-          className="rounded bg-white/10 px-1 py-0.5 font-mono text-[0.85em] text-brand-blue"
+          className="rounded bg-surface-raised px-1 py-0.5 font-mono text-[0.85em] text-accent-text"
         >
           {token.slice(1, -1)}
         </code>,
@@ -106,7 +106,7 @@ function renderNarrative(text: string): ReactNode {
       blocks.push(
         <p
           key={blockKey++}
-          className="mt-5 text-xs font-bold uppercase tracking-wide text-brand-blue first:mt-0"
+          className="mt-5 text-xs font-semibold uppercase tracking-wide text-accent-text first:mt-0"
         >
           {renderInline(line.slice(3), `h${blockKey}`)}
         </p>,
@@ -141,7 +141,7 @@ function renderNarrative(text: string): ReactNode {
           i++;
         } else if (nestedMatch && items.length > 0) {
           items[items.length - 1].subItems.push(
-            <li key={`sub${i}`} className="list-disc text-slate-400">
+            <li key={`sub${i}`} className="list-disc text-fg-secondary">
               {renderInline(nestedMatch[1], `sub${i}`)}
             </li>,
           );
@@ -154,7 +154,7 @@ function renderNarrative(text: string): ReactNode {
       blocks.push(
         <Tag
           key={blockKey++}
-          className={`mt-2 space-y-2 pl-5 text-sm leading-relaxed text-slate-300 ${
+          className={`mt-2 space-y-2 pl-5 text-sm leading-relaxed text-fg-secondary ${
             ordered ? "list-decimal" : "list-disc"
           }`}
         >
@@ -183,7 +183,7 @@ function renderNarrative(text: string): ReactNode {
       i++;
     }
     blocks.push(
-      <p key={blockKey++} className="mt-3 text-sm leading-relaxed text-slate-300 first:mt-0">
+      <p key={blockKey++} className="mt-3 text-sm leading-relaxed text-fg-secondary first:mt-0">
         {renderInline(paraLines.join(" "), `p${blockKey}`)}
       </p>,
     );
@@ -196,10 +196,10 @@ function AuthChip({ label, result }: { label: string; result: string }) {
   const pass = result === "pass";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold ${
+      className={`inline-flex items-center gap-1.5 rounded-control border px-3 py-1.5 text-xs font-semibold ${
         pass
-          ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"
-          : "border-red-500/20 bg-red-500/5 text-red-400"
+          ? "border-success/20 bg-success/5 text-success"
+          : "border-danger/20 bg-danger/5 text-danger"
       }`}
     >
       {pass ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
@@ -213,20 +213,20 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
   const Icon = style.icon;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-navy-950 p-6 sm:p-8">
+    <div className="rounded-card border border-line bg-surface-page p-6 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-bold uppercase tracking-wide ${style.badge}`}>
+        <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold uppercase tracking-wide ${style.badge}`}>
           <Icon className="h-4 w-4" />
           {style.label}
         </div>
         <div className="text-right">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Risk score</p>
-          <p className={`text-2xl font-bold ${style.ring}`}>{sample.score}/100</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">Risk score</p>
+          <p className={`text-2xl font-semibold ${style.ring}`}>{sample.score}/100</p>
         </div>
       </div>
 
       <div className="mt-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
           Indicators detected ({sample.indicators.length})
         </p>
         <ul className="mt-3 space-y-3">
@@ -234,8 +234,8 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
             <li key={ind.id} className="flex items-start gap-3">
               <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${SEVERITY_DOT[ind.severity]}`} />
               <div>
-                <p className="text-sm font-semibold text-white">{ind.title}</p>
-                <p className="mt-0.5 text-sm leading-relaxed text-slate-400">{ind.description}</p>
+                <p className="text-sm font-semibold text-fg">{ind.title}</p>
+                <p className="mt-0.5 text-sm leading-relaxed text-fg-secondary">{ind.description}</p>
               </div>
             </li>
           ))}
@@ -243,7 +243,7 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
       </div>
 
       <div className="mt-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
           Authentication results
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -255,8 +255,8 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
 
       <div className="mt-6">
         <div className="flex items-center gap-2">
-          <FileCheck2 className="h-4 w-4 text-brand-blue" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <FileCheck2 className="h-4 w-4 text-accent-text" />
+          <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
             Compliance framework mapping
           </p>
         </div>
@@ -265,13 +265,13 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
             .filter((fw) => fw.controls.length > 0)
             .map((fw) => (
               <div key={fw.key}>
-                <p className="text-xs font-semibold text-slate-400">{fw.label}</p>
+                <p className="text-xs font-semibold text-fg-secondary">{fw.label}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {fw.controls.map((c) => (
                     <span
                       key={c.id}
                       title={c.name}
-                      className="inline-flex items-center rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[11px] font-medium text-slate-300"
+                      className="inline-flex items-center rounded border border-line bg-surface-raised/70 px-2 py-1 font-mono text-[11px] font-normal text-fg-secondary"
                     >
                       {c.id}
                     </span>
@@ -282,15 +282,15 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-white/10 bg-navy-900 p-5">
+      <div className="mt-6 rounded-card border border-line bg-surface-panel p-5">
         <div className="flex items-center gap-2">
-          <Bot className="h-4 w-4 text-brand-blue" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <Bot className="h-4 w-4 text-accent-text" />
+          <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
             AI analyst summary
           </p>
         </div>
         {renderNarrative(sample.narrative)}
-        <p className="mt-4 border-t border-white/5 pt-3 text-[11px] text-slate-600">
+        <p className="mt-4 border-t border-line/60 pt-3 text-[11px] text-fg-muted">
           Narrative generated by {sample.analystModel}. It explains the score above and never
           changes it.
         </p>
@@ -301,9 +301,9 @@ function ResultCard({ sample }: { sample: PlaygroundSample }) {
 
 function AnalyzingPanel() {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-navy-950 p-16 text-center">
-      <Loader2 className="h-8 w-8 animate-spin text-brand-blue" />
-      <p className="text-sm font-medium text-slate-300">
+    <div className="flex flex-col items-center justify-center gap-4 rounded-card border border-line bg-surface-page p-16 text-center">
+      <Loader2 className="h-8 w-8 animate-spin text-accent-text" />
+      <p className="text-sm font-normal text-fg-secondary">
         Analyzing headers, links, and authentication results...
       </p>
     </div>
@@ -312,14 +312,14 @@ function AnalyzingPanel() {
 
 function IdlePanel({ onAnalyze }: { onAnalyze: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-white/15 bg-navy-950 p-16 text-center">
-      <p className="max-w-xs text-sm text-slate-400">
+    <div className="flex flex-col items-center justify-center gap-5 rounded-card border border-dashed border-line-strong bg-surface-page p-16 text-center">
+      <p className="max-w-xs text-sm text-fg-secondary">
         This email has not been analyzed yet. Click below to run it through Cordon.
       </p>
       <button
         type="button"
         onClick={onAnalyze}
-        className="btn-primary inline-flex items-center gap-2 rounded-md px-6 py-3 text-sm font-semibold text-white"
+        className="btn-primary inline-flex items-center gap-2 rounded-control px-6 py-3 text-sm font-semibold text-white"
       >
         <PlayCircle className="h-4 w-4" />
         Analyze this email
@@ -356,13 +356,13 @@ export default function EmailPlayground() {
   }
 
   return (
-    <section id="playground" className="bg-navy-900 py-24">
+    <section id="playground" className="bg-surface-panel py-24">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
             Try it on a real email
           </h2>
-          <p className="mt-4 text-lg text-slate-400">
+          <p className="mt-4 text-lg text-fg-secondary">
             Pick a sample email below and click Analyze to watch Cordon&rsquo;s real verdict
             render.
           </p>
@@ -378,47 +378,47 @@ export default function EmailPlayground() {
                 key={s.key}
                 type="button"
                 onClick={() => selectSample(s.key)}
-                className={`rounded-xl border px-5 py-4 text-left transition-all duration-200 ${
+                className={`rounded-card border px-5 py-4 text-left transition-all duration-200 ${
                   isSelected
-                    ? "border-brand-blue/50 bg-navy-800"
-                    : "border-white/10 bg-navy-950 hover:-translate-y-0.5 hover:border-white/20 hover:bg-navy-800/50"
+                    ? "border-accent/50 bg-surface-raised"
+                    : "border-line bg-surface-page hover:-translate-y-0.5 hover:border-line-strong hover:bg-surface-raised/50"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">{s.label}</span>
+                  <span className="text-sm font-semibold text-fg">{s.label}</span>
                   <VIcon className={`h-4 w-4 ${vStyle.ring}`} />
                 </div>
-                <p className="mt-1.5 truncate text-xs text-slate-500">{s.email.subject}</p>
+                <p className="mt-1.5 truncate text-xs text-fg-secondary">{s.email.subject}</p>
               </button>
             );
           })}
         </Reveal>
 
         <Reveal delay={0.15} y={28} className="mt-8 grid gap-6 lg:grid-cols-2 lg:items-start">
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-navy-950 transition-colors duration-300 hover:border-white/15">
-            <div className="flex items-center gap-1.5 border-b border-white/10 bg-navy-900 px-5 py-3">
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
-              <span className="ml-2 text-xs font-medium text-slate-500">Inbox preview</span>
+          <div className="overflow-hidden rounded-card border border-line bg-surface-page transition-colors duration-300 hover:border-line-strong">
+            <div className="flex items-center gap-1.5 border-b border-line bg-surface-panel px-5 py-3">
+              <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+              <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+              <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+              <span className="ml-2 text-xs font-normal text-fg-muted">Inbox preview</span>
             </div>
-            <div className="space-y-2 border-b border-white/10 px-6 py-5 text-sm">
-              <p className="text-slate-400">
-                <span className="text-slate-600">From: </span>
-                <span className="text-slate-200">
+            <div className="space-y-2 border-b border-line px-6 py-5 text-sm">
+              <p className="text-fg-secondary">
+                <span className="text-fg-muted">From: </span>
+                <span className="text-fg">
                   {sample.email.fromDisplay} &lt;{sample.email.fromAddress}&gt;
                 </span>
               </p>
-              <p className="text-slate-400">
-                <span className="text-slate-600">To: </span>
-                <span className="text-slate-200">{sample.email.to}</span>
+              <p className="text-fg-secondary">
+                <span className="text-fg-muted">To: </span>
+                <span className="text-fg">{sample.email.to}</span>
               </p>
-              <p className="text-slate-400">
-                <span className="text-slate-600">Subject: </span>
-                <span className="font-medium text-white">{sample.email.subject}</span>
+              <p className="text-fg-secondary">
+                <span className="text-fg-muted">Subject: </span>
+                <span className="font-normal text-fg">{sample.email.subject}</span>
               </p>
             </div>
-            <div className="whitespace-pre-line px-6 py-5 text-sm leading-relaxed text-slate-300">
+            <div className="whitespace-pre-line px-6 py-5 text-sm leading-relaxed text-fg-secondary">
               {sample.email.body}
             </div>
           </div>
@@ -437,7 +437,7 @@ export default function EmailPlayground() {
                 <button
                   type="button"
                   onClick={runAnalysis}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition-colors hover:text-white"
+                  className="inline-flex items-center gap-2 text-sm font-normal text-fg-secondary transition-colors hover:text-fg"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   Run the analysis again
@@ -447,7 +447,7 @@ export default function EmailPlayground() {
           </div>
         </Reveal>
 
-        <p className="mx-auto mt-10 max-w-xl text-center text-xs text-slate-500">
+        <p className="mx-auto mt-10 max-w-xl text-center text-xs text-fg-muted">
           Real Cordon analysis on curated sample emails. Live, paste-your-own analysis is
           coming soon.
         </p>

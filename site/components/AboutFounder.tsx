@@ -52,23 +52,23 @@ const SKILL_GROUPS = [
 
 export default function AboutFounder() {
   return (
-    <section id="about-founder" className="bg-navy-950 py-24">
+    <section id="about-founder" className="bg-surface-page py-24">
       <div className="mx-auto grid max-w-7xl items-start gap-16 px-6 lg:grid-cols-2">
         <Reveal>
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
             About the Founder
           </h2>
 
           <div className="mt-8">
-            <p className="text-xl font-semibold text-white">
+            <p className="text-xl font-semibold text-fg">
               Paa Ekow Ansah (Pk)
             </p>
-            <p className="mt-1 text-sm font-medium text-brand-blue">
+            <p className="mt-1 text-sm font-normal text-accent-text">
               Founder, Cordon Cybersecurity AI Tool
             </p>
           </div>
 
-          <div className="mt-6 space-y-4 text-base leading-relaxed text-slate-400">
+          <div className="mt-6 space-y-4 text-base leading-relaxed text-fg-secondary">
             <p>
               Cordon was built by someone who came at the problem from the
               compliance side first.
@@ -109,7 +109,7 @@ export default function AboutFounder() {
             </p>
           </div>
 
-          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-brand-blue/20 bg-brand-blue/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-blue">
+          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-accent-text">
             <BadgeCheck className="h-4 w-4" />
             Certified ISO/IEC 27001 Lead Auditor &middot; GRC Mastery
           </div>
@@ -117,22 +117,22 @@ export default function AboutFounder() {
 
         <Reveal
           delay={0.12}
-          className="rounded-2xl border border-white/10 bg-navy-900 p-10 transition-all duration-300 hover:border-white/15 hover:shadow-xl hover:shadow-black/30"
+          className="rounded-card border border-line bg-surface-panel p-10 transition-all duration-300 hover:border-line-strong hover:shadow-xl hover:shadow-black/30"
         >
-          <h3 className="text-xs font-bold uppercase tracking-wide text-brand-blue">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-accent-text">
             Expertise
           </h3>
           <div className="mt-6 space-y-6">
             {SKILL_GROUPS.map((group) => (
               <div key={group.category}>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-fg">
                   {group.category}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {group.skills.map((skill) => (
                     <span
                       key={skill}
-                      className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-200 transition-colors duration-200 hover:border-brand-blue/30 hover:text-white"
+                      className="inline-flex items-center rounded-full border border-line bg-surface-raised/70 px-3 py-1 text-xs font-normal text-fg transition-colors duration-200 hover:border-accent/30 hover:text-fg"
                     >
                       {skill}
                     </span>

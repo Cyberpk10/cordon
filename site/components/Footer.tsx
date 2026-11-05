@@ -27,7 +27,7 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
         {title}
       </h3>
       <ul className="mt-4 space-y-3 text-sm">
@@ -35,7 +35,7 @@ function FooterColumn({
           <li key={link.label}>
             <Link
               href={link.href}
-              className="text-slate-400 transition-colors hover:text-white"
+              className="text-fg-secondary transition-colors hover:text-fg"
             >
               {link.label}
             </Link>
@@ -48,11 +48,11 @@ function FooterColumn({
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-navy-950">
+    <footer className="border-t border-line bg-surface-page">
       <div className="mx-auto max-w-7xl px-6 py-16">
         <Reveal className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2">
-            <div className="flex items-center gap-2 text-white">
+            <div className="flex items-center gap-2 text-fg">
               <Image
                 src="/cordon-logo.png"
                 alt="Cordon"
@@ -64,7 +64,7 @@ export default function Footer() {
                 Cordon Cybersecurity
               </span>
             </div>
-            <p className="mt-3 max-w-xs text-sm text-slate-500">
+            <p className="mt-3 max-w-xs text-sm text-fg-muted">
               AI-native defensive security: phishing detection, autonomous
               containment, and audit-ready evidence.
             </p>
@@ -74,14 +74,14 @@ export default function Footer() {
           <FooterColumn title="Company" links={COMPANY_LINKS} />
 
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
               Contact
             </h3>
-            <ul className="mt-4 space-y-3 text-sm text-slate-400">
+            <ul className="mt-4 space-y-3 text-sm text-fg-secondary">
               <li>
                 <a
                   href="mailto:paakowansah@icloud.com"
-                  className="transition-colors hover:text-white"
+                  className="transition-colors hover:text-fg"
                 >
                   paakowansah@icloud.com
                 </a>
@@ -92,12 +92,12 @@ export default function Footer() {
           </div>
         </Reveal>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-white/5 pt-6 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-4 border-t border-line/60 pt-6 text-xs text-fg-muted sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {new Date().getFullYear()} Cordon Cybersecurity. All rights
             reserved.
           </p>
-          <Link href="/privacy" className="transition-colors hover:text-white">
+          <Link href="/privacy" className="transition-colors hover:text-fg">
             Privacy
           </Link>
         </div>

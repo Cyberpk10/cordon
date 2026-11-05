@@ -23,11 +23,11 @@ export default function ScreenshotFrame({
   priority = false,
 }: ScreenshotFrameProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-navy-900 shadow-2xl shadow-black/40 transition-all duration-300 hover:border-white/20 hover:shadow-black/60">
-      <div className="flex items-center gap-1.5 border-b border-white/10 bg-navy-800 px-4 py-3">
-        <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-        <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-        <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+    <div className="overflow-hidden rounded-card border border-line bg-surface-panel shadow-2xl shadow-black/40 transition-all duration-300 hover:border-line-strong hover:shadow-black/60">
+      <div className="flex items-center gap-1.5 border-b border-line bg-surface-raised px-4 py-3">
+        <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+        <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+        <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
       </div>
       {src ? (
         <div className={`relative w-full ${aspectClass}`}>
@@ -42,12 +42,12 @@ export default function ScreenshotFrame({
         </div>
       ) : (
         <div
-          className={`flex w-full ${aspectClass} flex-col items-center justify-center gap-3 border-2 border-dashed border-white/10 bg-navy-950/60 px-6 text-center`}
+          className={`flex w-full ${aspectClass} flex-col items-center justify-center gap-3 border-2 border-dashed border-line bg-surface-page/60 px-6 text-center`}
           aria-label={`Placeholder for missing screenshot: ${filename}`}
         >
-          <ImageOff className="h-6 w-6 text-slate-600" />
-          <p className="text-sm font-medium text-slate-400">{alt}</p>
-          <p className="font-mono text-xs text-slate-600">
+          <ImageOff className="h-6 w-6 text-fg-muted" />
+          <p className="text-sm font-normal text-fg-secondary">{alt}</p>
+          <p className="font-mono text-xs text-fg-muted">
             public/screenshots/{filename}
           </p>
         </div>

@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Real-time phishing analysis, autonomous containment, and audit-ready compliance evidence.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0b1f3a",
-    theme_color: "#0b1f3a",
+    background_color: "#070b16",
+    theme_color: "#070b16",
     icons: [
       {
         src: "/icon-512.png",

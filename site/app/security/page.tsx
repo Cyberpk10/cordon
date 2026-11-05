@@ -91,16 +91,16 @@ export default function SecurityPage() {
     <>
       <Nav />
       <main className="flex-1">
-        <section className="relative overflow-hidden border-b border-white/5 bg-navy-950">
+        <section className="relative overflow-hidden border-b border-line/60 bg-surface-page">
           <div
-            className="glow-blob glow-breathe pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 bg-brand-blue/15"
+            className="glow-blob glow-breathe pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 bg-accent/15"
             aria-hidden
           />
           <Reveal className="relative mx-auto max-w-3xl px-6 py-24 text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+            <h1 className="text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
               Security &amp; Trust
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-400">
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-fg-secondary">
               Cordon is built by a certified ISO/IEC 27001 Lead Auditor, so security and
               compliance are not afterthoughts. They are the product. Here is how we protect
               your data and hold ourselves accountable.
@@ -108,29 +108,29 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <section className="bg-navy-950 py-24">
+        <section className="bg-surface-page py-24">
           <div className="mx-auto max-w-7xl px-6">
             <Reveal>
-              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
                 How we protect your data
               </h2>
             </Reveal>
 
-            <div className="mt-12 grid border-t border-white/10 sm:grid-cols-2">
+            <div className="mt-12 grid border-t border-line sm:grid-cols-2">
               {DATA_PROTECTION.map((item, i) => (
                 <Reveal key={item.title} delay={Math.min(i * 0.05, 0.2)} y={14}>
                   <div
-                    className={`flex h-full gap-6 border-b border-white/10 py-10 transition-colors duration-300 hover:bg-white/[0.02] sm:px-10 ${
+                    className={`flex h-full gap-6 border-b border-line py-10 transition-colors duration-300 hover:bg-surface-raised/50 sm:px-10 ${
                       i % 2 === 0 ? "sm:border-r sm:pl-0" : "sm:pl-10"
                     }`}
                   >
                     <item.icon
-                      className="h-5 w-5 shrink-0 text-brand-blue"
+                      className="h-5 w-5 shrink-0 text-accent-text"
                       strokeWidth={1.5}
                     />
                     <div>
-                      <h3 className="text-base font-semibold text-white">{item.title}</h3>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                      <h3 className="text-base font-semibold text-fg">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
                         {item.description}
                       </p>
                     </div>
@@ -141,83 +141,83 @@ export default function SecurityPage() {
           </div>
         </section>
 
-        <section className="border-y border-white/5 bg-navy-900 py-24">
+        <section className="border-y border-line/60 bg-surface-panel py-24">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
               Authentication and access
             </h2>
             <ul className="mt-8 space-y-4">
               {ACCESS_CONTROLS.map((item) => (
                 <li key={item} className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-blue" />
-                  <span className="text-base text-slate-300">{item}</span>
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
+                  <span className="text-base text-fg-secondary">{item}</span>
                 </li>
               ))}
             </ul>
           </Reveal>
         </section>
 
-        <section className="bg-navy-950 py-24">
+        <section className="bg-surface-page py-24">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
               How we test ourselves
             </h2>
             <ul className="mt-8 space-y-4">
               {TESTING.map((item) => (
                 <li key={item} className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-blue" />
-                  <span className="text-base text-slate-300">{item}</span>
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
+                  <span className="text-base text-fg-secondary">{item}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-8 border-t border-white/10 pt-8 text-base leading-relaxed text-slate-400">
+            <p className="mt-8 border-t border-line pt-8 text-base leading-relaxed text-fg-secondary">
               We publish what we catch and what we miss, because a security vendor that hides
               its blind spots is a security risk.
             </p>
           </Reveal>
         </section>
 
-        <section className="bg-navy-950 py-24">
+        <section className="bg-surface-page py-24">
           <Reveal className="mx-auto max-w-4xl px-6">
             <div className="flex items-center gap-3">
-              <BrainCircuit className="h-5 w-5 text-brand-blue" strokeWidth={1.5} />
-              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <BrainCircuit className="h-5 w-5 text-accent-text" strokeWidth={1.5} />
+              <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
                 AI hardened against manipulation
               </h2>
             </div>
             <ul className="mt-8 space-y-4">
               {AI_HARDENING.map((item) => (
                 <li key={item} className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-blue" />
-                  <span className="text-base text-slate-300">{item}</span>
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
+                  <span className="text-base text-fg-secondary">{item}</span>
                 </li>
               ))}
             </ul>
           </Reveal>
         </section>
 
-        <section className="border-y border-white/5 bg-navy-900 py-24">
+        <section className="border-y border-line/60 bg-surface-panel py-24">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
               Compliance
             </h2>
 
             <div className="mt-8 space-y-4">
-              <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-navy-950 p-6 transition-colors duration-300 hover:border-white/15">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-blue" />
-                <p className="text-base text-slate-300">
+              <div className="flex items-start gap-3 rounded-card border border-line bg-surface-page p-6 transition-colors duration-300 hover:border-line-strong">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
+                <p className="text-base text-fg-secondary">
                   Every detection auto-maps to ISO 27001, NIST CSF 2.0, SOC 2, and MITRE
                   ATT&amp;CK, and is exportable as audit evidence.
                 </p>
               </div>
 
-              <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-navy-950 p-6 transition-colors duration-300 hover:border-white/15">
-                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
+              <div className="flex items-start gap-3 rounded-card border border-line bg-surface-page p-6 transition-colors duration-300 hover:border-line-strong">
+                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-fg-muted" />
                 <div>
-                  <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-300">
+                  <span className="inline-flex items-center rounded-full border border-line-strong bg-surface-raised/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-fg-secondary">
                     On our roadmap
                   </span>
-                  <p className="mt-3 text-base text-slate-300">
+                  <p className="mt-3 text-base text-fg-secondary">
                     SOC 2 Type II is on our near-term roadmap, as is an independent
                     third-party penetration test. We will update this page as each is
                     completed.
@@ -228,16 +228,16 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <section className="bg-navy-950 py-24">
+        <section className="bg-surface-page py-24">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <div className="rounded-2xl border border-white/10 bg-navy-900 p-10 transition-all duration-300 hover:border-white/15 hover:shadow-xl hover:shadow-black/30">
+            <div className="rounded-card border border-line bg-surface-panel p-10 transition-all duration-300 hover:border-line-strong hover:shadow-xl hover:shadow-black/30">
               <div className="flex items-center gap-3">
-                <Server className="h-5 w-5 text-brand-blue" strokeWidth={1.5} />
-                <h2 className="text-2xl font-bold tracking-tight text-white">
+                <Server className="h-5 w-5 text-accent-text" strokeWidth={1.5} />
+                <h2 className="text-2xl font-semibold tracking-tight text-fg">
                   Sub-processors
                 </h2>
               </div>
-              <p className="mt-6 text-base leading-relaxed text-slate-400">
+              <p className="mt-6 text-base leading-relaxed text-fg-secondary">
                 We rely on a small set of vetted providers:{" "}
                 {SUB_PROCESSORS.map((p, i) => (
                   <span key={p.name}>
@@ -252,7 +252,7 @@ export default function SecurityPage() {
                 . A current list is available on request. See our{" "}
                 <Link
                   href="/privacy"
-                  className="font-medium text-brand-blue hover:underline"
+                  className="font-normal text-accent-text hover:underline"
                 >
                   Privacy Policy
                 </Link>{" "}
@@ -262,20 +262,20 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <section className="border-t border-white/5 bg-navy-900 py-24">
+        <section className="border-t border-line/60 bg-surface-panel py-24">
           <Reveal className="mx-auto max-w-4xl px-6">
-            <div className="rounded-2xl border border-white/10 bg-navy-950 p-10 transition-all duration-300 hover:border-white/15 hover:shadow-xl hover:shadow-black/30">
+            <div className="rounded-card border border-line bg-surface-page p-10 transition-all duration-300 hover:border-line-strong hover:shadow-xl hover:shadow-black/30">
               <div className="flex items-center gap-3">
-                <ShieldAlert className="h-5 w-5 text-brand-blue" strokeWidth={1.5} />
-                <h2 className="text-2xl font-bold tracking-tight text-white">
+                <ShieldAlert className="h-5 w-5 text-accent-text" strokeWidth={1.5} />
+                <h2 className="text-2xl font-semibold tracking-tight text-fg">
                   Responsible disclosure
                 </h2>
               </div>
-              <p className="mt-6 text-base leading-relaxed text-slate-400">
+              <p className="mt-6 text-base leading-relaxed text-fg-secondary">
                 Found a security issue? We want to hear from you. Email{" "}
                 <a
                   href={SECURITY_MAILTO}
-                  className="font-medium text-brand-blue hover:underline"
+                  className="font-normal text-accent-text hover:underline"
                 >
                   security@cordoncybersec.us
                 </a>{" "}
@@ -286,9 +286,9 @@ export default function SecurityPage() {
           </Reveal>
         </section>
 
-        <div className="bg-navy-950 pb-16">
+        <div className="bg-surface-page pb-16">
           <div className="mx-auto max-w-4xl px-6 text-center">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-muted">
               Cordon is in early access. This page reflects our current posture and will be
               kept current as it evolves.
             </p>
