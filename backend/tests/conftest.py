@@ -43,6 +43,7 @@ def _deterministic_llm_settings(monkeypatch):
     behavior. Tests that want the LLM path opt in explicitly via monkeypatch.
     """
     monkeypatch.setattr(settings, "enable_llm_reasoning", False)
+    monkeypatch.setattr(settings, "enable_copilot", False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
 

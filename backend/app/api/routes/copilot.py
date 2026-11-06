@@ -1,11 +1,15 @@
 """POST /api/copilot/query — natural-language threat copilot over Aegis's own data.
 
-Defensive/reporting only. The LLM never generates or influences an actual database
-query: it can only pick one of app.copilot.templates.TEMPLATE_REGISTRY's whitelisted,
-parameterized templates (app.copilot.llm.select_template, a forced tool-use call), which
-this route re-validates against the whitelist before executing anything
-(app.copilot.templates.execute_template). A second, tool-free call narrates the already-
-retrieved figures — see app/copilot/llm.py for the full security rationale. Requires auth;
+Defensive/reporting only. Routing picks one of app.copilot.templates.TEMPLATE_REGISTRY's
+whitelisted, parameterized templates in two tiers: the deterministic matcher
+(app.copilot.intent.match_question) first, so the common/suggested questions work with
+no LLM at all; then, only for questions it doesn't recognize and only when an API key is
+configured, the LLM router (app.copilot.llm.select_template, a forced tool-use call).
+Either way the (template, params) pair is re-validated against the whitelist before
+anything executes (app.copilot.templates.execute_template) — the LLM never generates or
+influences an actual database query. Narration is the LLM's tool-free second call when
+available, else app.copilot.intent.describe_result's template-filled answer from the same
+figures — see app/copilot/llm.py for the full security rationale. Requires auth;
 every template executes scoped to the authenticated user's own account_id (M8 Stage 2) —
 see app.copilot.templates.execute_template's account_id parameter.
 """
@@ -20,6 +24,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.copilot.intent import describe_result, match_question
 from app.copilot.llm import narrate, select_template
 from app.copilot.templates import execute_template
 from app.core.config import settings
@@ -28,6 +33,13 @@ from app.db.session import get_db
 from app.models.schemas import CopilotQueryRequest, CopilotQueryResponse, CopilotTemplateUsed
 
 router = APIRouter(prefix="/api/copilot", tags=["copilot"])
+
+_UNRECOGNIZED_QUESTION_DETAIL = (
+    "I couldn't match that to a question the copilot can answer from your data. Try asking "
+    "about verdict counts (\"how many malicious emails this month\"), top indicators, a "
+    "recipient (\"how often was alice@example.com targeted\"), or framework coverage "
+    "(\"what's our MITRE coverage\")."
+)
 
 
 @router.post("/query", response_model=CopilotQueryResponse)
@@ -42,15 +54,18 @@ async def copilot_query(
         )
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise HTTPException(
-            status_code=503, detail="The copilot is not configured (missing ANTHROPIC_API_KEY)."
-        )
+    now = datetime.utcnow()
 
-    selection = select_template(body.question, model=settings.llm_model, api_key=api_key)
+    selection = match_question(body.question, now)
+    if selection is None and api_key:
+        selection = select_template(
+            body.question, model=settings.llm_model, api_key=api_key, now=now
+        )
     if selection is None:
+        # No API key -> the LLM router was never available (422: rephrase); a key but no
+        # selection -> the LLM call itself failed (502). Same guidance either way.
         raise HTTPException(
-            status_code=502, detail="Could not determine how to answer that question right now."
+            status_code=502 if api_key else 422, detail=_UNRECOGNIZED_QUESTION_DETAIL
         )
     template_name, raw_params = selection
 
@@ -71,14 +86,13 @@ async def copilot_query(
             status_code=400, detail=f"Invalid parameters for template {template_name!r}: {exc}"
         ) from exc
 
-    narrative = narrate(
-        body.question, resolved_name, result, model=settings.llm_model, api_key=api_key
-    )
-    if narrative is None:
-        narrative = (
-            "Here are the figures retrieved for your question (narration is temporarily "
-            "unavailable, but the data below is accurate)."
+    narrative = None
+    if api_key:
+        narrative = narrate(
+            body.question, resolved_name, result, model=settings.llm_model, api_key=api_key
         )
+    if narrative is None:
+        narrative = describe_result(resolved_name, result)
 
     return CopilotQueryResponse(
         question=body.question,

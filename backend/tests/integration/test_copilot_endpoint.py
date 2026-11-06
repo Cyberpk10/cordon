@@ -11,6 +11,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
+import pytest
+
 from app.api.routes import copilot as copilot_route
 from app.core.config import settings
 from app.db.models import Case
@@ -75,13 +77,19 @@ def test_copilot_disabled_by_default_returns_503(authed_client):
     assert response.status_code == 503
 
 
-def test_copilot_enabled_but_missing_api_key_returns_503(authed_client, monkeypatch):
+def test_missing_api_key_unrecognized_question_asks_to_rephrase(authed_client, monkeypatch):
+    """No key means no LLM router: a question the deterministic matcher doesn't
+    recognize gets a 422 with guidance, never a fabricated answer."""
     monkeypatch.setattr(settings, "enable_copilot", True)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr(
+        copilot_route, "select_template", lambda q, **kw: pytest.fail("LLM called without a key")
+    )
 
-    response = authed_client.post("/api/copilot/query", json={"question": "how many malicious?"})
+    response = authed_client.post("/api/copilot/query", json={"question": "will it rain tomorrow?"})
 
-    assert response.status_code == 503
+    assert response.status_code == 422
+    assert "MITRE coverage" in response.json()["detail"]
 
 
 def test_verdict_counts_question_routes_and_reflects_seeded_data(authed_client, db_session, monkeypatch, test_account):
@@ -115,7 +123,10 @@ def test_top_indicators_question_routes_and_reflects_seeded_data(authed_client, 
     )
     monkeypatch.setattr(copilot_route, "narrate", lambda *a, **kw: "Credential requests lead.")
 
-    response = authed_client.post("/api/copilot/query", json={"question": "what's our top threat?"})
+    # Phrased so the deterministic matcher doesn't claim it: this exercises the LLM tier.
+    response = authed_client.post(
+        "/api/copilot/query", json={"question": "which indicator fires the most for us?"}
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -280,3 +291,116 @@ def test_worst_case_compromised_selection_cannot_execute_or_leak_beyond_whitelis
     remaining = db_session.query(Case).all()
     assert len(remaining) == 1
     assert remaining[0].verdict == "malicious"
+
+
+# --- Suggested example questions work without the LLM ------------------------------
+#
+# Regression for "Could not determine how to answer that question right now.": routing
+# used to be LLM-only, so an invalid/expired key (the select_template call failing)
+# broke every question, including the UI's own suggestions. These now route
+# deterministically (app.copilot.intent) and must return real answers from seeded data.
+
+
+def _seed_for_examples(db_session, account_id):
+    now = datetime.utcnow()
+    this_month = now.replace(day=1, hour=12, minute=0, second=0, microsecond=0)
+    # Inside "this month": 2 malicious (one targeting alice, MITRE-mapped) + 1 safe.
+    _make_case(
+        db_session, account_id, verdict="malicious", created_at=this_month,
+        indicators=[CRED], to_addresses=["alice@example.com"], framework_mappings=MITRE_MAPPING,
+    )
+    _make_case(db_session, account_id, verdict="malicious", created_at=this_month, indicators=[CRED])
+    _make_case(db_session, account_id, verdict="safe", created_at=this_month)
+    # Before this month: must be excluded from "this month", included in all-time answers.
+    _make_case(db_session, account_id, verdict="malicious", created_at=datetime(2020, 1, 5))
+
+
+EXPECTED_EXAMPLE_ANSWERS = {
+    # question -> (template, check on result, phrase the deterministic narrative must contain)
+    "how many malicious emails this month": (
+        "verdict_counts",
+        lambda r: r["counts"] == {"malicious": 2, "suspicious": 0, "safe": 1},
+        "2 malicious",
+    ),
+    "How many malicious emails this month?": (
+        "verdict_counts",
+        lambda r: r["counts"]["malicious"] == 2,
+        "2 malicious",
+    ),
+    "how often was alice@example.com targeted": (
+        "target_lookup",
+        lambda r: r["hit_count"] == 1,
+        "alice@example.com was targeted by 1",
+    ),
+    "what's our MITRE coverage": (
+        "framework_coverage",
+        lambda r: r["framework"] == "mitre" and r["operating_controls"] == 1,
+        "MITRE ATT&CK: 1 of 18",
+    ),
+}
+
+
+def test_every_ui_example_question_is_covered_here():
+    from app.copilot.intent import EXAMPLE_QUESTIONS
+
+    assert set(EXAMPLE_QUESTIONS) <= set(EXPECTED_EXAMPLE_ANSWERS)
+
+
+@pytest.mark.parametrize("question", list(EXPECTED_EXAMPLE_ANSWERS))
+def test_example_questions_answer_without_an_api_key(
+    question, authed_client, db_session, monkeypatch, test_account
+):
+    monkeypatch.setattr(settings, "enable_copilot", True)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    fail = lambda *a, **kw: pytest.fail("LLM must not be called without a key")  # noqa: E731
+    monkeypatch.setattr(copilot_route, "select_template", fail)
+    monkeypatch.setattr(copilot_route, "narrate", fail)
+    _seed_for_examples(db_session, test_account.account.id)
+
+    response = authed_client.post("/api/copilot/query", json={"question": question})
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    template, check, phrase = EXPECTED_EXAMPLE_ANSWERS[question]
+    assert body["template_used"]["template"] == template
+    assert check(body["result"]), body["result"]
+    assert phrase in body["narrative"]
+
+
+@pytest.mark.parametrize("question", list(EXPECTED_EXAMPLE_ANSWERS))
+def test_example_questions_answer_when_the_llm_is_failing(
+    question, authed_client, db_session, monkeypatch, test_account
+):
+    """The exact reported failure: a key is set but every Anthropic call fails (e.g. 401
+    invalid key). The example questions must still answer from real data."""
+    _enable_copilot(monkeypatch)
+    monkeypatch.setattr(copilot_route, "select_template", lambda q, **kw: None)
+    monkeypatch.setattr(copilot_route, "narrate", lambda *a, **kw: None)
+    _seed_for_examples(db_session, test_account.account.id)
+
+    response = authed_client.post("/api/copilot/query", json={"question": question})
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    template, check, phrase = EXPECTED_EXAMPLE_ANSWERS[question]
+    assert body["template_used"]["template"] == template
+    assert check(body["result"]), body["result"]
+    assert phrase in body["narrative"]
+    assert "Could not determine" not in body["narrative"]
+
+
+def test_llm_router_receives_todays_date_for_relative_ranges(authed_client, monkeypatch):
+    _enable_copilot(monkeypatch)
+    seen = {}
+
+    def fake_select(question, **kw):
+        seen.update(kw)
+        return ("unsupported_question", {"reason": "n/a"})
+
+    monkeypatch.setattr(copilot_route, "select_template", fake_select)
+    monkeypatch.setattr(copilot_route, "narrate", lambda *a, **kw: None)
+
+    response = authed_client.post("/api/copilot/query", json={"question": "will it rain?"})
+
+    assert response.status_code == 200
+    assert seen["now"].date() == datetime.utcnow().date()
