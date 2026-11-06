@@ -196,7 +196,7 @@ const STEPS = [
   {
     title: "Email analysis",
     description:
-      "Every message gets a deterministic verdict plus an AI analyst narrative in under 2 seconds.",
+      "Every message gets a deterministic verdict and a 0–100 risk score, with the sender-authentication results and indicators that drove it.",
   },
   {
     title: "Findings → controls",
