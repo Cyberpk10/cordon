@@ -32,14 +32,16 @@ export default function VerdictDonut({ verdictCounts }: VerdictDonutProps) {
       {total === 0 ? (
         <EmptyState icon={PieChartIcon} title="No cases in this period." className="mt-4" />
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
-          <PieChart>
+        // Segment labels sit outside the ring, so the chart reserves margin for them on
+        // every side; otherwise a label at the top (or sides) is clipped by the SVG.
+        <ResponsiveContainer width="100%" height={280}>
+          <PieChart margin={{ top: 24, right: 32, bottom: 8, left: 32 }}>
             <Pie
               data={data}
               dataKey="value"
               nameKey="name"
-              innerRadius={60}
-              outerRadius={90}
+              innerRadius={56}
+              outerRadius={84}
               paddingAngle={2}
               stroke={color("surface-card")}
               label={(entry: { name?: string; value?: number }) => `${entry.name}: ${entry.value}`}

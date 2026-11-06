@@ -270,7 +270,7 @@ read.
 - `report_builder.py` — renders the same `ReportContext` as JSON and a PDF (reportlab, no
   system-binary dependency, mirroring `app.audit.report_builder`'s rationale), styled with
   Cordon's own dark visual identity (navy background, the "C" mark drawn via a canvas page-
-  chrome callback, brand-blue accents) rather than the evidence pack's plain light styling,
+  chrome callback, accent-colored headings from the app's design tokens) rather than the evidence pack's plain light styling,
   since this artifact is meant to be read on screen by a board member as much as printed for
   an auditor.
 - Exposed via `POST/GET /api/reports/security-compliance` (generate, returning the full
