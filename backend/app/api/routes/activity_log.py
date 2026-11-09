@@ -24,6 +24,7 @@ from app.core.config import settings
 from app.db.models import Investigation, User
 from app.db.session import get_db
 from app.events.schema import ActivityEvent
+from app.geo.aggregation import summarize_source_ips
 from app.models.schemas import (
     ActivityLogAnalyzeRequest,
     ActivityLogAnalyzeResponse,
@@ -64,6 +65,7 @@ def _build_summary(events: list[ActivityEvent], *, primary_actor: str | None, ot
         time_range_start=min(e.timestamp for e in events),
         time_range_end=max(e.timestamp for e in events),
         source_ips=source_ips,
+        source_ip_details=summarize_source_ips(events),
         other_incidents_detected=other_incidents,
     )
 

@@ -1,0 +1,25 @@
+Return-Path: <notice@sender-host.example>
+X-Original-To: staff@victim-corp.example
+Received: from localhost (localhost [127.0.0.1])
+	by mail.victim-corp.example (Postfix) with ESMTP id 7D2E31C0A12
+	for <staff@victim-corp.example>; Wed,  4 Nov 2026 09:30:12 +0100 (CET)
+Received: from mail.victim-corp.example ([127.0.0.1])
+	by localhost (mail.victim-corp.example [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id Qa1Bc2De3Fg4 for <staff@victim-corp.example>;
+	Wed,  4 Nov 2026 09:30:11 +0100 (CET)
+Received: from smtp.sender-host.example (smtp.sender-host.example [91.198.174.192])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits))
+	(No client certificate requested)
+	by mail.victim-corp.example (Postfix) with ESMTPS id 4N7X2Q1Z9Kz9sWp
+	for <staff@victim-corp.example>; Wed,  4 Nov 2026 09:30:10 +0100 (CET)
+Received: from [192.168.1.20] (unknown [192.168.1.20])
+	by smtp.sender-host.example (Postfix) with ESMTPSA id 0A1B2C3D4E
+	for <staff@victim-corp.example>; Wed,  4 Nov 2026 08:30:09 +0000 (UTC)
+From: IT Notices <notice@sender-host.example>
+To: staff@victim-corp.example
+Subject: Mailbox quota
+Date: Wed, 4 Nov 2026 08:30:08 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Your mailbox is almost full.

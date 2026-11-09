@@ -5,6 +5,8 @@ import AiAuthoredFlag from "./AiAuthoredFlag";
 import AIAnalystSummary from "./AIAnalystSummary";
 import IndicatorList from "./IndicatorList";
 import InvestigationPanel from "./InvestigationPanel";
+import IpWithLocation from "./ip/IpWithLocation";
+import SenderIpPanel from "./ip/SenderIpPanel";
 import ResponsePlaybookPanel from "./ResponsePlaybookPanel";
 import ChannelBadge from "./ChannelBadge";
 import AnalysisResultCard, { AnalysisResultSkeleton, summarizeIndicators } from "./analyze/AnalysisResultCard";
@@ -132,11 +134,22 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
               { label: "Channel", value: <ChannelBadge channel={caseData.channel} /> },
               { label: "Filename", value: <span className="font-mono text-xs">{caseData.filename}</span> },
               { label: "Analyzed", value: new Date(caseData.created_at).toLocaleString() },
+              ...(caseData.sender_ip_info?.sending_ip
+                ? [
+                    {
+                      label: "Sending IP (from headers)",
+                      value: <IpWithLocation ctx={caseData.sender_ip_info.sending_ip} />,
+                      wide: true,
+                    },
+                  ]
+                : []),
             ]}
             indicators={caseData.indicators}
             indicatorAnchorPrefix={CASE_ANCHOR}
             frameworkMappings={caseData.framework_mappings}
           />
+
+          <SenderIpPanel info={caseData.sender_ip_info} />
 
           <AiAuthoredFlag indicators={caseData.indicators} />
 

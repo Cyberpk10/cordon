@@ -48,6 +48,51 @@ export interface FrameworkControlRef {
   url: string | null;
 }
 
+// ---- Source IP + country (display-only; never affects a score) --------------------------
+
+export interface IpGeo {
+  /** "resolved" = country known; "non_public" = private/reserved space; "unknown" = no country. */
+  status: "resolved" | "non_public" | "unknown";
+  country_code: string | null;
+  country_name: string | null;
+  /** "db-ip" = resolved by Cordon from the IP; "log" = supplied by the activity log itself. */
+  source: "db-ip" | "log" | null;
+  snapshot: string | null;
+}
+
+export interface IpThreatIntel {
+  feed: string;
+  label: string;
+  snapshot_date: string;
+}
+
+export interface IpContext {
+  ip: string;
+  geo: IpGeo;
+  threat_intel: IpThreatIntel | null;
+}
+
+export interface ActorSourceIp extends IpContext {
+  event_count: number;
+  last_seen: string | null;
+}
+
+export interface ReceivedHopInfo {
+  index: number;
+  from_host: string | null;
+  by_host: string | null;
+  ip: string | null;
+  is_public: boolean;
+}
+
+export interface SenderIpInfo {
+  sending_ip: IpContext | null;
+  sending_ip_source: "spf_client_ip" | "received_chain" | null;
+  sending_ip_confidence: "higher" | "lower" | null;
+  originating_ip: IpContext | null;
+  hops: ReceivedHopInfo[];
+}
+
 export interface AnalyzeResponse {
   id: string;
   created_at: string;
@@ -58,6 +103,7 @@ export interface AnalyzeResponse {
   framework_mappings: Record<string, FrameworkControlRef[]>;
   analyst_narrative: string | null;
   analyst_model: string | null;
+  sender_ip_info?: SenderIpInfo | null;
 }
 
 // ---- Activity-log analyzer (pasted raw CSV, reuses the intrusion-detection engine) ------
@@ -69,6 +115,7 @@ export interface ActivityLogSummary {
   time_range_start: string;
   time_range_end: string;
   source_ips: string[];
+  source_ip_details?: ActorSourceIp[];
   other_incidents_detected: number;
 }
 
@@ -127,6 +174,7 @@ export interface CaseDetail {
   framework_mappings: Record<string, FrameworkControlRef[]>;
   analyst_narrative: string | null;
   analyst_model: string | null;
+  sender_ip_info?: SenderIpInfo | null;
   latest_label: Label | null;
 }
 
@@ -397,6 +445,7 @@ export interface EarlyWarningAlertEntry {
   timeline_summary: string;
   recommended_actions: EarlyWarningAction[];
   framework_mappings: Record<string, FrameworkControlRef[]>;
+  source_ips?: ActorSourceIp[];
 }
 
 export interface EarlyWarningListResponse {
@@ -487,6 +536,8 @@ export interface ActivityEvent {
   device: string | null;
   outcome: string | null;
   raw: Record<string, unknown> | null;
+  /** Present on incident evidence events (output-only). */
+  source_ip_context?: IpContext | null;
 }
 
 export interface Finding {

@@ -1,5 +1,6 @@
 import { ListX } from "lucide-react";
 import type { ActivityEvent } from "../../types/analysis";
+import IpWithLocation, { GeoAttribution, usesDbIp } from "../ip/IpWithLocation";
 import { Card, EmptyState, TBody, TD, TH, THead, Table, TableContainer } from "../ui";
 
 interface EvidenceEventsTableProps {
@@ -23,7 +24,7 @@ export default function EvidenceEventsTable({ events }: EvidenceEventsTableProps
             <tr>
               <TH>Time</TH>
               <TH>Action</TH>
-              <TH>Source IP</TH>
+              <TH>Source IP · location</TH>
               <TH>Target</TH>
               <TH>Bytes</TH>
               <TH>Outcome</TH>
@@ -36,7 +37,13 @@ export default function EvidenceEventsTable({ events }: EvidenceEventsTableProps
                   {new Date(event.timestamp).toLocaleString()}
                 </TD>
                 <TD className="text-fg">{event.action}</TD>
-                <TD className="text-fg-secondary">{event.source_ip ?? "—"}</TD>
+                <TD className="text-fg-secondary">
+                  {event.source_ip_context ? (
+                    <IpWithLocation ctx={event.source_ip_context} />
+                  ) : (
+                    event.source_ip ?? "—"
+                  )}
+                </TD>
                 <TD className="text-fg-secondary">{event.target ?? "—"}</TD>
                 <TD className="text-fg-secondary">
                   {event.bytes !== null ? event.bytes.toLocaleString() : "—"}
@@ -47,6 +54,9 @@ export default function EvidenceEventsTable({ events }: EvidenceEventsTableProps
           </TBody>
         </Table>
       </TableContainer>
+      {usesDbIp(events.map((e) => e.source_ip_context)) && (
+        <GeoAttribution className="border-t border-line px-4 py-2" />
+      )}
     </Card>
   );
 }

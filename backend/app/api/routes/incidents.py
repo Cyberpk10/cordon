@@ -17,8 +17,9 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.core.time import to_naive_utc
 from app.db.models import Event, Incident, Label, User
 from app.db.session import get_db
-from app.events.schema import ActivityEvent
+from app.geo.ip_context import describe_ip
 from app.models.schemas import (
+    EvidenceEvent,
     IncidentDetailResponse,
     IncidentListResponse,
     IncidentSummary,
@@ -39,8 +40,9 @@ def _latest_label(db: Session, account_id: UUID, incident_id: UUID) -> Label | N
     )
 
 
-def _to_activity_event(row: Event) -> ActivityEvent:
-    return ActivityEvent(
+def _to_activity_event(row: Event) -> EvidenceEvent:
+    log_country = row.geo.get("country") if isinstance(row.geo, dict) else None
+    return EvidenceEvent(
         id=row.id,
         # Same naive/aware normalization as app.api.routes.events._to_activity_event.
         timestamp=to_naive_utc(row.timestamp),
@@ -53,6 +55,7 @@ def _to_activity_event(row: Event) -> ActivityEvent:
         device=row.device,
         outcome=row.outcome,
         raw=row.raw,
+        source_ip_context=describe_ip(row.source_ip, log_country=log_country),
     )
 
 

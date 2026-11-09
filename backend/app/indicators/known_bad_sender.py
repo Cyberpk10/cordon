@@ -3,48 +3,32 @@ multi-feed threat-intel snapshot (app.threat_intel.loader) — the sender-side c
 known_bad_urls.py's link check (threat-intelligence enrichment Stage 1).
 
 SENDER_IP_KNOWN_MALICIOUS coverage limitation, documented deliberately: Aegis never performs
-its own SPF/DKIM/DMARC verification (see app.parsing.auth_results) and has no
-Received-header-chain parser, so the only sending IP available is whatever the RECEIVING mail
-server's own SPF check already annotated in the Authentication-Results header
-(`client-ip=...`). This is real for most major-provider-relayed mail, absent for
-direct-SMTP/synthetic messages — a documented coverage gap, not a bug. Parsing arbitrary
-`Received:` header chains instead was considered and rejected: those are trivially spoofable
-and format varies wildly across providers, a worse false-confidence trade than a known gap.
+its own SPF/DKIM/DMARC verification (see app.parsing.auth_results), so the only sending IP
+this SCORED check uses is whatever the RECEIVING mail server's own SPF check already annotated
+in the Authentication-Results header (`client-ip=...`). This is real for most
+major-provider-relayed mail, absent for direct-SMTP/synthetic messages — a documented coverage
+gap, not a bug. Using `Received:` header chains for scoring was considered and rejected: those
+are partly spoofable and format varies wildly across providers, a worse false-confidence trade
+than a known gap. (Since the source-IP feature, app.parsing.received_chain does parse the
+chain, but strictly for DISPLAY with a "lower confidence" label. It never feeds this
+indicator or the score.)
 """
 
 from __future__ import annotations
-
-import ipaddress
-import re
 
 from app.core.config import settings
 from app.indicators.base import make_indicator
 from app.channels.message import Message
 from app.models.schemas import Indicator, Severity
+from app.parsing.auth_results import extract_spf_client_ip
 from app.sender_history.aggregation import SenderHistorySnapshot
 from app.threat_intel.loader import match_hostname, match_ip
-
-_CLIENT_IP_RE = re.compile(r"client-ip=\[?([0-9a-fA-F:.]+)\]?", re.IGNORECASE)
 
 
 def _sender_domain(address: str | None) -> str | None:
     if not address or "@" not in address:
         return None
     return address.rsplit("@", 1)[-1].lower()
-
-
-def _extract_client_ip(raw_header: str | None) -> str | None:
-    if not raw_header:
-        return None
-    match = _CLIENT_IP_RE.search(raw_header)
-    if not match:
-        return None
-    candidate = match.group(1)
-    try:
-        ipaddress.ip_address(candidate)
-    except ValueError:
-        return None
-    return candidate
 
 
 def evaluate(
@@ -75,7 +59,7 @@ def evaluate(
             )
         )
 
-    client_ip = _extract_client_ip(email.auth_results.raw_header)
+    client_ip = extract_spf_client_ip(email.auth_results.raw_header)
     ip_match = match_ip(client_ip)
     if ip_match is not None:
         indicators.append(

@@ -221,6 +221,11 @@ class Case(Base):
     # webhook (M8 Stage 3), used to dedupe a provider retry or a duplicate forward against
     # the same account. Null for every other intake path (manual upload, chat messages).
     content_hash: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Display-only sending/originating IP + country + threat-intel labels
+    # (app.models.schemas.SenderIpInfo), captured at analysis time so it survives the raw-email
+    # retention purge. Header metadata only, no body content. Null for chat cases, for email
+    # with no IP-bearing headers, and for cases analyzed before this column existed.
+    sender_ip_info: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
 
     labels: Mapped[list["Label"]] = relationship(
         back_populates="case", cascade="all, delete-orphan"

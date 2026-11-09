@@ -1,0 +1,14 @@
+Received: from relay.attacker-vps.example (relay.attacker-vps.example [77.88.55.60])
+	by mx.victim-corp.example (Postfix) with ESMTP id 9F8E7D6C5B
+	for <staff@victim-corp.example>; Fri,  6 Nov 2026 11:00:02 +0000 (UTC)
+Received: from mail.trusted-bank.example (mail.trusted-bank.example [8.8.8.8])
+	by mail.trusted-bank.example (Postfix) with ESMTP id FORGED001;
+	Fri,  6 Nov 2026 10:59:58 +0000 (UTC)
+From: Trusted Bank <alerts@trusted-bank.example>
+To: staff@victim-corp.example
+Subject: Security alert
+Date: Fri, 6 Nov 2026 10:59:57 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Unusual sign-in detected.

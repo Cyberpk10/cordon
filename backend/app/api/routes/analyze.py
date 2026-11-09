@@ -76,6 +76,7 @@ def _persist_case_and_build_response(
         llm_intent_reasons=result.llm_intent_reasons,
         ml_probability=result.ml_probability,
         ml_model_version=result.ml_model_version,
+        sender_ip_info=result.sender_ip_info.model_dump(mode="json") if result.sender_ip_info else None,
         raw_email_path=raw_email_path,
     )
     db.add(case)
@@ -104,6 +105,7 @@ def _persist_case_and_build_response(
         llm_intent_reasons=result.llm_intent_reasons,
         ml_probability=result.ml_probability,
         ml_model_version=result.ml_model_version,
+        sender_ip_info=result.sender_ip_info,
     )
 
 

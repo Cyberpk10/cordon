@@ -149,6 +149,11 @@ def parse_eml(raw_bytes: bytes) -> ParsedEmail:
     auth_result_headers = [str(h) for h in (msg.get_all("Authentication-Results", []) or [])]
     auth_results = parse_authentication_results(auth_result_headers)
 
+    received_headers = [str(h) for h in (msg.get_all("Received", []) or [])]
+    originating_ip_header = msg.get("X-Originating-IP")
+    # Topmost Received-SPF = the final receiver's own SPF stamp (msg.get returns the first).
+    received_spf_header = msg.get("Received-SPF")
+
     body_text, body_html, attachments = _walk_body_and_attachments(msg)
     links = _extract_links(body_html, body_text)
 
@@ -166,6 +171,9 @@ def parse_eml(raw_bytes: bytes) -> ParsedEmail:
         body_html=body_html,
         links=links,
         attachments=attachments,
+        received_headers=received_headers,
+        originating_ip_header=str(originating_ip_header) if originating_ip_header else None,
+        received_spf_header=str(received_spf_header) if received_spf_header else None,
     )
 
 

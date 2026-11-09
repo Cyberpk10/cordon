@@ -1,0 +1,29 @@
+Delivered-To: victim@gmail.com
+Received: by 2002:a05:7300:5e0a:b0:1a2:3b4c:5d6e with SMTP id x10csp1234567dyb;
+        Mon, 2 Nov 2026 08:14:03 -0800 (PST)
+X-Received: by 2002:a17:906:4a52:b0:9b2:1c3d:4e5f with SMTP id a18-20020a1709064a5200b009b21c3d4e5fmr123456ejv.71.1793636043123;
+        Mon, 02 Nov 2026 08:14:03 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1793636043; cv=none; d=google.com; s=arc-20160816; b=AbCdEf==
+Return-Path: <billing@paypa1-secure.example>
+Received: from mail.paypa1-secure.example (mail.paypa1-secure.example. [185.220.101.47])
+        by mx.google.com with ESMTPS id a1si2345678wrb.112.2026.11.02.08.14.02
+        for <victim@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 02 Nov 2026 08:14:03 -0800 (PST)
+Received-SPF: softfail (google.com: domain of transitioning billing@paypa1-secure.example does not designate 185.220.101.47 as permitted sender) client-ip=185.220.101.47;
+Authentication-Results: mx.google.com;
+       spf=softfail (google.com: domain of transitioning billing@paypa1-secure.example does not designate 185.220.101.47 as permitted sender) smtp.mailfrom=billing@paypa1-secure.example;
+       dmarc=fail (p=NONE sp=NONE dis=NONE) header.from=paypa1-secure.example
+Received: from [10.0.0.23] (unknown [10.0.0.23])
+        by mail.paypa1-secure.example (Postfix) with ESMTPSA id 4F1A2B3C4D
+        for <victim@gmail.com>; Mon,  2 Nov 2026 16:14:01 +0000 (UTC)
+X-Originating-IP: [102.89.33.14]
+From: "PayPal Billing" <billing@paypa1-secure.example>
+To: victim@gmail.com
+Subject: Your account has been limited
+Date: Mon, 2 Nov 2026 16:14:00 +0000
+Message-ID: <abc123@paypa1-secure.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Please verify your account within 24 hours: http://paypa1-secure.example/verify

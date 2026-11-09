@@ -7,17 +7,21 @@ there) — left as-is, out of scope.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
+from app.analysis.sender_ip import build_sender_ip_info
 from app.core.config import settings
 from app.indicators.engine import run_indicators
 from app.ml.classifier import predict as ml_predict
 from app.mapping.framework_mapper import map_indicators
-from app.models.schemas import FrameworkControlRef, Indicator, Verdict
+from app.models.schemas import FrameworkControlRef, Indicator, SenderIpInfo, Verdict
 from app.parsing.eml_parser import ParsedEmail, parse_eml
 from app.reasoning.llm_analyst import generate_llm_assessment
 from app.scoring.risk_engine import fuse
 from app.sender_history.aggregation import SenderHistorySnapshot
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -40,6 +44,10 @@ class PipelineResult:
     llm_intent_reasons: list[str] | None
     ml_probability: float | None
     ml_model_version: str | None
+    # Display-only sending/originating IP + country (app.analysis.sender_ip). Computed after
+    # scoring and from nothing scoring reads, so it can't influence the verdict. None when the
+    # headers carry no IP information, or if building it failed.
+    sender_ip_info: SenderIpInfo | None = None
 
 
 def run_email_pipeline(
@@ -78,6 +86,14 @@ def run_email_pipeline(
 
     framework_mappings = map_indicators([i.id for i in indicators])
 
+    # A display feature must never break analysis, same fail-soft contract as the optional
+    # ML/LLM signals: any error here just means no sender-IP panel for this email.
+    try:
+        sender_ip_info = build_sender_ip_info(parsed)
+    except Exception:  # noqa: BLE001
+        logger.exception("Building sender IP info failed; continuing without it")
+        sender_ip_info = None
+
     return PipelineResult(
         parsed=parsed,
         indicators=indicators,
@@ -92,4 +108,5 @@ def run_email_pipeline(
         llm_intent_reasons=llm_assessment.brief_reasons if llm_assessment else None,
         ml_probability=ml_probability,
         ml_model_version=ml_model_version,
+        sender_ip_info=sender_ip_info,
     )

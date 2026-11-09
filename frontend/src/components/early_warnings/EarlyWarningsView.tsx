@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCheck, ShieldCheck } from "lucide-react";
 import { acknowledgeEarlyWarning, getEarlyWarnings } from "../../api/client";
 import type { EarlyWarningAlertEntry } from "../../types/analysis";
+import { SourceIpList } from "../ip/IpWithLocation";
 import { Badge, Button, Card, EmptyState, ErrorState, LoadingState, type BadgeTone } from "../ui";
 
 const BAND_TONE: Record<string, BadgeTone> = {
@@ -104,6 +105,14 @@ export default function EarlyWarningsView() {
                     </li>
                   ))}
                 </ul>
+
+                <h4 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-fg-secondary">
+                  Source IPs for this account
+                </h4>
+                <SourceIpList
+                  ips={alert.source_ips ?? []}
+                  emptyText="No source IPs in this account's recent activity."
+                />
               </div>
 
               <div>

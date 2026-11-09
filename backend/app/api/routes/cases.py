@@ -56,6 +56,7 @@ def _to_case_detail(case: Case, latest_label: Label | None) -> CaseDetailRespons
         llm_intent_reasons=case.llm_intent_reasons,
         ml_probability=case.ml_probability,
         ml_model_version=case.ml_model_version,
+        sender_ip_info=case.sender_ip_info,
         latest_label=LabelResponse.model_validate(latest_label) if latest_label else None,
     )
 

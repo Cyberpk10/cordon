@@ -91,6 +91,71 @@ class AnalyzeTextRequest(BaseModel):
     raw_text: str
 
 
+# ---- Source IP + country geolocation (display-only; never scored) -----------------------
+
+
+class IpGeo(BaseModel):
+    """Country-level geolocation from the bundled offline DB-IP Lite snapshot (app.geo).
+    status: "resolved" (country known), "non_public" (private/reserved space, not on the
+    internet), or "unknown" (no country in the dataset, or no dataset). Never guessed.
+    `source` says where a country came from: "db-ip" (resolved from the IP by Cordon) or
+    "log" (supplied by the activity log itself)."""
+
+    status: Literal["resolved", "non_public", "unknown"]
+    country_code: str | None = None
+    country_name: str | None = None
+    source: Literal["db-ip", "log"] | None = None
+    snapshot: str | None = None
+
+
+class IpThreatIntel(BaseModel):
+    feed: str
+    label: str  # human-readable, e.g. "Tor exit node"
+    snapshot_date: str
+
+
+class IpContext(BaseModel):
+    ip: str
+    geo: IpGeo
+    threat_intel: IpThreatIntel | None = None
+
+
+class ActorSourceIp(IpContext):
+    """One distinct source IP across a set of activity events (app.geo.aggregation)."""
+
+    event_count: int
+    last_seen: datetime | None = None
+
+
+class EvidenceEvent(ActivityEvent):
+    """An incident's evidence event plus display context for its source IP. Output-only: the
+    POST /api/events input schema (ActivityEvent) is unchanged."""
+
+    source_ip_context: IpContext | None = None
+
+
+class ReceivedHopInfo(BaseModel):
+    index: int
+    from_host: str | None = None
+    by_host: str | None = None
+    ip: str | None = None
+    is_public: bool = False
+
+
+class SenderIpInfo(BaseModel):
+    """The email's sending IP(s) as recovered from its headers, for display only. Persisted
+    on Case.sender_ip_info at analysis time so it survives raw-email purge.
+    sending_ip_source: "spf_client_ip" (the receiving server's own SPF annotation, higher
+    confidence) or "received_chain" (topmost external Received hop, lower confidence; the chain
+    can be partially forged). originating_ip is X-Originating-IP, provider-reported."""
+
+    sending_ip: IpContext | None = None
+    sending_ip_source: Literal["spf_client_ip", "received_chain"] | None = None
+    sending_ip_confidence: Literal["higher", "lower"] | None = None
+    originating_ip: IpContext | None = None
+    hops: list[ReceivedHopInfo] = Field(default_factory=list)
+
+
 class AnalyzeResponse(BaseModel):
     id: UUID
     created_at: datetime
@@ -111,6 +176,7 @@ class AnalyzeResponse(BaseModel):
     llm_intent_reasons: list[str] | None = None
     ml_probability: float | None = None
     ml_model_version: str | None = None
+    sender_ip_info: SenderIpInfo | None = None
 
 
 # ---- Activity-log analyzer (pasted raw CSV, reuses the intrusion-detection engine) --------
@@ -130,6 +196,9 @@ class ActivityLogSummary(BaseModel):
     time_range_start: datetime
     time_range_end: datetime
     source_ips: list[str] = Field(default_factory=list)
+    # The same IPs with country + threat-intel context (app.geo.aggregation), busiest first,
+    # capped. `source_ips` above is kept unchanged for existing consumers.
+    source_ip_details: list[ActorSourceIp] = Field(default_factory=list)
     # How many OTHER non-safe incidents this same paste also produced, beyond the one this
     # response reports on (the highest-scoring one) — the UI is a single-result view, same as
     # the email analyzer, so a log that happens to implicate multiple distinct actors still
@@ -271,6 +340,8 @@ class CaseDetailResponse(BaseModel):
     llm_intent_reasons: list[str] | None = None
     ml_probability: float | None = None
     ml_model_version: str | None = None
+    # Null for chat cases and for email cases analyzed before the source-IP feature existed.
+    sender_ip_info: SenderIpInfo | None = None
     latest_label: LabelResponse | None = None
 
     model_config = {"from_attributes": True}
@@ -583,6 +654,10 @@ class EarlyWarningAlertResponse(BaseModel):
     timeline_summary: str
     recommended_actions: list[EarlyWarningActionResponse]
     framework_mappings: dict[str, list[FrameworkControlRef]]
+    # Distinct source IPs from the actor's events ingested within threat_level_chain_window_days
+    # (the window a forming chain is assembled over). Derived at read time; the alert row itself
+    # stores no IPs.
+    source_ips: list[ActorSourceIp] = Field(default_factory=list)
 
 
 class EarlyWarningListResponse(BaseModel):
@@ -705,7 +780,7 @@ class IncidentDetailResponse(BaseModel):
     framework_mappings: dict[str, list[FrameworkControlRef]]
     window_start: datetime
     window_end: datetime
-    evidence_events: list[ActivityEvent]
+    evidence_events: list[EvidenceEvent]
     latest_label: LabelResponse | None = None
     # Populated only for a merged coordinated-attack or cross-actor-spray incident (Stage 1).
     related_actors: list[str] | None = None

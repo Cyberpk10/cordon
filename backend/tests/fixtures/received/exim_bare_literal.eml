@@ -1,0 +1,13 @@
+Received: from [45.142.120.10] (helo=WIN-8K2J3L4M5N6)
+	by mx1.hosting.example with esmtp (Exim 4.96)
+	(envelope-from <ceo@victim-corp-mail.example>)
+	id 1rAbCd-000123-Ef
+	for cfo@hosting.example; Thu, 05 Nov 2026 14:21:07 +0000
+From: "CEO" <ceo@victim-corp-mail.example>
+To: cfo@hosting.example
+Subject: Urgent wire
+Date: Thu, 5 Nov 2026 14:21:05 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Are you at your desk? I need a wire sent today.

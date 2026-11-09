@@ -10,7 +10,7 @@ Requires auth; scoped to the authenticated user's account (M8 Stage 2).
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -19,9 +19,11 @@ from sqlalchemy.orm import Session
 from app.auth.audit_log import log_event
 from app.auth.dependencies import get_current_user
 from app.core.time import to_naive_utc
-from app.db.models import EarlyWarningAlert, User
+from app.core.config import settings
+from app.db.models import EarlyWarningAlert, Event, User
 from app.db.session import get_db
 from app.early_warning.hooks import build_timeline_summary, has_active_incident
+from app.geo.aggregation import summarize_source_ips
 from app.mapping.framework_mapper import map_indicators
 from app.models.schemas import (
     EarlyWarningActionResponse,
@@ -36,6 +38,31 @@ router = APIRouter(prefix="/api/early-warnings", tags=["early-warnings"])
 
 def _client_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
+
+
+# Bounds the per-alert read: enough history to show the actor's real IP spread without letting
+# a very chatty actor turn one list request into an unbounded scan.
+_SOURCE_IP_EVENT_SCAN_LIMIT = 500
+
+
+def _actor_source_ips(db: Session, account_id: UUID, actor: str, now: datetime):
+    """Distinct source IPs for the actor's events INGESTED within the chain window. Filtered on
+    created_at (ingestion time), not the event's own timestamp, because signal timestamps are
+    ingestion times too, and replayed/historical logs carry old event timestamps."""
+    cutoff = now - timedelta(days=settings.threat_level_chain_window_days)
+    events = (
+        db.query(Event)
+        .filter(
+            Event.account_id == account_id,
+            Event.actor == actor,
+            Event.created_at >= cutoff,
+            Event.source_ip.isnot(None),
+        )
+        .order_by(Event.created_at.desc())
+        .limit(_SOURCE_IP_EVENT_SCAN_LIMIT)
+        .all()
+    )
+    return summarize_source_ips(events)
 
 
 def _to_response(row: EarlyWarningAlert, db: Session, account_id: UUID, now: datetime) -> EarlyWarningAlertResponse:
@@ -53,6 +80,7 @@ def _to_response(row: EarlyWarningAlert, db: Session, account_id: UUID, now: dat
         timeline_summary=build_timeline_summary(row.signal_timeline),
         recommended_actions=[EarlyWarningActionResponse(**a) for a in row.recommended_actions],
         framework_mappings=map_indicators(["EARLY_WARNING_ATTACK_FORMING"]),
+        source_ips=_actor_source_ips(db, account_id, row.actor, now),
     )
 
 

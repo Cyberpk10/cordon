@@ -1,0 +1,31 @@
+Received: from DB9PR04MB5678.eurprd04.prod.outlook.com (2603:10a6:10:1c2::9) by
+ AM9PR04MB1234.eurprd04.prod.outlook.com with HTTPS; Tue, 3 Nov 2026 10:02:11
+ +0000
+Received: from DU2PR04CA0123.eurprd04.prod.outlook.com (2603:10a6:10:234::8)
+ by DB9PR04MB5678.eurprd04.prod.outlook.com (2603:10a6:10:1c2::9) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.7409.24; Tue, 3 Nov
+ 2026 10:02:10 +0000
+Received: from DB5PEPF00014B8F.eurprd02.prod.outlook.com
+ (2603:10a6:10:234:cafe::1) by DU2PR04CA0123.outlook.office365.com
+ (2603:10a6:10:234::8) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.7409.24 via Frontend
+ Transport; Tue, 3 Nov 2026 10:02:10 +0000
+Authentication-Results: spf=fail (sender IP is 45.142.120.10)
+ smtp.mailfrom=invoices-portal.example; dkim=none (message not signed)
+ header.d=none;dmarc=fail action=none header.from=invoices-portal.example;
+Received-SPF: Fail (protection.outlook.com: domain of invoices-portal.example
+ does not designate 45.142.120.10 as permitted sender)
+ receiver=protection.outlook.com; client-ip=45.142.120.10;
+ helo=mail.invoices-portal.example;
+Received: from mail.invoices-portal.example (45.142.120.10) by
+ DB5PEPF00014B8F.mail.protection.outlook.com (10.167.8.198) with Microsoft SMTP
+ Server id 15.20.7409.10 via Frontend Transport; Tue, 3 Nov 2026 10:02:09 +0000
+From: "Accounts Payable" <ap@invoices-portal.example>
+To: finance@victim-corp.example
+Subject: Overdue invoice INV-20931
+Date: Tue, 3 Nov 2026 10:02:05 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Please remit payment to the updated account details attached.

@@ -4,6 +4,8 @@ import ActivityLogForm from "../ActivityLogForm";
 import AiAuthoredFlag from "../AiAuthoredFlag";
 import AIAnalystSummary from "../AIAnalystSummary";
 import IndicatorList from "../IndicatorList";
+import IpWithLocation, { SourceIpList } from "../ip/IpWithLocation";
+import SenderIpPanel from "../ip/SenderIpPanel";
 import PasteEmailForm from "../PasteEmailForm";
 import UploadForm from "../UploadForm";
 import { Alert, Card, SectionHeading, SegmentedControl, TabPanel, Tabs } from "../ui";
@@ -117,12 +119,23 @@ export default function AnalyzeView({ state }: { state: AnalyzerState }) {
                     label: "Links / Attachments",
                     value: `${email.result.summary.link_count} / ${email.result.summary.attachment_count}`,
                   },
+                  ...(email.result.sender_ip_info?.sending_ip
+                    ? [
+                        {
+                          label: "Sending IP (from headers)",
+                          value: <IpWithLocation ctx={email.result.sender_ip_info.sending_ip} />,
+                          wide: true,
+                        },
+                      ]
+                    : []),
                 ]}
                 authResults={email.result.summary.auth_results}
                 indicators={email.result.indicators}
                 indicatorAnchorPrefix={EMAIL_ANCHOR}
                 frameworkMappings={email.result.framework_mappings}
               />
+
+              <SenderIpPanel info={email.result.sender_ip_info} />
 
               <AiAuthoredFlag indicators={email.result.indicators} />
 
@@ -176,7 +189,15 @@ export default function AnalyzeView({ state }: { state: AnalyzerState }) {
                     label: "Time range",
                     value: `${new Date(activityLog.result.summary.time_range_start).toLocaleString()} – ${new Date(activityLog.result.summary.time_range_end).toLocaleString()}`,
                   },
-                  { label: "Source IP(s)", value: activityLog.result.summary.source_ips.join(", ") || "—" },
+                  {
+                    label: "Source IP(s)",
+                    value: activityLog.result.summary.source_ip_details?.length ? (
+                      <SourceIpList ips={activityLog.result.summary.source_ip_details} />
+                    ) : (
+                      activityLog.result.summary.source_ips.join(", ") || "—"
+                    ),
+                    wide: true,
+                  },
                 ]}
                 indicators={activityLog.result.indicators}
                 indicatorAnchorPrefix={LOG_ANCHOR}

@@ -179,6 +179,7 @@ async def receive_inbound_email(
         analyst_model=result.analyst_model,
         ml_probability=result.ml_probability,
         ml_model_version=result.ml_model_version,
+        sender_ip_info=result.sender_ip_info.model_dump(mode="json") if result.sender_ip_info else None,
         raw_email_path=raw_email_path,
         content_hash=content_hash,
     )

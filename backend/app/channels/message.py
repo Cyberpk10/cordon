@@ -62,6 +62,13 @@ class Message:
     is_direct_message: bool = False
     is_external_sender: bool = False
     channel_name: str | None = None
+    # Source-IP display (email only). Every `Received:` header value, top (most recent) first,
+    # kept separately because `headers` is a dict and collapses repeated headers to one, plus
+    # the raw `X-Originating-IP` and topmost `Received-SPF` values. Display-only inputs to app.analysis.sender_ip; no
+    # indicator reads them (see app.parsing.received_chain for why they're never scored).
+    received_headers: list[str] = field(default_factory=list)
+    originating_ip_header: str | None = None
+    received_spf_header: str | None = None
 
 
 def domain_of(url: str) -> str | None:

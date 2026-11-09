@@ -6,6 +6,7 @@ Aegis does not perform its own SPF/DKIM/DMARC verification or any live DNS looku
 
 from __future__ import annotations
 
+import ipaddress
 import re
 
 from app.models.schemas import AuthResults, AuthResultValue
@@ -45,3 +46,25 @@ def parse_authentication_results(header_values: list[str]) -> AuthResults:
         dmarc=AuthResultValue(found.get("dmarc", AuthResultValue.UNKNOWN.value)),
         raw_header=" | ".join(raw_parts) if raw_parts else None,
     )
+
+
+_CLIENT_IP_RE = re.compile(r"client-ip=\[?([0-9a-fA-F:.]+)\]?", re.IGNORECASE)
+
+
+def extract_spf_client_ip(raw_header: str | None) -> str | None:
+    """The SPF `client-ip=` the receiving server annotated (the IP that actually connected to
+    it), from AuthResults.raw_header. Only the FIRST `client-ip=` is considered (headers are
+    joined top-first, so that's the most recent receiver's stamp); None if it's absent or not a
+    valid IP. Exactly the semantics known_bad_sender had before this was extracted. Shared by
+    app.indicators.known_bad_sender (threat-intel match) and the display-only sender-IP panel."""
+    if not raw_header:
+        return None
+    match = _CLIENT_IP_RE.search(raw_header)
+    if not match:
+        return None
+    candidate = match.group(1)
+    try:
+        ipaddress.ip_address(candidate)
+    except ValueError:
+        return None
+    return candidate
