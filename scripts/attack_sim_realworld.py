@@ -923,11 +923,17 @@ def run_scenario_7_ransomware_precursor_chain(client: AegisClient, run_id: str, 
 # bundled threat-intel snapshot (app/threat_intel/data/hostnames.txt) — not a synthetic
 # look-alike, an exact feed hit. Targets attachment_risk.py (ATTACHMENT_DOUBLE_EXTENSION +
 # ATTACHMENT_RISKY_EXTENSION) and known_bad_urls.py (LINK_KNOWN_MALICIOUS).
+#
+# The host must exist in the CURRENT snapshot. PhishTank's online-valid list churns, so after
+# a scripts/refresh_threat_intel.py run, check this scenario's indicators still include
+# LINK_KNOWN_MALICIOUS. The 2026-11-08 refresh dropped the previous host (001dda.top) and the
+# scenario silently kept passing on its other indicators; 023kew6.top was in both the
+# 2026-09-07 and 2026-11-08 snapshots.
 
 _MALWARE_LURE_HTML = """<html><body>
 <p>URGENT: Your invoice payment is past due. Review the attached document immediately to
 avoid service interruption.</p>
-<p><a href="http://001dda.top/invoice-portal">Click here to review</a></p>
+<p><a href="http://023kew6.top/invoice-portal">Click here to review</a></p>
 </body></html>
 """
 
