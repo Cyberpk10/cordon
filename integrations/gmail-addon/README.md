@@ -1,7 +1,7 @@
 # Cordon for Gmail (Google Workspace add-on)
 
-A thin Gmail sidebar client. When you open an email it sends the raw message to Cordon's
-`POST /v1/analyze/email` and shows the result: verdict, score, a one-line summary, the top
+A thin Gmail sidebar client. Open an email, open the Cordon panel, and tap **Analyze**. It
+sends the raw message to Cordon's `POST /v1/analyze/email` and shows the result: verdict, score, a one-line summary, the top
 indicators, SPF/DKIM/DMARC, and the compliance-framework tags. All detection runs in the
 Cordon backend, the same pipeline as the web app's Analyze page. The add-on renders only what
 the API returns.
@@ -20,9 +20,10 @@ These files don't run from this repo. You copy them into a Google Apps Script pr
 3. Copy the key. It starts with `cdn_`, and **it is shown only once**. Cordon stores only a
    hash. If you lose it, revoke it and create a new one.
 
-The key analyzes email as you: every email you open in Gmail becomes a Case in your Cordon
-account, exactly like pasting it into Analyze. Opening the same email again reuses the existing
-Case instead of creating a new one.
+The key analyzes email as you. Nothing is sent to Cordon just by opening an email: only an
+email you tap **Analyze** on is sent, and it becomes a Case in your Cordon account, exactly like
+pasting it into Analyze. Analyzing the same email again reuses the existing Case instead of
+creating a new one.
 
 ## 2. Create the Apps Script project
 
@@ -59,7 +60,7 @@ change it in **both** places, or Google blocks the request:
 On first open the add-on shows a **Cordon settings** card:
 
 1. Paste the `cdn_…` key into **Cordon API key**.
-2. Click **Save**. The open email is analyzed right away.
+2. Click **Save**, then tap **Analyze** on the open email.
 
 The key is stored in your Apps Script **user properties** (`PropertiesService.getUserProperties()`).
 Only your own runs of the script can read it, and it is never logged. To replace it, click
@@ -78,11 +79,25 @@ Only your own runs of the script can read it, and it is never logged. To replace
 Gmail add-on cards can't color the header bar per card. The add-on's toolbar uses Cordon's
 accent color, and the verdict color is applied to the banner line directly under the header.
 
+## First test: confirm the read scope is enough
+
+The add-on reads the message with `GmailMessage.getRawContent()` under only the open-message
+scope (`gmail.addons.current.message.readonly`, classified *sensitive*). Google's reference
+lists only `https://mail.google.com/` for that method, so whether the narrow scope covers it
+must be confirmed on a real email.
+
+After installing, open any email and tap **Analyze**:
+- A result card means the narrow scope works.
+- **Couldn't read this email** with "Gmail said: …" means it doesn't. Note the exact text, and
+  **do not** widen the scope to `gmail.readonly` or `https://mail.google.com/` to fix it: both
+  are *restricted* scopes, which require Google's annual security assessment (CASA) to publish.
+
 ## Errors
 
 | Card | Meaning |
 | --- | --- |
 | **Check your Cordon API key** | Cordon returned 401: the key is wrong, was revoked, or its user was deactivated. Paste a new key. |
+| **Couldn't read this email** | Gmail refused to hand over the message; Google's own error text is shown. See "First test" above. |
 | **Couldn't reach Cordon** | Network failure or an unexpected server response. Use **Try again**. |
 | **Slow down a little** | More than 30 analyses per minute with this key. |
 | **Email too large** | The message is over Cordon's 10 MiB analysis limit. |

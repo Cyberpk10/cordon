@@ -31,12 +31,14 @@ var AUTH_COLOR = { pass: COLORS.success, fail: COLORS.danger, none: COLORS.muted
 
 // ---- entry points ---------------------------------------------------------------------------
 
-/** Contextual trigger: runs whenever the user opens a message. */
+/** Contextual trigger: runs whenever the user opens a message. Deliberately does NOT call
+ * Cordon: analysis only happens when the user taps Analyze, so reading a normal inbox doesn't
+ * turn every newsletter into a Case or burn through the per-key rate limit. */
 function onGmailMessageOpen(e) {
   if (!getApiKey_()) {
     return [buildSettingsCard_('Paste your Cordon API key to start analyzing email.')];
   }
-  return [analyzeAndBuildCard_(e)];
+  return [buildAnalyzePromptCard_()];
 }
 
 /** Homepage (no message open): lets the user set or change the key. */
@@ -62,8 +64,8 @@ function saveApiKey(e) {
   var builder = CardService.newActionResponseBuilder()
     .setNotification(CardService.newNotification().setText('Cordon API key saved.'));
   if (e && e.gmail && e.gmail.messageId) {
-    // A message is open: analyze it right away with the new key.
-    builder.setNavigation(CardService.newNavigation().updateCard(analyzeAndBuildCard_(e)));
+    // A message is open: offer to analyze it (still the user's choice).
+    builder.setNavigation(CardService.newNavigation().updateCard(buildAnalyzePromptCard_()));
   } else {
     builder.setNavigation(CardService.newNavigation().updateCard(
       buildSettingsCard_('Saved. Open any email to analyze it with Cordon.')));
@@ -75,6 +77,13 @@ function showSettings(e) {
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().pushCard(
       buildSettingsCard_('Paste a new Cordon API key to replace the saved one.')))
+    .build();
+}
+
+/** The Analyze button. Also used by "Try again". */
+function analyzeMessage(e) {
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(analyzeAndBuildCard_(e)))
     .build();
 }
 
@@ -97,8 +106,11 @@ function analyzeAndBuildCard_(e) {
     GmailApp.setCurrentMessageAccessToken(e.gmail.accessToken);
     raw = GmailApp.getMessageById(e.gmail.messageId).getRawContent();
   } catch (err) {
+    // Show Google's own error text: if the open-message scope doesn't cover getRawContent(),
+    // this is where it surfaces, and the exact message is what we need to see.
     return buildErrorCard_('Couldn\'t read this email',
-      'Gmail didn\'t give the add-on access to this message. Try opening it again.', true);
+      'Gmail didn\'t let the add-on read this message. Gmail said: ' +
+      String((err && err.message) || err), true);
   }
 
   var response;
@@ -209,6 +221,23 @@ function buildFrameworkSection_(frameworks) {
       frameworks.map(escape_).join('  ·  ')));
   }
   return section;
+}
+
+function buildAnalyzePromptCard_() {
+  return CardService.newCardBuilder()
+    .setHeader(CardService.newCardHeader().setTitle('Cordon'))
+    .addSection(CardService.newCardSection()
+      .addWidget(CardService.newTextParagraph().setText(
+        'Check this email for phishing. Analyzing sends it to Cordon and saves the result ' +
+        'as a Case in your account.'))
+      .addWidget(CardService.newTextButton()
+        .setText('Analyze')
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setOnClickAction(CardService.newAction().setFunctionName('analyzeMessage')))
+      .addWidget(CardService.newTextButton()
+        .setText('API key')
+        .setOnClickAction(CardService.newAction().setFunctionName('showSettings'))))
+    .build();
 }
 
 function buildSettingsCard_(message, isError) {
