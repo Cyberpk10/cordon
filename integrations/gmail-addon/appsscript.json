@@ -1,0 +1,36 @@
+{
+  "timeZone": "Etc/UTC",
+  "runtimeVersion": "V8",
+  "exceptionLogging": "STACKDRIVER",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/gmail.addons.current.message.readonly",
+    "https://www.googleapis.com/auth/gmail.addons.execute",
+    "https://www.googleapis.com/auth/script.external_request"
+  ],
+  "urlFetchWhitelist": [
+    "https://aegis-backend-zbcr.onrender.com/"
+  ],
+  "addOns": {
+    "common": {
+      "name": "Cordon",
+      "logoUrl": "https://app.cordoncybersec.us/apple-touch-icon.png",
+      "layoutProperties": {
+        "primaryColor": "#5a6cf0",
+        "secondaryColor": "#5a6cf0"
+      },
+      "useLocaleFromApp": true,
+      "homepageTrigger": {
+        "runFunction": "onHomepage",
+        "enabled": true
+      }
+    },
+    "gmail": {
+      "contextualTriggers": [
+        {
+          "unconditional": {},
+          "onTriggerFunction": "onGmailMessageOpen"
+        }
+      ]
+    }
+  }
+}

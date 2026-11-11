@@ -118,5 +118,5 @@ export const PAGE_META: Record<Tab, { title: string; subtitle: string }> = {
     title: "Simulations",
     subtitle: "Phishing simulation campaigns and human-risk trends.",
   },
-  settings: { title: "Settings", subtitle: "Your organization's inbound email forwarding address." },
+  settings: { title: "Settings", subtitle: "Email forwarding address and API keys." },
 };

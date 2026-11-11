@@ -1,6 +1,6 @@
 """POST /api/analyze — analyze an uploaded .eml file, or POST /api/analyze/text — analyze
 raw pasted email content, for phishing indicators. Both share the same parse/score/persist
-pipeline (_persist_case_and_build_response below) so results are identical regardless of input
+pipeline (persist_case_and_build_response below) so results are identical regardless of input
 method. Requires auth (M8 Stage 2); the resulting Case is scoped to the authenticated user's
 account."""
 
@@ -28,12 +28,13 @@ from app.threat_level.hooks import record_case_signal
 router = APIRouter(prefix="/api", tags=["analyze"])
 
 
-def _persist_case_and_build_response(
+def persist_case_and_build_response(
     raw_bytes: bytes,
     filename: str,
     result: PipelineResult,
     current_user: User,
     db: Session,
+    content_hash: str | None = None,
 ) -> AnalyzeResponse:
     parsed = result.parsed
     summary = EmailSummary(
@@ -78,6 +79,7 @@ def _persist_case_and_build_response(
         ml_model_version=result.ml_model_version,
         sender_ip_info=result.sender_ip_info.model_dump(mode="json") if result.sender_ip_info else None,
         raw_email_path=raw_email_path,
+        content_hash=content_hash,
     )
     db.add(case)
     record_case_signal(db, current_user.account_id, case)
@@ -130,7 +132,7 @@ async def analyze_email(
     except Exception as exc:  # noqa: BLE001 - surface parse failures as a 400, not a 500
         raise HTTPException(status_code=400, detail=f"Failed to parse .eml file: {exc}") from exc
 
-    return _persist_case_and_build_response(raw_bytes, file.filename, result, current_user, db)
+    return persist_case_and_build_response(raw_bytes, file.filename, result, current_user, db)
 
 
 @router.post("/analyze/text", response_model=AnalyzeResponse)
@@ -153,4 +155,4 @@ async def analyze_pasted_text(
         raise HTTPException(status_code=400, detail=f"Failed to parse pasted email content: {exc}") from exc
 
     filename = (result.parsed.subject or "pasted-email")[:200] + ".eml"
-    return _persist_case_and_build_response(raw_bytes, filename, result, current_user, db)
+    return persist_case_and_build_response(raw_bytes, filename, result, current_user, db)

@@ -720,3 +720,40 @@ export async function getTrainingRecommendations(): Promise<SimulationTrainingRe
   }
   return response.json();
 }
+
+// ---- API keys (public /v1 API, e.g. the Gmail add-on) ------------------------------------
+
+export interface ApiKeySummary {
+  id: string;
+  name: string;
+  prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface ApiKeyCreated extends ApiKeySummary {
+  /** Shown once; the server keeps only a hash. */
+  key: string;
+}
+
+export async function listApiKeys(): Promise<ApiKeySummary[]> {
+  const response = await apiFetch(`/v1/keys`);
+  if (!response.ok) return parseErrorOrThrow(response);
+  return (await response.json()).keys;
+}
+
+export async function createApiKey(name: string): Promise<ApiKeyCreated> {
+  const response = await apiFetch(`/v1/keys`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) return parseErrorOrThrow(response);
+  return response.json();
+}
+
+export async function revokeApiKey(id: string): Promise<void> {
+  const response = await apiFetch(`/v1/keys/${id}`, { method: "DELETE" });
+  if (!response.ok) return parseErrorOrThrow(response);
+}

@@ -100,6 +100,36 @@ class RefreshToken(Base):
     )
 
 
+class ApiKey(Base):
+    """A per-account API key for programmatic callers (the Gmail add-on, scripts) hitting the
+    /v1 endpoints. Same storage principle as RefreshToken: the raw key is shown to the user
+    exactly once at creation and only its SHA-256 hash is persisted (a high-entropy random
+    value, so a fast hash for O(1) lookup is correct, not a password KDF). `prefix` is the
+    first few characters, kept so the user can tell keys apart in a list without the secret.
+
+    A key acts as the user who minted it (`user_id`): requests are scoped to that user's
+    account, and the key stops working the moment that user is deactivated or the key is
+    revoked, checked on every request, never cached."""
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    prefix: Mapped[str] = mapped_column(String, nullable=False)
+    key_hash: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class PasswordResetToken(Base):
     """A hashed, single-use, expiring password-reset token (M8 Stage 2). Email delivery is
     stubbed for this stage — the raw token/link is returned directly in the API response

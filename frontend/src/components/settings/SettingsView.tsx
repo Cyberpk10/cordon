@@ -1,4 +1,5 @@
 import { useAuth } from "../../auth/AuthContext";
+import ApiKeysCard from "./ApiKeysCard";
 import ForwardingAddressCard from "./ForwardingAddressCard";
 
 export default function SettingsView() {
@@ -9,6 +10,7 @@ export default function SettingsView() {
   return (
     <div className="flex flex-col gap-6">
       <ForwardingAddressCard forwardingAddress={user.forwarding_address} />
+      <ApiKeysCard />
     </div>
   );
 }

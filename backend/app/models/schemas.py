@@ -1281,3 +1281,55 @@ class InvestigationResponse(BaseModel):
     summary: str | None = None
     summary_model: str | None = None
     summary_evidence_strength: Literal["strong", "moderate", "thin"] | None = None
+
+
+# ---- Public /v1 API (programmatic callers: Gmail add-on, scripts) -----------------------
+
+
+class V1AnalyzeEmailRequest(BaseModel):
+    """POST /v1/analyze/email: the full RFC-822 message as text (e.g. Gmail's
+    getRawContent()). Same input the web app's paste box accepts."""
+
+    raw_email: str = Field(min_length=1)
+
+
+class V1AuthSummary(BaseModel):
+    spf: Literal["pass", "fail", "none"]
+    dkim: Literal["pass", "fail", "none"]
+    dmarc: Literal["pass", "fail", "none"]
+
+
+class V1AnalyzeEmailResponse(BaseModel):
+    """Stable public contract. Keys must not change; see app.analysis.public_contract for
+    how each field is derived from the shared pipeline's result."""
+
+    verdict: Literal["malicious", "suspicious", "clean"]
+    score: int = Field(ge=0, le=100)
+    category: str
+    summary: str
+    top_indicators: list[str]
+    auth: V1AuthSummary
+    frameworks: list[str]
+
+
+class ApiKeyCreateRequest(BaseModel):
+    name: str = Field(default="API key", min_length=1, max_length=80)
+
+
+class ApiKeySummary(BaseModel):
+    id: UUID
+    name: str
+    prefix: str
+    created_at: datetime
+    last_used_at: datetime | None = None
+    revoked_at: datetime | None = None
+
+
+class ApiKeyCreatedResponse(ApiKeySummary):
+    """Returned once, at creation. `key` is never retrievable again; only its hash is stored."""
+
+    key: str
+
+
+class ApiKeyListResponse(BaseModel):
+    keys: list[ApiKeySummary]

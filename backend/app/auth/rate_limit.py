@@ -31,3 +31,8 @@ from slowapi.util import get_remote_address
 limiter = Limiter(key_func=get_remote_address)
 
 AUTH_RATE_LIMIT = "10/minute"
+
+# Per-API-key limit for POST /v1/analyze/email (see app.auth.api_keys.api_key_rate_limit_key).
+# The Gmail add-on calls once per opened message, so 30/minute is far above a person reading
+# mail, while bounding a leaked key to a fixed analysis rate (each call can run the LLM).
+API_KEY_ANALYZE_RATE_LIMIT = "30/minute"
