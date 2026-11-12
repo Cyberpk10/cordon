@@ -1,7 +1,11 @@
 /**
- * Cordon for Gmail: a thin client. When a message is opened it sends the raw message to
- * Cordon's POST /v1/analyze/email and renders exactly what comes back. All detection
- * happens in the Cordon backend. This file never scores, guesses or adds findings.
+ * Cordon for Gmail: a thin client. It sends the open message to Cordon's
+ * POST /v1/analyze/email and renders exactly what comes back. All detection happens in the
+ * Cordon backend. This file never scores, guesses or adds findings.
+ *
+ * Opening a message auto-analyzes it (once a key is saved) with persist: "if_not_clean", so
+ * only suspicious/malicious mail becomes a Case; clean mail is returned and nothing is saved.
+ * Results are cached per message for 6 hours, so re-opening an email doesn't call Cordon again.
  *
  * The API key lives in this user's PropertiesService.getUserProperties(), which only this
  * user's script runs can read. It is never logged.
@@ -11,6 +15,10 @@
 var CORDON_API_BASE = 'https://aegis-backend-zbcr.onrender.com';
 var CORDON_APP_URL = 'https://app.cordoncybersec.us';
 var API_KEY_PROPERTY = 'CORDON_API_KEY';
+// Only suspicious/malicious results are saved as Cases (see /v1/analyze/email "persist").
+var PERSIST_MODE = 'if_not_clean';
+// CacheService max is 6 hours. Re-opening a message within this window reuses the result.
+var RESULT_CACHE_SECONDS = 6 * 60 * 60;
 
 // Cordon palette.
 var COLORS = {
@@ -31,12 +39,25 @@ var AUTH_COLOR = { pass: COLORS.success, fail: COLORS.danger, none: COLORS.muted
 
 // ---- entry points ---------------------------------------------------------------------------
 
-/** Contextual trigger: runs whenever the user opens a message. Deliberately does NOT call
- * Cordon: analysis only happens when the user taps Analyze, so reading a normal inbox doesn't
- * turn every newsletter into a Case or burn through the per-key rate limit. */
+/** Contextual trigger: runs whenever the user opens a message. With a key saved it analyzes
+ * the message right away, unless a result for it is already cached. Failures here stay quiet
+ * (a small "Tap to analyze" card); tapping shows the detailed error. */
 function onGmailMessageOpen(e) {
-  if (!getApiKey_()) {
+  var apiKey = getApiKey_();
+  if (!apiKey) {
     return [buildSettingsCard_('Paste your Cordon API key to start analyzing email.')];
+  }
+  var cached = getCachedResult_(apiKey, e);
+  if (cached) {
+    return [buildCardForResult_(cached)];
+  }
+  var outcome = requestAnalysis_(e, apiKey);
+  if (outcome.ok) {
+    return [buildCardForResult_(outcome.result)];
+  }
+  if (outcome.status === 401) {
+    // Not transient: auto-analysis can't work until the key is fixed.
+    return [buildBadKeyCard_()];
   }
   return [buildAnalyzePromptCard_()];
 }
@@ -64,8 +85,8 @@ function saveApiKey(e) {
   var builder = CardService.newActionResponseBuilder()
     .setNotification(CardService.newNotification().setText('Cordon API key saved.'));
   if (e && e.gmail && e.gmail.messageId) {
-    // A message is open: offer to analyze it (still the user's choice).
-    builder.setNavigation(CardService.newNavigation().updateCard(buildAnalyzePromptCard_()));
+    // A message is open: analyze it now, as opening it would have.
+    builder.setNavigation(CardService.newNavigation().updateCard(analyzeAndBuildCard_(e)));
   } else {
     builder.setNavigation(CardService.newNavigation().updateCard(
       buildSettingsCard_('Saved. Open any email to analyze it with Cordon.')));
@@ -80,7 +101,7 @@ function showSettings(e) {
     .build();
 }
 
-/** The Analyze button. Also used by "Try again". */
+/** "Analyze" / "Re-analyze": always calls Cordon (skips the cache) and shows any error in full. */
 function analyzeMessage(e) {
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(analyzeAndBuildCard_(e)))
@@ -95,22 +116,47 @@ function retryAnalysis(e) {
 
 // ---- analysis -------------------------------------------------------------------------------
 
+/** Tap path: analyze now, bypassing the cache, and explain any failure. */
 function analyzeAndBuildCard_(e) {
   var apiKey = getApiKey_();
   if (!apiKey) {
     return buildSettingsCard_('Paste your Cordon API key to start analyzing email.');
   }
+  var outcome = requestAnalysis_(e, apiKey);
+  if (outcome.ok) {
+    return buildCardForResult_(outcome.result);
+  }
+  switch (outcome.reason) {
+    case 'read':
+      // Google's own error text: if the open-message scope doesn't cover getRawContent(),
+      // this is where it surfaces, and the exact message is what we need to see.
+      return buildErrorCard_('Couldn\'t read this email',
+        'Gmail didn\'t let the add-on read this message. Gmail said: ' + outcome.detail, true);
+    case 'http':
+      if (outcome.status === 401) return buildBadKeyCard_();
+      if (outcome.status === 429) {
+        return buildErrorCard_('Slow down a little',
+          'Too many emails analyzed with this key in the last minute. Try again shortly.', true);
+      }
+      if (outcome.status === 413) {
+        return buildErrorCard_('Email too large',
+          'This message is bigger than Cordon accepts for analysis.', false);
+      }
+      return buildUnreachableCard_();
+    default:
+      return buildUnreachableCard_();
+  }
+}
 
+/** Reads the open message and calls Cordon once. Returns {ok: true, result} or
+ * {ok: false, reason: 'read'|'network'|'http'|'response', status?, detail?}. Caches successes. */
+function requestAnalysis_(e, apiKey) {
   var raw;
   try {
     GmailApp.setCurrentMessageAccessToken(e.gmail.accessToken);
     raw = GmailApp.getMessageById(e.gmail.messageId).getRawContent();
   } catch (err) {
-    // Show Google's own error text: if the open-message scope doesn't cover getRawContent(),
-    // this is where it surfaces, and the exact message is what we need to see.
-    return buildErrorCard_('Couldn\'t read this email',
-      'Gmail didn\'t let the add-on read this message. Gmail said: ' +
-      String((err && err.message) || err), true);
+    return { ok: false, reason: 'read', detail: String((err && err.message) || err) };
   }
 
   var response;
@@ -119,44 +165,84 @@ function analyzeAndBuildCard_(e) {
       method: 'post',
       contentType: 'application/json',
       headers: { Authorization: 'Bearer ' + apiKey },
-      payload: JSON.stringify({ raw_email: raw }),
+      payload: JSON.stringify({ raw_email: raw, persist: PERSIST_MODE }),
       muteHttpExceptions: true,
       followRedirects: false
     });
   } catch (err) {
-    return buildUnreachableCard_();
+    return { ok: false, reason: 'network' };
   }
 
   var status = response.getResponseCode();
-  if (status === 401) {
-    return buildSettingsCard_('Check your Cordon API key. Cordon didn\'t accept the saved key; ' +
-      'it may have been revoked. Paste a valid key below.', true);
-  }
-  if (status === 429) {
-    return buildErrorCard_('Slow down a little',
-      'Too many emails analyzed with this key in the last minute. Try again shortly.', true);
-  }
-  if (status === 413) {
-    return buildErrorCard_('Email too large',
-      'This message is bigger than Cordon accepts for analysis.', false);
-  }
   if (status !== 200) {
-    return buildUnreachableCard_();
+    return { ok: false, reason: 'http', status: status };
   }
-
   var result;
   try {
     result = JSON.parse(response.getContentText());
   } catch (err) {
-    return buildUnreachableCard_();
+    return { ok: false, reason: 'response' };
   }
   if (!result || !VERDICT_STYLE[result.verdict]) {
-    return buildUnreachableCard_();
+    return { ok: false, reason: 'response' };
   }
-  return buildResultCard_(result);
+  cacheResult_(apiKey, e, result);
+  return { ok: true, result: result };
+}
+
+// ---- result cache (CacheService, per user; needs no OAuth scope) ---------------------------
+
+/** Keyed by message id plus the key's public prefix, so switching keys/accounts doesn't show
+ * another account's cached result. */
+function cacheKey_(apiKey, e) {
+  if (!e || !e.gmail || !e.gmail.messageId) return null;
+  return 'cordon:' + apiKey.slice(0, 10) + ':' + e.gmail.messageId;
+}
+
+function getCachedResult_(apiKey, e) {
+  var key = cacheKey_(apiKey, e);
+  if (!key) return null;
+  try {
+    var hit = CacheService.getUserCache().get(key);
+    var result = hit ? JSON.parse(hit) : null;
+    return result && VERDICT_STYLE[result.verdict] ? result : null;
+  } catch (err) {
+    return null;  // a cache problem must never block analysis
+  }
+}
+
+function cacheResult_(apiKey, e, result) {
+  var key = cacheKey_(apiKey, e);
+  if (!key) return;
+  try {
+    CacheService.getUserCache().put(key, JSON.stringify(result), RESULT_CACHE_SECONDS);
+  } catch (err) {
+    // Too large or cache unavailable: just don't cache.
+  }
 }
 
 // ---- cards ----------------------------------------------------------------------------------
+
+function buildCardForResult_(r) {
+  return r.verdict === 'clean' ? buildCleanCard_(r) : buildResultCard_(r);
+}
+
+/** Compact card for clean mail. Clean results aren't saved to Cordon (persist: if_not_clean). */
+function buildCleanCard_(r) {
+  var auth = r.auth || {};
+  return CardService.newCardBuilder()
+    .setHeader(CardService.newCardHeader()
+      .setTitle('Cordon: Clean')
+      .setSubtitle('Risk score ' + r.score + ' / 100'))
+    .addSection(CardService.newCardSection()
+      .addWidget(CardService.newTextParagraph().setText(
+        '<font color="' + COLORS.success + '"><b>Clean ✓</b> · nothing suspicious</font>'))
+      .addWidget(CardService.newTextParagraph().setText(
+        '<font color="' + COLORS.muted + '">' + authLine_(auth) +
+        '<br>Not saved to Cordon.</font>'))
+      .addWidget(buildFooterButtons_()))
+    .build();
+}
 
 function buildResultCard_(r) {
   var style = VERDICT_STYLE[r.verdict];
@@ -183,28 +269,40 @@ function buildResultCard_(r) {
   var auth = r.auth || {};
   card.addSection(CardService.newCardSection()
     .setHeader('Sender authentication')
-    .addWidget(CardService.newTextParagraph().setText(
-      ['spf', 'dkim', 'dmarc'].map(function (k) {
-        var v = auth[k] || 'none';
-        return k.toUpperCase() + ' <font color="' + (AUTH_COLOR[v] || COLORS.muted) + '"><b>' +
-          escape_(v) + '</b></font>';
-      }).join('   ·   '))));
+    .addWidget(CardService.newTextParagraph().setText(authLine_(auth, true))));
 
   var frameworks = r.frameworks || [];
   if (frameworks.length) {
     card.addSection(buildFrameworkSection_(frameworks));
   }
 
-  card.addSection(CardService.newCardSection()
-    .addWidget(CardService.newButtonSet()
-      .addButton(CardService.newTextButton()
-        .setText('Open Cordon')
-        .setOpenLink(CardService.newOpenLink().setUrl(CORDON_APP_URL)))
-      .addButton(CardService.newTextButton()
-        .setText('API key')
-        .setOnClickAction(CardService.newAction().setFunctionName('showSettings')))));
-
+  card.addSection(CardService.newCardSection().addWidget(buildFooterButtons_()));
   return card.build();
+}
+
+/** SPF/DKIM/DMARC on one line; colored per result when `colored`. */
+function authLine_(auth, colored) {
+  return ['spf', 'dkim', 'dmarc'].map(function (k) {
+    var v = auth[k] || 'none';
+    var value = colored
+      ? '<font color="' + (AUTH_COLOR[v] || COLORS.muted) + '"><b>' + escape_(v) + '</b></font>'
+      : escape_(v);
+    return k.toUpperCase() + ' ' + value;
+  }).join('   ·   ');
+}
+
+/** Re-analyze (fresh call, skips the cache), Open Cordon, API key: on every result card. */
+function buildFooterButtons_() {
+  return CardService.newButtonSet()
+    .addButton(CardService.newTextButton()
+      .setText('Re-analyze')
+      .setOnClickAction(CardService.newAction().setFunctionName('analyzeMessage')))
+    .addButton(CardService.newTextButton()
+      .setText('Open Cordon')
+      .setOpenLink(CardService.newOpenLink().setUrl(CORDON_APP_URL)))
+    .addButton(CardService.newTextButton()
+      .setText('API key')
+      .setOnClickAction(CardService.newAction().setFunctionName('showSettings')));
 }
 
 /** Framework tags as chips where the host supports ChipList, otherwise a plain line. */
@@ -228,10 +326,10 @@ function buildAnalyzePromptCard_() {
     .setHeader(CardService.newCardHeader().setTitle('Cordon'))
     .addSection(CardService.newCardSection()
       .addWidget(CardService.newTextParagraph().setText(
-        'Check this email for phishing. Analyzing sends it to Cordon and saves the result ' +
-        'as a Case in your account.'))
+        'Cordon hasn\'t checked this email yet. Tap to analyze it; only suspicious or ' +
+        'malicious results are saved as Cases.'))
       .addWidget(CardService.newTextButton()
-        .setText('Analyze')
+        .setText('Tap to analyze')
         .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
         .setOnClickAction(CardService.newAction().setFunctionName('analyzeMessage')))
       .addWidget(CardService.newTextButton()
@@ -261,6 +359,11 @@ function buildSettingsCard_(message, isError) {
         .setText('Get a key in Cordon')
         .setOpenLink(CardService.newOpenLink().setUrl(CORDON_APP_URL))))
     .build();
+}
+
+function buildBadKeyCard_() {
+  return buildSettingsCard_('Check your Cordon API key. Cordon didn\'t accept the saved key; ' +
+    'it may have been revoked. Paste a valid key below.', true);
 }
 
 function buildUnreachableCard_() {

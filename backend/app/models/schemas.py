@@ -1291,6 +1291,11 @@ class V1AnalyzeEmailRequest(BaseModel):
     getRawContent()). Same input the web app's paste box accepts."""
 
     raw_email: str = Field(min_length=1)
+    # "always" (default): every analyzed email becomes a Case, same as the web app.
+    # "if_not_clean": same pipeline and same response, but a clean result is returned without
+    # saving anything. The Gmail add-on auto-analyzes on open with this, so ordinary mail
+    # doesn't fill the Cases list.
+    persist: Literal["always", "if_not_clean"] = "always"
 
 
 class V1AuthSummary(BaseModel):

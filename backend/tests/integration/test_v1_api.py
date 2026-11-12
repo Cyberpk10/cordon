@@ -173,3 +173,61 @@ def test_server_to_server_call_without_origin_is_not_blocked(api_key):
     resp = _analyze(api_key, "Subject: hi\n\nhello")
     assert resp.status_code == 200
     assert "access-control-allow-origin" not in {k.lower() for k in resp.headers}
+
+
+# ---- persist: "if_not_clean" (the Gmail add-on's auto-analyze-on-open mode) ------------------
+
+
+def _analyze_if_not_clean(key: str, raw: str):
+    return _key_client(key).post("/v1/analyze/email", json={"raw_email": raw, "persist": "if_not_clean"})
+
+
+def test_if_not_clean_with_a_malicious_sample_creates_a_case(api_key, load_eml, db_session):
+    raw = load_eml("phishing_lookalike_paypal.eml").decode("utf-8")
+    resp = _analyze_if_not_clean(api_key, raw)
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert set(body) == CONTRACT_KEYS
+    assert body["verdict"] == "malicious"
+    assert db_session.query(Case).count() == 1
+    # Same result as the default mode would have given.
+    assert body == _analyze(api_key, raw).json()
+    assert db_session.query(Case).count() == 1  # dedup still applies
+
+
+def test_if_not_clean_with_a_clean_sample_returns_clean_and_saves_nothing(api_key, load_eml, db_session):
+    raw = load_eml("benign_newsletter.eml").decode("utf-8")
+    resp = _analyze_if_not_clean(api_key, raw)
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert set(body) == CONTRACT_KEYS
+    assert body["verdict"] == "clean"
+    assert body["auth"] == {"spf": "pass", "dkim": "pass", "dmarc": "pass"}
+    assert db_session.query(Case).count() == 0
+
+    # Re-analyzing still saves nothing and returns the same result.
+    assert _analyze_if_not_clean(api_key, raw).json() == body
+    assert db_session.query(Case).count() == 0
+    db_session.expire_all()
+    assert db_session.query(ApiKey).one().last_used_at is not None
+
+
+def test_clean_result_is_identical_with_or_without_persisting(api_key, load_eml, db_session):
+    raw = load_eml("benign_newsletter.eml").decode("utf-8")
+    skipped = _analyze_if_not_clean(api_key, raw).json()
+    saved = _analyze(api_key, raw).json()  # default "always" still saves clean mail
+    assert skipped == saved
+    assert db_session.query(Case).count() == 1
+
+
+def test_if_not_clean_returns_an_already_saved_case(api_key, load_eml, db_session):
+    raw = load_eml("benign_newsletter.eml").decode("utf-8")
+    saved = _analyze(api_key, raw).json()
+    assert _analyze_if_not_clean(api_key, raw).json() == saved
+    assert db_session.query(Case).count() == 1
+
+
+@pytest.mark.parametrize("persist", ["never", "", None, 1])
+def test_unknown_persist_value_is_422(api_key, persist):
+    resp = _key_client(api_key).post("/v1/analyze/email", json={"raw_email": "Subject: hi\n\nhello", "persist": persist})
+    assert resp.status_code == 422

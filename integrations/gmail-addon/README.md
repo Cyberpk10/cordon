@@ -1,7 +1,8 @@
 # Cordon for Gmail (Google Workspace add-on)
 
-A thin Gmail sidebar client. Open an email, open the Cordon panel, and tap **Analyze**. It
-sends the raw message to Cordon's `POST /v1/analyze/email` and shows the result: verdict, score, a one-line summary, the top
+A thin Gmail sidebar client. Open an email with the Cordon panel open and it is analyzed
+automatically: the add-on sends the raw message to Cordon's `POST /v1/analyze/email` and shows
+the result: verdict, score, a one-line summary, the top
 indicators, SPF/DKIM/DMARC, and the compliance-framework tags. All detection runs in the
 Cordon backend, the same pipeline as the web app's Analyze page. The add-on renders only what
 the API returns.
@@ -20,10 +21,15 @@ These files don't run from this repo. You copy them into a Google Apps Script pr
 3. Copy the key. It starts with `cdn_`, and **it is shown only once**. Cordon stores only a
    hash. If you lose it, revoke it and create a new one.
 
-The key analyzes email as you. Nothing is sent to Cordon just by opening an email: only an
-email you tap **Analyze** on is sent, and it becomes a Case in your Cordon account, exactly like
-pasting it into Analyze. Analyzing the same email again reuses the existing Case instead of
-creating a new one.
+The key analyzes email as you. Once it is saved, each email you open with the Cordon panel
+showing is sent to Cordon and analyzed. Only **suspicious or malicious** results are saved as
+Cases in your Cordon account (the add-on sends `"persist": "if_not_clean"`); clean mail is
+analyzed, shown, and not saved. Analyzing an already-saved email again reuses its Case
+instead of creating a new one.
+
+Results are cached per message for 6 hours (Apps Script `CacheService`, per user), so
+re-opening an email doesn't call Cordon again or count against the rate limit. **Re-analyze**
+on any result card always makes a fresh call.
 
 ## 2. Create the Apps Script project
 
@@ -60,13 +66,20 @@ change it in **both** places, or Google blocks the request:
 On first open the add-on shows a **Cordon settings** card:
 
 1. Paste the `cdn_…` key into **Cordon API key**.
-2. Click **Save**, then tap **Analyze** on the open email.
+2. Click **Save**. The open email is analyzed right away.
 
 The key is stored in your Apps Script **user properties** (`PropertiesService.getUserProperties()`).
 Only your own runs of the script can read it, and it is never logged. To replace it, click
 **API key** at the bottom of any result card, or open the Cordon add-on with no email selected.
 
 ## What you'll see
+
+- **Clean mail** gets a compact card: "Clean ✓ · nothing suspicious", the score, SPF/DKIM/DMARC,
+  and "Not saved to Cordon."
+- **Suspicious / malicious mail**: the full card below, and the email is saved as a Case.
+- Every result card has **Re-analyze**, **Open Cordon** and **API key** buttons.
+
+The full card shows:
 
 - **Header and verdict banner**, colored by verdict: red = malicious, amber = suspicious,
   green = clean. Plus the 0–100 risk score.
@@ -86,13 +99,18 @@ scope (`gmail.addons.current.message.readonly`, classified *sensitive*). Google'
 lists only `https://mail.google.com/` for that method, so whether the narrow scope covers it
 must be confirmed on a real email.
 
-After installing, open any email and tap **Analyze**:
+After installing, open any email. Automatic analysis keeps failures quiet (a small **Tap to
+analyze** card), so if you see that card, tap it to see the detailed error:
 - A result card means the narrow scope works.
 - **Couldn't read this email** with "Gmail said: …" means it doesn't. Note the exact text, and
   **do not** widen the scope to `gmail.readonly` or `https://mail.google.com/` to fix it: both
   are *restricted* scopes, which require Google's annual security assessment (CASA) to publish.
 
 ## Errors
+
+When an email is opened, every failure except a rejected key shows the quiet **Tap to analyze**
+card instead of an error, and failures are not cached. Tapping it (or **Re-analyze**) shows the
+specific card:
 
 | Card | Meaning |
 | --- | --- |
@@ -109,8 +127,11 @@ POST https://aegis-backend-zbcr.onrender.com/v1/analyze/email
 Authorization: Bearer cdn_...
 Content-Type: application/json
 
-{ "raw_email": "<full RFC-822 message>" }
+{ "raw_email": "<full RFC-822 message>", "persist": "if_not_clean" }
 ```
+
+`persist` is optional: `"always"` (the default) saves every result as a Case;
+`"if_not_clean"` saves only suspicious/malicious results. The response is identical either way.
 
 ```json
 {

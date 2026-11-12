@@ -9,10 +9,14 @@ scripts).
   result is a normal Case in the account, then flattens it to the stable contract in
   app.analysis.public_contract.
 
+`persist` (request body): "always" (default) saves every result as a Case; "if_not_clean"
+saves only suspicious/malicious results and returns clean ones without saving anything. The
+Gmail add-on auto-analyzes every opened message with "if_not_clean".
+
 Re-analyzing byte-identical content in the same account returns the existing Case's result
-instead of creating a duplicate. The add-on fires on every message open; without this, each
-re-open would add a Case and the sender's own earlier Case would turn "first contact" into
-"seen before", changing the score of the same email between opens.
+instead of creating a duplicate. Without this, each re-analysis of a saved email would add a
+Case, and the sender's own earlier Case would turn "first contact" into "seen before",
+changing the score of the same email between analyses.
 
 Server-to-server calls (Google's Apps Script servers) send no Origin header, so CORS never
 applies to them, and the app has no TrustedHostMiddleware. Nothing here needs CORS changes.
@@ -28,7 +32,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.analysis.email_pipeline import run_email_pipeline
-from app.analysis.public_contract import build_public_result
+from app.analysis.public_contract import build_public_result, public_verdict
 from app.api.routes.analyze import persist_case_and_build_response
 from app.auth.api_keys import api_key_rate_limit_key, generate_api_key, get_api_key
 from app.auth.audit_log import log_event
@@ -194,6 +198,22 @@ def analyze_email_v1(
         result = run_email_pipeline(raw_bytes, history)
     except Exception as exc:  # noqa: BLE001 - same contract as the web paste route
         raise HTTPException(status_code=400, detail="Could not parse the email content.") from exc
+
+    if payload.persist == "if_not_clean" and public_verdict(result.verdict) == "clean":
+        # Clean and the caller asked not to keep clean mail: return the identical contract
+        # straight from the pipeline result. No Case, no raw-email file, no sender-history or
+        # threat-level side effects.
+        db.commit()  # persist last_used_at
+        return V1AnalyzeEmailResponse.model_validate(
+            build_public_result(
+                verdict=result.verdict,
+                score=result.score,
+                indicators=result.indicators,
+                framework_mappings=result.framework_mappings,
+                auth_results=result.parsed.auth_results,
+                llm_intent_category=result.llm_intent_category,
+            )
+        )
 
     subject = result.parsed.subject or "api-email"
     analyzed = persist_case_and_build_response(
