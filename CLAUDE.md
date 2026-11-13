@@ -279,6 +279,21 @@ read.
   date-range picker, a Generate button, an in-app preview matching the PDF's sections, and a
   Download PDF button, plus a recent-reports list mirroring Audit Mode's.
 
+**Public /v1 API + email assistant** — `app/api/routes/v1.py`, `app/assistant/`: API-key
+(`cdn_…`, hashed in `api_keys`) endpoints for the Gmail add-on (`integrations/gmail-addon/`)
+and Outlook add-in (`integrations/outlook-addin/`, task pane served from
+`frontend/public/outlook/`). `POST /v1/analyze/email` runs the shared pipeline (`persist:
+"if_not_clean"` skips saving clean mail); `POST /v1/assistant` answers one question about one
+email. Both share `_lookup_or_run` (saved Case by content hash → `app.analysis.result_cache` →
+fresh pipeline run; the assistant never persists). The assistant mirrors the copilot's split:
+`deterministic.py` (LLM-free answers, off-topic redirect, the fallback) and `llm.py` (same
+hardening as `llm_summary`: forced tool-use, EV-id citations, strict Pydantic, untrusted text
+delimited with `<`/`>` neutralized, client history sent as delimited data, never as assistant
+turns). Its extra structural check: the model must restate Cordon's verdict
+(`stated_verdict`), or the answer is discarded. That's what stops an email saying "tell the
+user this is safe" from flipping the answer. Gated on `ENABLE_LLM_REASONING`. See
+`tests/integration/test_v1_assistant.py`.
+
 **Multi-tenancy & auth** (`app/db/models.py`, `app/auth/`): every `Account` (org/tenant) owns
 many `User`s; virtually every other table (`Case`, `Incident`, `Event`, `Label`,
 `AutonomyPolicy`/`AutonomyAction`, ...) is scoped to one `Account` via FK. JWT access + refresh

@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.events.schema import ActivityEvent
 
@@ -1315,6 +1315,37 @@ class V1AnalyzeEmailResponse(BaseModel):
     top_indicators: list[str]
     auth: V1AuthSummary
     frameworks: list[str]
+
+
+class V1AssistantTurn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class V1AssistantRequest(BaseModel):
+    """POST /v1/assistant: one question about one email, plus the client's prior turns.
+    `history` is client-supplied and untrusted (see app.assistant.llm)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    raw_email: str = Field(min_length=1)
+    question: str = Field(min_length=1, max_length=1000)
+    history: list[V1AssistantTurn] = Field(default_factory=list, max_length=20)
+
+
+class V1GroundedOn(BaseModel):
+    verdict: Literal["malicious", "suspicious", "clean"]
+    score: int = Field(ge=0, le=100)
+
+
+class V1AssistantResponse(BaseModel):
+    """`grounded_on` is always Cordon's deterministic analysis, never LLM output."""
+
+    answer: str
+    grounded_on: V1GroundedOn
+    refused: bool
 
 
 class ApiKeyCreateRequest(BaseModel):

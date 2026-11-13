@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Cordon for Outlook: XML (add-in only) manifest, for the broadest client support
+  (Outlook on the web, new Outlook and classic Outlook on Windows, Outlook on Mac, iOS/Android).
+  A "Cordon" button on the message-read ribbon opens the task pane served from
+  https://app.cordoncybersec.us/outlook/taskpane.html. See README.md.
+-->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
+           xsi:type="MailApp">
+  <Id>88cd4f5f-5575-4a39-8de4-dd719ae0ee49</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Cordon</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Cordon"/>
+  <Description DefaultValue="Check any email for phishing with Cordon and ask questions about it."/>
+  <IconUrl DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-128.png"/>
+  <SupportUrl DefaultValue="https://app.cordoncybersec.us"/>
+  <AppDomains>
+    <AppDomain>https://app.cordoncybersec.us</AppDomain>
+    <AppDomain>https://aegis-backend-zbcr.onrender.com</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
+  <Requirements>
+    <Sets>
+      <!-- Low floor so it installs broadly; newer APIs (1.8 headers, 1.14 raw EML) are
+           feature-detected at runtime in taskpane.js. -->
+      <Set Name="Mailbox" MinVersion="1.5"/>
+    </Sets>
+  </Requirements>
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://app.cordoncybersec.us/outlook/taskpane.html"/>
+        <RequestedHeight>450</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+  <Permissions>ReadItem</Permissions>
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
+  </Rule>
+  <DisableEntityHighlighting>true</DisableEntityHighlighting>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <!-- VersionOverrides 1.0: desktop ribbon for older clients. 1.1 (nested, below) adds
+         pinning and the mobile button; clients that understand 1.1 use it instead. -->
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.3">
+        <bt:Set Name="Mailbox"/>
+      </bt:Sets>
+    </Requirements>
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="cordonReadGroup">
+                <Label resid="groupLabel"/>
+                <Control xsi:type="Button" id="cordonOpenPane">
+                  <Label resid="buttonLabel"/>
+                  <Supertip>
+                    <Title resid="buttonLabel"/>
+                    <Description resid="buttonTooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="icon16"/>
+                    <bt:Image size="32" resid="icon32"/>
+                    <bt:Image size="80" resid="icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="taskpaneUrl"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="icon16" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-16.png"/>
+        <bt:Image id="icon25" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-25.png"/>
+        <bt:Image id="icon32" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-32.png"/>
+        <bt:Image id="icon48" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-48.png"/>
+        <bt:Image id="icon64" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-64.png"/>
+        <bt:Image id="icon80" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-80.png"/>
+        <bt:Image id="icon128" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-128.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="taskpaneUrl" DefaultValue="https://app.cordoncybersec.us/outlook/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="groupLabel" DefaultValue="Cordon"/>
+        <bt:String id="buttonLabel" DefaultValue="Check with Cordon"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="buttonTooltip" DefaultValue="Check this email for phishing with Cordon and ask questions about it."/>
+      </bt:LongStrings>
+    </Resources>
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+      <Requirements>
+        <bt:Sets DefaultMinVersion="1.5">
+          <bt:Set Name="Mailbox"/>
+        </bt:Sets>
+      </Requirements>
+      <Hosts>
+        <Host xsi:type="MailHost">
+          <DesktopFormFactor>
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="cordonReadGroup">
+                  <Label resid="groupLabel"/>
+                  <Control xsi:type="Button" id="cordonOpenPane">
+                    <Label resid="buttonLabel"/>
+                    <Supertip>
+                      <Title resid="buttonLabel"/>
+                      <Description resid="buttonTooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="icon16"/>
+                      <bt:Image size="32" resid="icon32"/>
+                      <bt:Image size="80" resid="icon80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="taskpaneUrl"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+          </DesktopFormFactor>
+          <MobileFormFactor>
+            <ExtensionPoint xsi:type="MobileMessageReadCommandSurface">
+              <Group id="cordonMobileGroup">
+                <Label resid="groupLabel"/>
+                <Control xsi:type="MobileButton" id="cordonMobileOpenPane">
+                  <Label resid="buttonLabel"/>
+                  <Icon xsi:type="bt:MobileIconList">
+                    <bt:Image size="25" scale="1" resid="icon25"/>
+                    <bt:Image size="25" scale="2" resid="icon48"/>
+                    <bt:Image size="25" scale="3" resid="icon80"/>
+                    <bt:Image size="32" scale="1" resid="icon32"/>
+                    <bt:Image size="32" scale="2" resid="icon64"/>
+                    <bt:Image size="32" scale="3" resid="icon128"/>
+                    <bt:Image size="48" scale="1" resid="icon48"/>
+                    <bt:Image size="48" scale="2" resid="icon128"/>
+                    <bt:Image size="48" scale="3" resid="icon128"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="taskpaneUrl"/>
+                  </Action>
+                </Control>
+              </Group>
+            </ExtensionPoint>
+          </MobileFormFactor>
+        </Host>
+      </Hosts>
+      <Resources>
+        <bt:Images>
+          <bt:Image id="icon16" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-16.png"/>
+          <bt:Image id="icon25" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-25.png"/>
+          <bt:Image id="icon32" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-32.png"/>
+          <bt:Image id="icon48" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-48.png"/>
+          <bt:Image id="icon64" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-64.png"/>
+          <bt:Image id="icon80" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-80.png"/>
+          <bt:Image id="icon128" DefaultValue="https://app.cordoncybersec.us/outlook/icons/icon-128.png"/>
+        </bt:Images>
+        <bt:Urls>
+          <bt:Url id="taskpaneUrl" DefaultValue="https://app.cordoncybersec.us/outlook/taskpane.html"/>
+        </bt:Urls>
+        <bt:ShortStrings>
+          <bt:String id="groupLabel" DefaultValue="Cordon"/>
+          <bt:String id="buttonLabel" DefaultValue="Check with Cordon"/>
+        </bt:ShortStrings>
+        <bt:LongStrings>
+          <bt:String id="buttonTooltip" DefaultValue="Check this email for phishing with Cordon and ask questions about it."/>
+        </bt:LongStrings>
+      </Resources>
+    </VersionOverrides>
+  </VersionOverrides>
+</OfficeApp>

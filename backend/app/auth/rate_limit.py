@@ -36,3 +36,6 @@ AUTH_RATE_LIMIT = "10/minute"
 # The Gmail add-on calls once per opened message, so 30/minute is far above a person reading
 # mail, while bounding a leaked key to a fixed analysis rate (each call can run the LLM).
 API_KEY_ANALYZE_RATE_LIMIT = "30/minute"
+# Per-API-key limit for POST /v1/assistant (the Outlook add-in's chat). Separate bucket from
+# analyze; each question can make one LLM call when the LLM is enabled.
+API_KEY_ASSISTANT_RATE_LIMIT = "20/minute"

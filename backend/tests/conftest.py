@@ -35,6 +35,17 @@ def _reset_auth_rate_limiter():
 
 
 @pytest.fixture(autouse=True)
+def _clear_v1_result_cache():
+    """app.analysis.result_cache is process-wide; keep one test's cached analysis out of the
+    next, regardless of order."""
+    from app.analysis import result_cache
+
+    result_cache.clear()
+    yield
+    result_cache.clear()
+
+
+@pytest.fixture(autouse=True)
 def _deterministic_llm_settings(monkeypatch):
     """Pin the shared settings singleton to the offline default for every test.
 

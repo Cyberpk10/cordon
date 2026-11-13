@@ -8,6 +8,9 @@ scripts).
   (app.api.routes.analyze.persist_case_and_build_response over run_email_pipeline), so the
   result is a normal Case in the account, then flattens it to the stable contract in
   app.analysis.public_contract.
+- POST /v1/assistant: API key only. Answers one question about one email (the Outlook
+  add-in's chat), grounded only in Cordon's analysis of it; see app.assistant. Reuses the
+  saved Case, or the short-lived app.analysis.result_cache entry, for the same content.
 
 `persist` (request body): "always" (default) saves every result as a Case; "if_not_clean"
 saves only suspicious/malicious results and returns clean ones without saving anything. The
@@ -31,13 +34,16 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from app.analysis.email_pipeline import run_email_pipeline
+from app.analysis import result_cache
+from app.analysis.email_pipeline import PipelineResult, run_email_pipeline
 from app.analysis.public_contract import build_public_result, public_verdict
 from app.api.routes.analyze import persist_case_and_build_response
+from app.assistant.answer import answer_question
+from app.assistant.facts import build_facts
 from app.auth.api_keys import api_key_rate_limit_key, generate_api_key, get_api_key
 from app.auth.audit_log import log_event
 from app.auth.dependencies import get_current_user
-from app.auth.rate_limit import API_KEY_ANALYZE_RATE_LIMIT, limiter
+from app.auth.rate_limit import API_KEY_ANALYZE_RATE_LIMIT, API_KEY_ASSISTANT_RATE_LIMIT, limiter
 from app.core.config import settings
 from app.db.models import ApiKey, Case, User
 from app.db.session import get_db
@@ -51,6 +57,9 @@ from app.models.schemas import (
     Indicator,
     V1AnalyzeEmailRequest,
     V1AnalyzeEmailResponse,
+    V1AssistantRequest,
+    V1AssistantResponse,
+    V1GroundedOn,
     Verdict,
 )
 from app.parsing.eml_parser import parse_eml
@@ -149,21 +158,76 @@ def _auth_results(raw_bytes: bytes) -> AuthResults:
         return AuthResults()
 
 
-def _from_existing_case(case: Case, raw_bytes: bytes) -> V1AnalyzeEmailResponse:
-    mappings = {
+def _case_mappings(case: Case) -> dict[str, list[FrameworkControlRef]]:
+    return {
         key: [FrameworkControlRef.model_validate(r) for r in refs]
         for key, refs in (case.framework_mappings or {}).items()
     }
+
+
+def _case_indicators(case: Case) -> list[Indicator]:
+    return [Indicator.model_validate(i) for i in (case.indicators or [])]
+
+
+def _from_existing_case(case: Case, raw_bytes: bytes) -> V1AnalyzeEmailResponse:
     return V1AnalyzeEmailResponse.model_validate(
         build_public_result(
             verdict=Verdict(case.verdict),
             score=case.score,
-            indicators=[Indicator.model_validate(i) for i in (case.indicators or [])],
-            framework_mappings=mappings,
+            indicators=_case_indicators(case),
+            framework_mappings=_case_mappings(case),
             auth_results=_auth_results(raw_bytes),
             llm_intent_category=case.llm_intent_category,
         )
     )
+
+
+def _from_pipeline_result(result: PipelineResult) -> V1AnalyzeEmailResponse:
+    return V1AnalyzeEmailResponse.model_validate(
+        build_public_result(
+            verdict=result.verdict,
+            score=result.score,
+            indicators=result.indicators,
+            framework_mappings=result.framework_mappings,
+            auth_results=result.parsed.auth_results,
+            llm_intent_category=result.llm_intent_category,
+        )
+    )
+
+
+def _validated_raw_bytes(raw_email: str) -> bytes:
+    if not raw_email.strip():
+        raise HTTPException(status_code=422, detail="raw_email is empty.")
+    raw_bytes = raw_email.encode("utf-8")
+    if len(raw_bytes) > settings.max_upload_bytes:
+        raise HTTPException(status_code=413, detail="Email exceeds the maximum allowed size.")
+    return raw_bytes
+
+
+def _lookup_or_run(
+    db: Session, api_key: ApiKey, raw_bytes: bytes, content_hash: str
+) -> tuple[Case | None, PipelineResult | None]:
+    """The one analysis path shared by /analyze/email and /assistant. Returns the saved Case
+    for this exact content if the account has one, otherwise a pipeline result (from the
+    short-lived cache, or a fresh run). Never persists anything itself."""
+    existing = (
+        db.query(Case)
+        .filter(Case.account_id == api_key.account_id, Case.content_hash == content_hash)
+        .order_by(Case.created_at.desc())
+        .first()
+    )
+    if existing is not None:
+        return existing, None
+    cached = result_cache.get(api_key.account_id, content_hash)
+    if cached is not None:
+        return None, cached
+    history = load_sender_history(db, api_key.account_id)
+    try:
+        result = run_email_pipeline(raw_bytes, history)
+    except Exception as exc:  # noqa: BLE001 - same contract as the web paste route
+        raise HTTPException(status_code=400, detail="Could not parse the email content.") from exc
+    result_cache.put(api_key.account_id, content_hash, result, len(raw_bytes))
+    return None, result
 
 
 @router.post("/analyze/email", response_model=V1AnalyzeEmailResponse)
@@ -174,58 +238,76 @@ def analyze_email_v1(
     db: Session = Depends(get_db),
     api_key: ApiKey = Depends(get_api_key),
 ) -> V1AnalyzeEmailResponse:
-    if not payload.raw_email.strip():
-        raise HTTPException(status_code=422, detail="raw_email is empty.")
-    raw_bytes = payload.raw_email.encode("utf-8")
-    if len(raw_bytes) > settings.max_upload_bytes:
-        raise HTTPException(status_code=413, detail="Email exceeds the maximum allowed size.")
-
-    user = db.get(User, api_key.user_id)  # get_api_key already verified it exists and is active
+    raw_bytes = _validated_raw_bytes(payload.raw_email)
     content_hash = hashlib.sha256(raw_bytes).hexdigest()
-
-    existing = (
-        db.query(Case)
-        .filter(Case.account_id == api_key.account_id, Case.content_hash == content_hash)
-        .order_by(Case.created_at.desc())
-        .first()
-    )
+    existing, result = _lookup_or_run(db, api_key, raw_bytes, content_hash)
     if existing is not None:
         db.commit()  # persist last_used_at
         return _from_existing_case(existing, raw_bytes)
-
-    history = load_sender_history(db, api_key.account_id)
-    try:
-        result = run_email_pipeline(raw_bytes, history)
-    except Exception as exc:  # noqa: BLE001 - same contract as the web paste route
-        raise HTTPException(status_code=400, detail="Could not parse the email content.") from exc
+    assert result is not None
 
     if payload.persist == "if_not_clean" and public_verdict(result.verdict) == "clean":
         # Clean and the caller asked not to keep clean mail: return the identical contract
         # straight from the pipeline result. No Case, no raw-email file, no sender-history or
         # threat-level side effects.
         db.commit()  # persist last_used_at
-        return V1AnalyzeEmailResponse.model_validate(
-            build_public_result(
-                verdict=result.verdict,
-                score=result.score,
-                indicators=result.indicators,
-                framework_mappings=result.framework_mappings,
-                auth_results=result.parsed.auth_results,
-                llm_intent_category=result.llm_intent_category,
-            )
-        )
+        return _from_pipeline_result(result)
 
+    user = db.get(User, api_key.user_id)  # get_api_key already verified it exists and is active
     subject = result.parsed.subject or "api-email"
-    analyzed = persist_case_and_build_response(
+    persist_case_and_build_response(
         raw_bytes, subject[:200] + ".eml", result, user, db, content_hash=content_hash
     )
-    return V1AnalyzeEmailResponse.model_validate(
-        build_public_result(
-            verdict=analyzed.verdict,
-            score=analyzed.score,
-            indicators=analyzed.indicators,
-            framework_mappings=analyzed.framework_mappings,
-            auth_results=result.parsed.auth_results,
-            llm_intent_category=analyzed.llm_intent_category,
+    return _from_pipeline_result(result)
+
+
+# ---- assistant (API key) ------------------------------------------------------------------
+
+
+@router.post("/assistant", response_model=V1AssistantResponse)
+@limiter.limit(API_KEY_ASSISTANT_RATE_LIMIT, key_func=api_key_rate_limit_key)
+def assistant_v1(
+    request: Request,
+    payload: V1AssistantRequest,
+    db: Session = Depends(get_db),
+    api_key: ApiKey = Depends(get_api_key),
+) -> V1AssistantResponse:
+    """Answers one question about one email, grounded only in Cordon's analysis of it (see
+    app.assistant). Reuses the saved Case or cached analysis when there is one; never
+    creates a Case."""
+    if not payload.question.strip():
+        raise HTTPException(status_code=422, detail="question is empty.")
+    raw_bytes = _validated_raw_bytes(payload.raw_email)
+    content_hash = hashlib.sha256(raw_bytes).hexdigest()
+    existing, result = _lookup_or_run(db, api_key, raw_bytes, content_hash)
+    db.commit()  # persist last_used_at
+
+    if existing is not None:
+        try:
+            parsed = parse_eml(raw_bytes)
+        except Exception as exc:  # noqa: BLE001 - it parsed when the Case was created
+            raise HTTPException(status_code=400, detail="Could not parse the email content.") from exc
+        facts = build_facts(
+            verdict=Verdict(existing.verdict),
+            score=existing.score,
+            indicators=_case_indicators(existing),
+            framework_mappings=_case_mappings(existing),
+            parsed=parsed,
         )
+    else:
+        assert result is not None
+        facts = build_facts(
+            verdict=result.verdict,
+            score=result.score,
+            indicators=result.indicators,
+            framework_mappings=result.framework_mappings,
+            parsed=result.parsed,
+        )
+
+    history = [t.model_dump() for t in payload.history]
+    reply = answer_question(facts, payload.question, history)
+    return V1AssistantResponse(
+        answer=reply.answer,
+        grounded_on=V1GroundedOn(verdict=facts.verdict, score=facts.score),
+        refused=reply.refused,
     )
