@@ -179,6 +179,7 @@
   var vis={nation:1,campaign:1,phish:1,c2:1,breach:1,ot:1};
   document.querySelectorAll('.trow').forEach(function(t){t.addEventListener('click',function(){t.classList.toggle('on');vis[t.dataset.cat]=t.classList.contains('on')?1:0;});});
   var SEV={crit:'#ff445c',high:'#ffae3a',elev:'#ffc24d',mon:'#45d6e2'};
+  function place(arr,x,y,t){var ww=t.length*4.9+4,bx=[x-2,y-7,x+ww,y+6];for(var i=0;i<arr.length;i++){var b=arr[i];if(!(bx[2]<b[0]||bx[0]>b[2]||bx[3]<b[1]||bx[1]>b[3]))return false;}arr.push(bx);return true;}
   var STYLE={ '2d':{oc:'#0a1627',ln:'#171f2e',bd:'rgba(120,140,175,0.30)',lb:'#7f8ba3',grat:null},
              'map':{oc:'#0e1c33',ln:'#1e2a3d',bd:'rgba(150,175,215,0.45)',lb:'#94a2bd',grat:'rgba(90,120,170,0.15)'},
              'sat':{oc:'#05131b',ln:'#28351e',bd:'rgba(110,140,100,0.42)',lb:'#93a58c',grat:null} };
@@ -220,11 +221,11 @@
     ctx.strokeStyle='rgba(90,150,230,0.35)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();
     ctx.textAlign='center';ctx.textBaseline='middle';
     for(var i2=0;i2<C.length;i2++){var co2=C[i2];if(co2.a<34)continue;var pr2=rot(co2.c3,ca,sa,ct,st);if(pr2[1]<0.26)continue;var sx=cx+R*pr2[0],sy=cy-R*pr2[2];var fs=co2.a>500?11:co2.a>130?9.5:8.3;ctx.globalAlpha=Math.min(1,(pr2[1]-0.26)*3.2);ctx.fillStyle='#7f8ba3';ctx.font='600 '+fs+'px ui-sans-serif,Arial';ctx.fillText(co2.n.toUpperCase(),sx,sy);}
-    ctx.globalAlpha=1;ctx.textAlign='left';
+    ctx.globalAlpha=1;ctx.textAlign='left';var placedG=[];
     for(var m2=0;m2<MKD.length;m2++){var mk=MKD[m2];if(!vis[mk.cat])continue;var pr3=rot(mk.v,ca,sa,ct,st);if(pr3[1]<0.04)continue;var sx2=cx+R*pr3[0],sy2=cy-R*pr3[2],col=SEV[mk.sev];
       if(mk.sev==='crit'||mk.sev==='high'){var pr4=6*(1+Math.sin(ts/360+m2)*0.35);ctx.globalAlpha=0.16*pr3[1];ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx2,sy2,pr4,0,7);ctx.fill();ctx.globalAlpha=1;}
       tri(sx2,sy2,4.6,col);
-      if(pr3[1]>0.18 && mk.sev!=='mon'){ctx.globalAlpha=Math.min(1,(pr3[1]-0.1)*2.4);ctx.fillStyle='#ff6a74';ctx.font='700 8.5px ui-monospace,Menlo,monospace';ctx.fillText(mk.lab,sx2+7,sy2+1);ctx.globalAlpha=1;}}
+      if(pr3[1]>0.18 && mk.sev!=='mon' && place(placedG,sx2+7,sy2+1,mk.lab)){var lw=mk.lab.length*4.9+4;ctx.globalAlpha=Math.min(1,(pr3[1]-0.1)*2.4+0.1);ctx.fillStyle='rgba(6,10,18,0.72)';ctx.fillRect(sx2+4,sy2-6,lw,12);ctx.fillStyle='#ff6a74';ctx.font='700 8.5px ui-monospace,Menlo,monospace';ctx.fillText(mk.lab,sx2+7,sy2+1);ctx.globalAlpha=1;}}
   }
 
   function drawFlat(ts){
@@ -244,10 +245,10 @@
           ctx.closePath();ctx.fillStyle=S.ln;ctx.fill();ctx.strokeStyle=S.bd;ctx.lineWidth=0.6;ctx.stroke();}}}
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=S.lb;
     for(var i3=0;i3<C.length;i3++){var co3=C[i3];if(co3.a<34)continue;for(var kk3=-1;kk3<=1;kk3++){var X3=fx(co3.cLL[0])+kk3*worldW-pmx;if(X3<10||X3>w-10)continue;var Y3=fy(co3.cLL[1]);if(Y3<30||Y3>h-30)continue;var fs2=co3.a>500?11:co3.a>130?9.5:8.3;ctx.font='600 '+fs2+'px ui-sans-serif,Arial';ctx.fillText(co3.n.toUpperCase(),X3,Y3);}}
-    ctx.textAlign='left';
+    ctx.textAlign='left';var placedF=[];
     for(var m2=0;m2<MKD.length;m2++){var mk=MKD[m2];if(!vis[mk.cat])continue;for(var kk4=-1;kk4<=1;kk4++){var X4=fx(mk.lon)+kk4*worldW-pmx;if(X4<-10||X4>w+10)continue;var Y4=fy(mk.lat);var col=SEV[mk.sev];
       if(mk.sev==='crit'||mk.sev==='high'){var pr5=6*(1+Math.sin(ts/360+m2)*0.35);ctx.globalAlpha=0.16;ctx.fillStyle=col;ctx.beginPath();ctx.arc(X4,Y4,pr5,0,7);ctx.fill();ctx.globalAlpha=1;}
-      tri(X4,Y4,4.6,col);ctx.globalAlpha=1;if(mk.sev!=='mon'){ctx.fillStyle='#ff6a74';ctx.font='700 8.5px ui-monospace,Menlo,monospace';ctx.fillText(mk.lab,X4+7,Y4+1);}}}
+      tri(X4,Y4,4.6,col);ctx.globalAlpha=1;if(mk.sev!=='mon' && place(placedF,X4+7,Y4+1,mk.lab)){var lw=mk.lab.length*4.9+4;ctx.fillStyle='rgba(6,10,18,0.72)';ctx.fillRect(X4+4,Y4-6,lw,12);ctx.fillStyle='#ff6a74';ctx.font='700 8.5px ui-monospace,Menlo,monospace';ctx.fillText(mk.lab,X4+7,Y4+1);}}}
   }
 
   function draw(ts){ ctx.clearRect(0,0,w,h); if(mode==='3d')drawGlobe(ts); else drawFlat(ts); requestAnimationFrame(draw); }
