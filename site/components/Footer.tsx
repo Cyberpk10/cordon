@@ -97,9 +97,15 @@ export default function Footer() {
             © {new Date().getFullYear()} Cordon Cybersecurity. All rights
             reserved.
           </p>
-          <Link href="/privacy" className="transition-colors hover:text-fg">
-            Privacy
-          </Link>
+          <div className="flex items-center gap-6">
+            {/* Plain <a>: /command is a static HTML page, not a Next.js route. */}
+            <a href="/command" className="transition-colors hover:text-fg">
+              Threat Map
+            </a>
+            <Link href="/privacy" className="transition-colors hover:text-fg">
+              Privacy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

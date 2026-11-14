@@ -15,6 +15,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Next.js serves public/ files only at their exact path, so map the clean URL /command to
+  // the self-contained Command Center page at public/command/index.html.
+  async rewrites() {
+    return [{ source: "/command", destination: "/command/index.html" }];
+  },
   async headers() {
     return [
       {
