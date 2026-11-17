@@ -7,6 +7,7 @@ import IndicatorList from "./IndicatorList";
 import InvestigationPanel from "./InvestigationPanel";
 import IpWithLocation from "./ip/IpWithLocation";
 import SenderIpPanel from "./ip/SenderIpPanel";
+import SenderBaselinePanel from "./ip/SenderBaselinePanel";
 import ResponsePlaybookPanel from "./ResponsePlaybookPanel";
 import ChannelBadge from "./ChannelBadge";
 import AnalysisResultCard, { AnalysisResultSkeleton, summarizeIndicators } from "./analyze/AnalysisResultCard";
@@ -148,6 +149,8 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
             indicatorAnchorPrefix={CASE_ANCHOR}
             frameworkMappings={caseData.framework_mappings}
           />
+
+          <SenderBaselinePanel finding={caseData.account_takeover} baseline={caseData.sender_baseline} />
 
           <SenderIpPanel info={caseData.sender_ip_info} />
 

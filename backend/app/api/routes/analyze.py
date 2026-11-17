@@ -6,6 +6,7 @@ account."""
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from datetime import datetime, timezone
 
@@ -21,6 +22,7 @@ from app.db.session import get_db
 from app.early_warning.hooks import evaluate_actors
 from app.investigation.build import maybe_auto_investigate
 from app.models.schemas import AnalyzeResponse, AnalyzeTextRequest, EmailSummary
+from app.sender_baseline.loader import baseline_lookup_for, record_observation
 from app.sender_history.loader import load_sender_history
 from app.storage.raw_email_store import save_raw_email
 from app.threat_level.hooks import record_case_signal
@@ -78,10 +80,19 @@ def persist_case_and_build_response(
         ml_probability=result.ml_probability,
         ml_model_version=result.ml_model_version,
         sender_ip_info=result.sender_ip_info.model_dump(mode="json") if result.sender_ip_info else None,
+        account_takeover=result.account_takeover,
+        sender_baseline=result.sender_baseline,
         raw_email_path=raw_email_path,
         content_hash=content_hash,
     )
     db.add(case)
+    record_observation(
+        db,
+        current_user.account_id,
+        content_hash or hashlib.sha256(raw_bytes).hexdigest(),
+        result.sender_signals,
+        result.verdict.value,
+    )
     record_case_signal(db, current_user.account_id, case)
     evaluate_actors(
         db, current_user.account_id, case.to_addresses, to_naive_utc(datetime.now(timezone.utc))
@@ -108,6 +119,8 @@ def persist_case_and_build_response(
         ml_probability=result.ml_probability,
         ml_model_version=result.ml_model_version,
         sender_ip_info=result.sender_ip_info,
+        account_takeover=result.account_takeover,
+        sender_baseline=result.sender_baseline,
     )
 
 
@@ -128,7 +141,9 @@ async def analyze_email(
 
     history = load_sender_history(db, current_user.account_id)
     try:
-        result = run_email_pipeline(raw_bytes, history)
+        result = run_email_pipeline(
+            raw_bytes, history, baseline_lookup_for(db, current_user.account_id)
+        )
     except Exception as exc:  # noqa: BLE001 - surface parse failures as a 400, not a 500
         raise HTTPException(status_code=400, detail=f"Failed to parse .eml file: {exc}") from exc
 
@@ -150,7 +165,9 @@ async def analyze_pasted_text(
 
     history = load_sender_history(db, current_user.account_id)
     try:
-        result = run_email_pipeline(raw_bytes, history)
+        result = run_email_pipeline(
+            raw_bytes, history, baseline_lookup_for(db, current_user.account_id)
+        )
     except Exception as exc:  # noqa: BLE001 - surface parse failures as a 400, not a 500
         raise HTTPException(status_code=400, detail=f"Failed to parse pasted email content: {exc}") from exc
 

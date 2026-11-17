@@ -46,7 +46,8 @@ from app.auth.rate_limit import limiter
 from app.core.body_limit import MaxBodySizeMiddleware
 from app.core.config import settings
 from app.core.security_headers import SecurityHeadersMiddleware, apply_security_headers
-from app.db.session import Base, engine, get_db
+from app.db.session import Base, SessionLocal, engine, get_db
+from app.sender_baseline.loader import purge_old_observations
 from app.storage.raw_email_store import purge_expired
 
 logging.basicConfig(
@@ -63,6 +64,12 @@ async def lifespan(app: FastAPI):
     if settings.database_url.startswith("sqlite"):
         Base.metadata.create_all(bind=engine)
     purge_expired()
+    # Sender observations past the history window (app.sender_baseline). Never blocks startup.
+    try:
+        with SessionLocal() as db:
+            purge_old_observations(db)
+    except Exception:  # noqa: BLE001
+        logger.exception("Purging old sender observations failed; continuing startup")
     yield
 
 

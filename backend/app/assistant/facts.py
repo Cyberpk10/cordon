@@ -44,6 +44,9 @@ class EmailFacts:
     link_domains: list[str] = field(default_factory=list)
     attachment_names: list[str] = field(default_factory=list)
     body_excerpt: str = ""
+    # Cordon's own one-line summary of its history with this sender (app.sender_baseline),
+    # e.g. "First contact: no baseline for this sender yet." Trusted: computed, not email text.
+    sender_baseline: str | None = None
 
 
 @dataclass(frozen=True)
@@ -61,6 +64,7 @@ def build_facts(
     indicators: list[Indicator],
     framework_mappings: dict[str, list[FrameworkControlRef]],
     parsed: ParsedEmail,
+    sender_baseline: dict | None = None,
 ) -> EmailFacts:
     domains: list[str] = []
     for link in parsed.links:
@@ -80,6 +84,7 @@ def build_facts(
         link_domains=domains[:MAX_LIST_ITEMS],
         attachment_names=[a.filename for a in parsed.attachments][:MAX_LIST_ITEMS],
         body_excerpt=(parsed.body_text or "")[:MAX_BODY_CHARS],
+        sender_baseline=(sender_baseline or {}).get("summary"),
     )
 
 
@@ -128,6 +133,8 @@ def build_evidence(facts: EmailFacts) -> list[EvidenceItem]:
         )
         if part
     )
+    if facts.sender_baseline:
+        items.append(("sender_history", "Cordon's history with this sender: " + facts.sender_baseline, None))
     items.append(("sender", "The email's From/Reply-To headers.", sender or "(none)"))
     items.append(("subject", "The email's subject line.", facts.subject or "(none)"))
     items.append(

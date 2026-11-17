@@ -156,6 +156,34 @@ class SenderIpInfo(BaseModel):
     hops: list[ReceivedHopInfo] = Field(default_factory=list)
 
 
+class AccountTakeoverFinding(BaseModel):
+    """app.indicators.account_takeover's finding in structured form. `explanation` is the
+    deterministic plain-English sentence (built from the sender's baseline and the matched
+    evidence, never LLM text); `anomalies` are the evidence lines for what deviated; `intents`
+    are the sensitive-ask keys that matched."""
+
+    kind: Literal["external", "lateral"]
+    explanation: str
+    anomalies: list[str] = Field(default_factory=list)
+    intents: list[str] = Field(default_factory=list)
+
+
+class SenderBaselineSummary(BaseModel):
+    """What Cordon knows about this exact From address for this account (app.sender_baseline).
+    status: first_contact (no history), building (not enough clean, authenticated mail yet),
+    established (a trusted baseline), flagged (this sender has sent malicious mail before)."""
+
+    status: Literal["first_contact", "building", "established", "flagged"]
+    summary: str
+    message_count: int = 0
+    trusted_message_count: int = 0
+    auth_pass_count: int = 0
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
+    usual_countries: list[str] = Field(default_factory=list)
+    usual_providers: list[str] = Field(default_factory=list)
+
+
 class AnalyzeResponse(BaseModel):
     id: UUID
     created_at: datetime
@@ -177,6 +205,8 @@ class AnalyzeResponse(BaseModel):
     ml_probability: float | None = None
     ml_model_version: str | None = None
     sender_ip_info: SenderIpInfo | None = None
+    account_takeover: AccountTakeoverFinding | None = None
+    sender_baseline: SenderBaselineSummary | None = None
 
 
 # ---- Activity-log analyzer (pasted raw CSV, reuses the intrusion-detection engine) --------
@@ -290,6 +320,8 @@ class CaseSummary(BaseModel):
     score: int
     from_addr: str | None = None
     subject: str | None = None
+    # "external" | "lateral" when account-takeover detection fired for this case, else null.
+    account_takeover_kind: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -342,6 +374,9 @@ class CaseDetailResponse(BaseModel):
     ml_model_version: str | None = None
     # Null for chat cases and for email cases analyzed before the source-IP feature existed.
     sender_ip_info: SenderIpInfo | None = None
+    # Null for chat cases and for cases analyzed before account-takeover detection existed.
+    account_takeover: AccountTakeoverFinding | None = None
+    sender_baseline: SenderBaselineSummary | None = None
     latest_label: LabelResponse | None = None
 
     model_config = {"from_attributes": True}
@@ -1304,6 +1339,11 @@ class V1AuthSummary(BaseModel):
     dmarc: Literal["pass", "fail", "none"]
 
 
+class V1SenderBaseline(BaseModel):
+    status: Literal["first_contact", "building", "established", "flagged"]
+    summary: str
+
+
 class V1AnalyzeEmailResponse(BaseModel):
     """Stable public contract. Keys must not change; see app.analysis.public_contract for
     how each field is derived from the shared pipeline's result."""
@@ -1315,6 +1355,10 @@ class V1AnalyzeEmailResponse(BaseModel):
     top_indicators: list[str]
     auth: V1AuthSummary
     frameworks: list[str]
+    # Additive (existing keys unchanged). Null when the finding didn't fire / when there is
+    # no baseline information (e.g. a Case saved before this existed).
+    account_takeover: AccountTakeoverFinding | None = None
+    sender_baseline: V1SenderBaseline | None = None
 
 
 class V1AssistantTurn(BaseModel):

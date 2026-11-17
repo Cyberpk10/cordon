@@ -97,3 +97,9 @@ def test_sender_answer_flags_reply_to_mismatch():
 def test_why_lists_findings_strongest_first():
     text = answer(_facts(), "why?").answer
     assert text.index("Look-alike domain") < text.index("SPF failed")
+
+
+def test_sender_answer_includes_cordons_history_with_the_sender():
+    text = answer(_facts(sender_baseline="First contact: no baseline for this sender yet."), "who sent this?").answer
+    assert "Cordon's history with this sender: First contact: no baseline" in text
+    assert "history" not in answer(_facts(), "who sent this?").answer

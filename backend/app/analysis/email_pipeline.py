@@ -8,9 +8,12 @@ there) — left as-is, out of scope.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from typing import Callable
 
 from app.analysis.sender_ip import build_sender_ip_info
+from app.geo.countries import COUNTRY_NAMES
+from app.indicators import account_takeover
 from app.core.config import settings
 from app.indicators.engine import run_indicators
 from app.ml.classifier import predict as ml_predict
@@ -19,7 +22,9 @@ from app.models.schemas import FrameworkControlRef, Indicator, SenderIpInfo, Ver
 from app.parsing.eml_parser import ParsedEmail, parse_eml
 from app.reasoning.llm_analyst import generate_llm_assessment
 from app.scoring.risk_engine import fuse
-from app.sender_history.aggregation import SenderHistorySnapshot
+from app.sender_baseline.aggregation import SenderBaseline, baseline_summary
+from app.sender_baseline.signals import MessageSignals, extract_signals
+from app.sender_history.aggregation import SenderHistorySnapshot, empty_sender_history
 
 logger = logging.getLogger(__name__)
 
@@ -48,17 +53,36 @@ class PipelineResult:
     # scoring and from nothing scoring reads, so it can't influence the verdict. None when the
     # headers carry no IP information, or if building it failed.
     sender_ip_info: SenderIpInfo | None = None
+    # Account-takeover detection (app.indicators.account_takeover, app.sender_baseline).
+    # sender_signals: how this email was sent, recorded by the caller as a sender observation
+    # after analysis. sender_baseline: the structured baseline summary the detector compared
+    # against (None when the caller had no account context). account_takeover: the finding's
+    # structured form ({kind, explanation, anomalies, intents}) when it fired.
+    sender_signals: MessageSignals | None = None
+    sender_baseline: dict | None = None
+    account_takeover: dict | None = None
 
 
 def run_email_pipeline(
-    raw_bytes: bytes, sender_history: SenderHistorySnapshot | None = None
+    raw_bytes: bytes,
+    sender_history: SenderHistorySnapshot | None = None,
+    baseline_lookup: Callable[[str], SenderBaseline] | None = None,
 ) -> PipelineResult:
     """Parses raw .eml bytes and runs the full rule-based + optional ML + optional LLM analysis.
     Raises whatever parse_eml raises on malformed input — callers translate that into their own
     error response (a 400 for a direct upload, a quiet reject for a webhook). `sender_history`
     is the caller's pre-loaded per-account correspondence history (M8 Stage 3a,
-    app.sender_history.aggregation) — None for callers with no account context."""
+    app.sender_history.aggregation) — None for callers with no account context.
+    `baseline_lookup` (app.sender_baseline.loader.baseline_lookup_for) fetches the behavioral
+    baseline for the parsed From address, for the account-takeover rule."""
     parsed = parse_eml(raw_bytes)
+
+    signals = extract_signals(parsed)
+    baseline_info: dict | None = None
+    if baseline_lookup is not None and signals is not None:
+        baseline = baseline_lookup(signals.from_addr)
+        sender_history = replace(sender_history or empty_sender_history(), sender_baseline=baseline)
+        baseline_info = baseline_summary(baseline, lambda c: COUNTRY_NAMES.get(c, c))
 
     indicators = run_indicators(parsed, sender_history)
 
@@ -85,6 +109,9 @@ def run_email_pipeline(
     score, verdict = fuse(indicators, ml_probability, llm_intent_risk)
 
     framework_mappings = map_indicators([i.id for i in indicators])
+    # Same pure inputs as the indicator rule above, so this is the same decision, in the
+    # structured form the Case, the analyze response and /v1 carry.
+    takeover = account_takeover.assess(parsed, sender_history)
 
     # A display feature must never break analysis, same fail-soft contract as the optional
     # ML/LLM signals: any error here just means no sender-IP panel for this email.
@@ -109,4 +136,7 @@ def run_email_pipeline(
         ml_probability=ml_probability,
         ml_model_version=ml_model_version,
         sender_ip_info=sender_ip_info,
+        sender_signals=signals,
+        sender_baseline=baseline_info,
+        account_takeover=takeover.as_dict() if takeover else None,
     )

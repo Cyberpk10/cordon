@@ -1,4 +1,4 @@
-version: "1.9"
+version: "1.10"
 framework: "MITRE ATT&CK"
 framework_key: mitre_attack
 source: "https://attack.mitre.org"
@@ -66,6 +66,11 @@ controls:
     name: "Data from Information Repositories"
     url: "https://attack.mitre.org/techniques/T1213/"
 
+  # Account-takeover detection: the lateral variant (a compromised colleague phishing
+  # inside the organisation).
+  - id: T1534
+    name: "Internal Spearphishing"
+    url: "https://attack.mitre.org/techniques/T1534/"
 mappings:
   SENDER_REPLYTO_MISMATCH: [T1656]
   DISPLAY_NAME_EMAIL_MISMATCH: [T1656]
@@ -124,6 +129,13 @@ mappings:
   # for this indicator's actual thesis: a legitimately-trusted account being abused, not an
   # attacker-controlled lookalike.
   TRUSTED_SENDER_ANOMALY: [T1586.002, T1566.002, T1598]
+
+  # Account-takeover detection: an established sender's real, authenticated account acting
+  # out of its own baseline. T1078 (Valid Accounts) and T1586.002 (Compromise Accounts:
+  # Email Accounts) are the attacker's position; T1566 is what they're doing with it. The
+  # lateral variant is the same from inside the organisation: T1534 Internal Spearphishing.
+  ACCOUNT_TAKEOVER: [T1078, T1586.002, T1566]
+  ACCOUNT_TAKEOVER_LATERAL: [T1534, T1078, T1586.002]
 
   # Detection max-out Stage B — behavioral baselines with anti-poisoning. No dedicated
   # ATT&CK technique exists for "gradual baseline evasion" itself (same precedent as

@@ -256,6 +256,12 @@ class Case(Base):
     # retention purge. Header metadata only, no body content. Null for chat cases, for email
     # with no IP-bearing headers, and for cases analyzed before this column existed.
     sender_ip_info: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    # Account-takeover detection (app.indicators.account_takeover): the structured finding
+    # ({kind, explanation, anomalies, intents}) when it fired, and the sender-baseline summary
+    # the detector compared against. Kept on the Case so both survive raw-email purge. Null
+    # for chat cases and for cases analyzed before this existed.
+    account_takeover: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    sender_baseline: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
 
     labels: Mapped[list["Label"]] = relationship(
         back_populates="case", cascade="all, delete-orphan"
@@ -930,6 +936,44 @@ class TrustedVendorDomain(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class SenderObservation(Base):
+    """Header metadata from one analyzed email, the raw material for per-sender behavioral
+    baselines (app.sender_baseline). Recorded for every distinct email an account analyzes,
+    including clean mail the add-ons don't save as a Case, because a baseline has to be built
+    from a sender's normal mail. Deliberately metadata only: no subject, body, recipients or
+    attachments. Unique per (account, content hash), so re-analyzing the same email never
+    counts twice. Read only within settings.sender_history_lookback_days and purged after it."""
+
+    __tablename__ = "sender_observations"
+    __table_args__ = (
+        UniqueConstraint("account_id", "content_hash", name="uq_sender_observations_account_hash"),
+        Index("ix_sender_observations_account_from", "account_id", "from_addr"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    from_addr: Mapped[str] = mapped_column(String, nullable=False)  # lowercased
+    from_domain: Mapped[str] = mapped_column(String, nullable=False)  # registrable domain
+    content_hash: Mapped[str] = mapped_column(String, nullable=False)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    # Hour (0-23, UTC) from the message's own Date header; null if missing/unparseable.
+    message_hour_utc: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sending_ip: Mapped[str | None] = mapped_column(String, nullable=True)
+    sending_country: Mapped[str | None] = mapped_column(String, nullable=True)
+    # "originating" | "spf_client_ip" | "received_chain": countries are only ever compared
+    # against prior countries from the same source.
+    country_source: Mapped[str | None] = mapped_column(String, nullable=True)
+    sending_provider: Mapped[str | None] = mapped_column(String, nullable=True)
+    reply_to_domain: Mapped[str | None] = mapped_column(String, nullable=True)
+    return_path_domain: Mapped[str | None] = mapped_column(String, nullable=True)
+    auth_pass: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    verdict: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class Investigation(Base):

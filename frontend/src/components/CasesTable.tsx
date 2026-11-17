@@ -3,8 +3,9 @@ import { getCases } from "../api/client";
 import type { CaseSummary, MessageChannel, Verdict } from "../types/analysis";
 import ChannelBadge from "./ChannelBadge";
 import VerdictBadge from "./VerdictBadge";
-import { ChevronLeft, ChevronRight, FolderOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, FolderOpen, ShieldAlert } from "lucide-react";
 import {
+  Badge,
   Button,
   Card,
   EmptyState,
@@ -173,7 +174,14 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
                   aria-label={`Open case: ${item.subject ?? item.filename}`}
                 >
                   <TD>
-                    <VerdictBadge verdict={item.verdict} score={item.score} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <VerdictBadge verdict={item.verdict} score={item.score} />
+                      {item.account_takeover_kind && (
+                        <Badge tone="danger" size="sm" icon={ShieldAlert}>
+                          {item.account_takeover_kind === "lateral" ? "Internal phishing" : "Account takeover"}
+                        </Badge>
+                      )}
+                    </div>
                   </TD>
                   <TD>
                     <ChannelBadge channel={item.channel} />

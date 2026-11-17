@@ -406,6 +406,16 @@
     card.appendChild(head);
     card.appendChild(el("p", "", r.summary || ""));
 
+    // Account takeover: a known sender's real account acting out of its own pattern.
+    var ato = r.account_takeover;
+    if (ato && ato.explanation) {
+      var box = el("div", "ato");
+      box.appendChild(el("span", "ato-badge",
+        ato.kind === "lateral" ? "Internal phishing: compromised colleague" : "Account takeover"));
+      box.appendChild(el("p", "", ato.explanation));
+      card.appendChild(box);
+    }
+
     var inds = r.top_indicators || [];
     if (inds.length) {
       card.appendChild(el("div", "section-label", "Top indicators"));
@@ -424,6 +434,11 @@
       auth.appendChild(span);
     });
     card.appendChild(auth);
+
+    if (r.sender_baseline && r.sender_baseline.summary) {
+      card.appendChild(el("div", "section-label", "Sender history"));
+      card.appendChild(el("p", "small", r.sender_baseline.summary));
+    }
 
     var fw = r.frameworks || [];
     if (fw.length) {

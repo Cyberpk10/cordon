@@ -85,6 +85,28 @@ export interface ReceivedHopInfo {
   is_public: boolean;
 }
 
+/** app.indicators.account_takeover's finding. `explanation` is deterministic, built from the
+ * sender's baseline and the matched evidence. */
+export interface AccountTakeoverFinding {
+  kind: "external" | "lateral";
+  explanation: string;
+  anomalies: string[];
+  intents: string[];
+}
+
+/** What Cordon knows about this exact From address for this account. */
+export interface SenderBaselineSummary {
+  status: "first_contact" | "building" | "established" | "flagged";
+  summary: string;
+  message_count: number;
+  trusted_message_count: number;
+  auth_pass_count: number;
+  first_seen: string | null;
+  last_seen: string | null;
+  usual_countries: string[];
+  usual_providers: string[];
+}
+
 export interface SenderIpInfo {
   sending_ip: IpContext | null;
   sending_ip_source: "spf_client_ip" | "received_chain" | null;
@@ -104,6 +126,8 @@ export interface AnalyzeResponse {
   analyst_narrative: string | null;
   analyst_model: string | null;
   sender_ip_info?: SenderIpInfo | null;
+  account_takeover?: AccountTakeoverFinding | null;
+  sender_baseline?: SenderBaselineSummary | null;
 }
 
 // ---- Activity-log analyzer (pasted raw CSV, reuses the intrusion-detection engine) ------
@@ -142,6 +166,7 @@ export interface CaseSummary {
   score: number;
   from_addr: string | null;
   subject: string | null;
+  account_takeover_kind?: "external" | "lateral" | null;
 }
 
 export interface CaseListResponse {
@@ -175,6 +200,8 @@ export interface CaseDetail {
   analyst_narrative: string | null;
   analyst_model: string | null;
   sender_ip_info?: SenderIpInfo | null;
+  account_takeover?: AccountTakeoverFinding | null;
+  sender_baseline?: SenderBaselineSummary | null;
   latest_label: Label | null;
 }
 

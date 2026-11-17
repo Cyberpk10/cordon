@@ -57,6 +57,8 @@ def _to_case_detail(case: Case, latest_label: Label | None) -> CaseDetailRespons
         ml_probability=case.ml_probability,
         ml_model_version=case.ml_model_version,
         sender_ip_info=case.sender_ip_info,
+        account_takeover=case.account_takeover,
+        sender_baseline=case.sender_baseline,
         latest_label=LabelResponse.model_validate(latest_label) if latest_label else None,
     )
 
@@ -91,7 +93,12 @@ async def list_cases(
     )
 
     return CaseListResponse(
-        items=[CaseSummary.model_validate(row) for row in rows],
+        items=[
+            CaseSummary.model_validate(row).model_copy(
+                update={"account_takeover_kind": (row.account_takeover or {}).get("kind")}
+            )
+            for row in rows
+        ],
         total=total,
         page=page,
         page_size=page_size,

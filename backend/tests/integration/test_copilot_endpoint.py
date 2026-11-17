@@ -204,7 +204,7 @@ def test_framework_coverage_question_routes_and_reflects_seeded_data(authed_clie
     assert response.status_code == 200
     result = response.json()["result"]
     assert result["operating_controls"] == 1
-    assert result["total_controls"] == 18
+    assert result["total_controls"] == 19
 
 
 def test_unsupported_question_routes_cleanly(authed_client, db_session, monkeypatch):
@@ -335,7 +335,7 @@ EXPECTED_EXAMPLE_ANSWERS = {
     "what's our MITRE coverage": (
         "framework_coverage",
         lambda r: r["framework"] == "mitre" and r["operating_controls"] == 1,
-        "MITRE ATT&CK: 1 of 18",
+        "MITRE ATT&CK: 1 of 19",
     ),
 }
 

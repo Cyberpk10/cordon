@@ -258,6 +258,15 @@ function buildResultCard_(r) {
       '<b>' + escape_(String(r.score)) + '</b>/100</font>'))
     .addWidget(CardService.newTextParagraph().setText(escape_(r.summary || ''))));
 
+  // Account takeover: a known sender's real (authenticated) account acting out of pattern.
+  var ato = r.account_takeover;
+  if (ato && ato.explanation) {
+    card.addSection(CardService.newCardSection()
+      .setHeader(ato.kind === 'lateral' ? '⚠ Internal phishing: compromised colleague' : '⚠ Account takeover')
+      .addWidget(CardService.newTextParagraph().setText(
+        '<font color="' + COLORS.danger + '">' + escape_(ato.explanation) + '</font>')));
+  }
+
   var indicators = r.top_indicators || [];
   if (indicators.length) {
     var bullets = indicators.map(function (t) { return '• ' + escape_(t); }).join('<br>');
@@ -270,6 +279,12 @@ function buildResultCard_(r) {
   card.addSection(CardService.newCardSection()
     .setHeader('Sender authentication')
     .addWidget(CardService.newTextParagraph().setText(authLine_(auth, true))));
+
+  if (r.sender_baseline && r.sender_baseline.summary) {
+    card.addSection(CardService.newCardSection()
+      .setHeader('Sender history')
+      .addWidget(CardService.newTextParagraph().setText(escape_(r.sender_baseline.summary))));
+  }
 
   var frameworks = r.frameworks || [];
   if (frameworks.length) {

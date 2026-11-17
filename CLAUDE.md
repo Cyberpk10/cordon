@@ -294,6 +294,22 @@ turns). Its extra structural check: the model must restate Cordon's verdict
 user this is safe" from flipping the answer. Gated on `ENABLE_LLM_REASONING`. See
 `tests/integration/test_v1_assistant.py`.
 
+**Account-takeover detection** — `app/indicators/account_takeover.py`, `app/sender_baseline/`:
+catches a real, authenticated mailbox that has been taken over. Every analyzed email (clean
+ones included, even under `persist: "if_not_clean"`) records a metadata-only
+`SenderObservation` (no subject/body); `app.sender_baseline.aggregation` folds one From
+address's prior observations into a baseline. The rule fires only when ALL hold: established
+sender (enough clean+authenticated mail over real time), this message authenticates (DMARC, or
+SPF+DKIM), a real anomaly (new country from the same IP source, new sending provider, new
+reply-to/return-path domain, strong timing outlier), AND a sensitive ask (payment/bank change,
+invoice redirect, credential/MFA, gift cards, heavy pressure tied to a link). Anomaly alone
+never fires (travellers). Anti-poisoning: only clean+authenticated observations define
+"normal", and a value needs 2 sightings ≥1 day apart to count as known. Sender domain in the
+account's own domains → `ACCOUNT_TAKEOVER_LATERAL`. This is the one scored use of header IPs
+(see `received_chain.py`); it is gated so a forged header can only add a finding to
+authenticated mail that already asks for money/credentials. See
+`tests/unit/test_account_takeover.py`.
+
 **Multi-tenancy & auth** (`app/db/models.py`, `app/auth/`): every `Account` (org/tenant) owns
 many `User`s; virtually every other table (`Case`, `Incident`, `Event`, `Label`,
 `AutonomyPolicy`/`AutonomyAction`, ...) is scoped to one `Account` via FK. JWT access + refresh

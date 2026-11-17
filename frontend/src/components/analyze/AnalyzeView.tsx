@@ -6,6 +6,7 @@ import AIAnalystSummary from "../AIAnalystSummary";
 import IndicatorList from "../IndicatorList";
 import IpWithLocation, { SourceIpList } from "../ip/IpWithLocation";
 import SenderIpPanel from "../ip/SenderIpPanel";
+import SenderBaselinePanel from "../ip/SenderBaselinePanel";
 import PasteEmailForm from "../PasteEmailForm";
 import UploadForm from "../UploadForm";
 import { Alert, Card, SectionHeading, SegmentedControl, TabPanel, Tabs } from "../ui";
@@ -134,6 +135,8 @@ export default function AnalyzeView({ state }: { state: AnalyzerState }) {
                 indicatorAnchorPrefix={EMAIL_ANCHOR}
                 frameworkMappings={email.result.framework_mappings}
               />
+
+              <SenderBaselinePanel finding={email.result.account_takeover} baseline={email.result.sender_baseline} />
 
               <SenderIpPanel info={email.result.sender_ip_info} />
 

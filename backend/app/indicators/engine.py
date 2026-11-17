@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from app.indicators import (
+    account_takeover,
     ai_authored,
     attachment_risk,
     auth_failures,
@@ -36,6 +37,7 @@ _RULES: list[IndicatorRule] = [
     chat_context.evaluate,
     sender_history.evaluate,
     trusted_sender_anomaly.evaluate,
+    account_takeover.evaluate,
     known_bad_urls.evaluate,
     known_bad_sender.evaluate,
     domain_age_heuristic.evaluate,

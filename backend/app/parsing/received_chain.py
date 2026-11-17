@@ -1,11 +1,15 @@
 """Parses an email's `Received:` header chain and `X-Originating-IP` into hops, and picks the
 sending IP for DISPLAY. Pure: no I/O, no network, no DNS.
 
-DISPLAY-ONLY, never scored. app.indicators.known_bad_sender rejected Received-chain parsing
-for scoring because the chain is partly attacker-controlled (everything below the receiver's
-own edge can be forged) and formats vary widely by provider. That reasoning still holds, so
-nothing here feeds an indicator or the risk score. What's surfaced is information for an
-analyst, clearly labeled with its source and confidence:
+Mostly display-only. app.indicators.known_bad_sender rejected Received-chain parsing for
+scoring because the chain is partly attacker-controlled (everything below the receiver's own
+edge can be forged) and formats vary widely by provider. That reasoning still holds for every
+general-purpose indicator. The one exception is app.indicators.account_takeover, which reads
+the sending country/provider via app.sender_baseline.signals, and only ever acts on them for
+mail that already passed SPF/DKIM/DMARC as an established sender AND makes a sensitive ask. A
+forged header there can't lower a score; at worst it adds a finding to authenticated mail that
+already asks for money or credentials. What's surfaced is information for an analyst, clearly
+labeled with its source and confidence:
 
   1. SPF `client-ip` the receiving server stamped, from Authentication-Results or, failing
      that, the topmost `Received-SPF:` header (Gmail and Microsoft 365 put it only there).
@@ -133,6 +137,13 @@ def _registrable(host: str | None) -> str | None:
     # fallback, and on a miss the hop is still listed in full for the analyst.
     base = ".".join(labels[-2:])
     return _PROVIDER_ALIASES.get(base, base)
+
+
+def provider_of(host: str | None) -> str | None:
+    """The mail provider a relay host belongs to, e.g. "mail-sor-f41.google.com" ->
+    "google.com", "AM0PR02MB1234.eurprd02.prod.outlook.com" -> "outlook.com". Same two-label
+    simplification as the internal-hand-off check; None for IP literals and bare names."""
+    return _registrable(host.lower() if host else None)
 
 
 def _is_internal_handoff(hop: ReceivedHop) -> bool:

@@ -34,6 +34,7 @@ from app.inbound.mailgun import extract_raw_email, verify_signature
 from app.investigation.build import maybe_auto_investigate
 from app.inbound.unwrap import unwrap_forwarded_email
 from app.models.schemas import InboundEmailResponse
+from app.sender_baseline.loader import baseline_lookup_for, record_observation
 from app.sender_history.loader import load_sender_history
 from app.storage.raw_email_store import save_raw_email
 from app.threat_level.hooks import record_case_signal
@@ -143,7 +144,7 @@ async def receive_inbound_email(
 
     history = load_sender_history(db, account.id)
     try:
-        result = run_email_pipeline(unwrapped, history)
+        result = run_email_pipeline(unwrapped, history, baseline_lookup_for(db, account.id))
     except Exception:  # noqa: BLE001 - unparseable even after unwrap; nothing a retry would fix
         log_event(
             db,
@@ -180,10 +181,13 @@ async def receive_inbound_email(
         ml_probability=result.ml_probability,
         ml_model_version=result.ml_model_version,
         sender_ip_info=result.sender_ip_info.model_dump(mode="json") if result.sender_ip_info else None,
+        account_takeover=result.account_takeover,
+        sender_baseline=result.sender_baseline,
         raw_email_path=raw_email_path,
         content_hash=content_hash,
     )
     db.add(case)
+    record_observation(db, account.id, content_hash, result.sender_signals, result.verdict.value)
     record_case_signal(db, account.id, case)
     evaluate_actors(db, account.id, case.to_addresses, to_naive_utc(datetime.now(timezone.utc)))
     db.flush()

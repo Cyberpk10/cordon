@@ -4,6 +4,7 @@ aggregation module (app.sender_history.aggregation) computes."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.models import Case, TrustedVendorDomain
+from app.sender_baseline.loader import load_account_domains
 from app.sender_history.aggregation import SenderHistorySnapshot, build_sender_history
 
 
@@ -32,4 +34,5 @@ def load_sender_history(db: Session, account_id: UUID) -> SenderHistorySnapshot:
         .filter(TrustedVendorDomain.account_id == account_id)
         .all()
     )
-    return build_sender_history(list(rows), trusted)
+    snapshot = build_sender_history(list(rows), trusted)
+    return replace(snapshot, account_domains=load_account_domains(db, account_id))

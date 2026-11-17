@@ -181,6 +181,8 @@ def _sender(facts: EmailFacts) -> str:
     if facts.reply_to_address and facts.reply_to_address != facts.from_address:
         parts.append(f"Replies would go to a different address: {facts.reply_to_address}.")
     parts.append(f"Sender authentication: {auth_line(facts)}.")
+    if facts.sender_baseline:
+        parts.append(f"Cordon's history with this sender: {facts.sender_baseline}")
     related = _with_category(facts, {"sender", "domain", "authentication"})
     if related:
         parts.append("Cordon's sender findings: " + "; ".join(i.title for i in related) + ".")

@@ -1,4 +1,4 @@
-version: "1.10"
+version: "1.11"
 framework: "NIST Cybersecurity Framework 2.0"
 framework_key: nist_csf
 source: "https://www.nist.gov/cyberframework"
@@ -88,6 +88,11 @@ mappings:
 
   # Detection max-out Stage A — trusted-sender content anomaly.
   TRUSTED_SENDER_ANOMALY: [DE.AE-02, PR.AT-01]
+
+  # Account-takeover detection: found by monitoring a sender's activity against its own
+  # baseline (DE.CM-03) and analyzing the deviation (DE.AE-02).
+  ACCOUNT_TAKEOVER: [DE.AE-02, DE.CM-03]
+  ACCOUNT_TAKEOVER_LATERAL: [DE.AE-02, DE.CM-03, PR.AT-01]
 
   # Detection max-out Stage B — behavioral baselines with anti-poisoning. DE.AE-03
   # ("information is correlated from multiple sources") is a literal fit for a trend

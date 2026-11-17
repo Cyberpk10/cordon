@@ -63,6 +63,7 @@ from app.models.schemas import (
     Verdict,
 )
 from app.parsing.eml_parser import parse_eml
+from app.sender_baseline.loader import baseline_lookup_for, record_observation
 from app.sender_history.loader import load_sender_history
 
 router = APIRouter(prefix="/v1", tags=["v1"])
@@ -169,6 +170,19 @@ def _case_indicators(case: Case) -> list[Indicator]:
     return [Indicator.model_validate(i) for i in (case.indicators or [])]
 
 
+def _takeover_fields(account_takeover: dict | None, sender_baseline: dict | None) -> dict:
+    """The additive account-takeover keys: the finding as-is, and the baseline reduced to
+    its status and one-line summary."""
+    return {
+        "account_takeover": account_takeover,
+        "sender_baseline": (
+            {"status": sender_baseline["status"], "summary": sender_baseline["summary"]}
+            if sender_baseline
+            else None
+        ),
+    }
+
+
 def _from_existing_case(case: Case, raw_bytes: bytes) -> V1AnalyzeEmailResponse:
     return V1AnalyzeEmailResponse.model_validate(
         build_public_result(
@@ -179,6 +193,7 @@ def _from_existing_case(case: Case, raw_bytes: bytes) -> V1AnalyzeEmailResponse:
             auth_results=_auth_results(raw_bytes),
             llm_intent_category=case.llm_intent_category,
         )
+        | _takeover_fields(case.account_takeover, case.sender_baseline)
     )
 
 
@@ -192,6 +207,7 @@ def _from_pipeline_result(result: PipelineResult) -> V1AnalyzeEmailResponse:
             auth_results=result.parsed.auth_results,
             llm_intent_category=result.llm_intent_category,
         )
+        | _takeover_fields(result.account_takeover, result.sender_baseline)
     )
 
 
@@ -223,7 +239,7 @@ def _lookup_or_run(
         return None, cached
     history = load_sender_history(db, api_key.account_id)
     try:
-        result = run_email_pipeline(raw_bytes, history)
+        result = run_email_pipeline(raw_bytes, history, baseline_lookup_for(db, api_key.account_id))
     except Exception as exc:  # noqa: BLE001 - same contract as the web paste route
         raise HTTPException(status_code=400, detail="Could not parse the email content.") from exc
     result_cache.put(api_key.account_id, content_hash, result, len(raw_bytes))
@@ -249,8 +265,12 @@ def analyze_email_v1(
     if payload.persist == "if_not_clean" and public_verdict(result.verdict) == "clean":
         # Clean and the caller asked not to keep clean mail: return the identical contract
         # straight from the pipeline result. No Case, no raw-email file, no sender-history or
-        # threat-level side effects.
-        db.commit()  # persist last_used_at
+        # threat-level side effects. The one thing kept is a metadata-only sender observation
+        # (app.sender_baseline): a sender's baseline has to be built from their normal mail.
+        record_observation(
+            db, api_key.account_id, content_hash, result.sender_signals, result.verdict.value
+        )
+        db.commit()  # persist last_used_at and the observation
         return _from_pipeline_result(result)
 
     user = db.get(User, api_key.user_id)  # get_api_key already verified it exists and is active
@@ -293,6 +313,7 @@ def assistant_v1(
             indicators=_case_indicators(existing),
             framework_mappings=_case_mappings(existing),
             parsed=parsed,
+            sender_baseline=existing.sender_baseline,
         )
     else:
         assert result is not None
@@ -302,6 +323,7 @@ def assistant_v1(
             indicators=result.indicators,
             framework_mappings=result.framework_mappings,
             parsed=result.parsed,
+            sender_baseline=result.sender_baseline,
         )
 
     history = [t.model_dump() for t in payload.history]

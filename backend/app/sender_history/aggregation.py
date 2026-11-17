@@ -13,6 +13,7 @@ from enum import Enum
 
 from app.core.config import settings
 from app.indicators.domain_utils import registrable_domain
+from app.sender_baseline.aggregation import SenderBaseline
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,12 @@ class SenderHistorySnapshot:
     # entirely: a vendor an admin explicitly added is ESTABLISHED even with zero prior Case
     # history for it.
     trusted_vendor_domains: frozenset[str] = field(default_factory=frozenset)
+    # Account-takeover detection (app.indicators.account_takeover): the behavioral baseline
+    # for THIS email's exact From address (app.sender_baseline), attached by
+    # app.analysis.email_pipeline once the address is parsed; None when the caller has no
+    # account context. And the account's own organisation domains, for the lateral case.
+    sender_baseline: SenderBaseline | None = None
+    account_domains: frozenset[str] = field(default_factory=frozenset)
 
 
 def empty_sender_history() -> SenderHistorySnapshot:

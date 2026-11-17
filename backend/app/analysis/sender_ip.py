@@ -3,8 +3,10 @@ Authentication-Results or Received-SPF (higher confidence), falling back to the 
 external Received hop (lower confidence), plus X-Originating-IP and the full parsed hop list.
 Each IP is enriched with country geolocation and threat-intel labels via app.geo.ip_context.
 
-NEVER feeds scoring. See app.parsing.received_chain's docstring for why: header-derived IPs
-are partly forgeable and often belong to the mail provider, not the attacker.
+This panel never feeds scoring. See app.parsing.received_chain's docstring for why:
+header-derived IPs are partly forgeable and often belong to the mail provider, not the
+attacker. (app.sender_baseline.signals reads the same headers for the account-takeover
+detector, under the narrow conditions described there.)
 """
 
 from __future__ import annotations

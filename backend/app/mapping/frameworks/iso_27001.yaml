@@ -1,4 +1,4 @@
-version: "1.10"
+version: "1.11"
 framework: "ISO/IEC 27001:2022 Annex A"
 framework_key: iso_27001
 source: "https://www.iso.org/standard/27001"
@@ -81,6 +81,11 @@ mappings:
 
   # Detection max-out Stage A — trusted-sender content anomaly.
   TRUSTED_SENDER_ANOMALY: [A.6.3, A.5.7]
+
+  # Account-takeover detection: monitoring for anomalous behavior (A.8.16) on information
+  # transfer by email (A.5.14); the internal variant adds awareness (A.6.3).
+  ACCOUNT_TAKEOVER: [A.8.16, A.5.14]
+  ACCOUNT_TAKEOVER_LATERAL: [A.8.16, A.5.14, A.6.3]
 
   # Detection max-out Stage B — behavioral baselines with anti-poisoning.
   SENSITIVE_RESOURCE_FIRST_ACCESS: [A.5.15, A.8.16]
