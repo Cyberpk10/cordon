@@ -156,3 +156,41 @@ def test_observations_are_account_isolated(api_key, db_session, other_account_au
     body = _analyze(other_key, _eml(sender, PAYMENT_CHANGE, origin_ip=NG, msg_id="iso"))
     assert body["account_takeover"] is None
     assert body["sender_baseline"]["status"] == "first_contact"
+
+
+def test_known_sender_from_unsaved_add_on_mail_is_not_called_first_contact(
+    authed_client, api_key, db_session
+):
+    """The baseline and the older sender-history path must agree. Here every prior email
+    came through the add-on as clean (no Case saved), so the history has to come from the
+    observations; otherwise the takeover Case says both "Known sender" and "First contact"."""
+    sender = "pat@acme-supplies.com"
+    _build_baseline(api_key, db_session, sender)
+    assert db_session.query(Case).count() == 0
+
+    body = _analyze(api_key, _eml(sender, PAYMENT_CHANGE, origin_ip=NG, msg_id="coherent"))
+    assert body["sender_baseline"]["status"] == "established"
+    case = db_session.query(Case).one()
+    ids = {i["id"] for i in case.indicators}
+    assert "ACCOUNT_TAKEOVER" in ids
+    assert "FIRST_CONTACT_SENDER" not in ids
+
+    investigation = authed_client.post(f"/api/cases/{case.id}/investigate").json()
+    intel = investigation["sender_intelligence"]
+    assert intel["classification"] == "established"
+    # The 3 prior emails, not the takeover email itself (its Case and its own observation
+    # are both excluded).
+    assert intel["seen_count"] == 3
+
+
+def test_an_email_saved_as_a_case_and_observed_counts_once(api_key, db_session):
+    """A non-clean email becomes a Case AND an observation; it must count once."""
+    from app.sender_history.loader import load_sender_history
+
+    sender = "pat@acme-supplies.com"
+    _analyze(api_key, _eml(sender, PAYMENT_CHANGE, msg_id="once"), persist="always")
+    assert db_session.query(Case).count() == 1
+    assert db_session.query(SenderObservation).count() == 1
+    account_id = db_session.query(Case).one().account_id
+    history = load_sender_history(db_session, account_id)
+    assert history.domains["acme-supplies.com"].seen_count == 1

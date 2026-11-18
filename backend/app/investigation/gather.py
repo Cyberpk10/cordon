@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.time import to_naive_utc
-from app.db.models import ActorThreatLevel, Case, Event, Incident, TrustedVendorDomain
+from app.db.models import ActorThreatLevel, Case, Event, Incident
 from app.indicators.domain_utils import registrable_domain
 from app.investigation.aggregation import (
     RelatedCaseRef,
@@ -34,6 +34,7 @@ from app.sender_history.aggregation import (
     build_sender_history,
     classify_sender,
 )
+from app.sender_history.loader import history_rows, trusted_vendor_domains
 from app.threat_level.aggregation import compute_band, compute_trend
 
 
@@ -87,33 +88,18 @@ class InvestigationContext:
 
 
 def _load_sender_history_excluding_case(
-    db: Session, account_id: UUID, exclude_case_id: UUID, now: datetime
+    db: Session, account_id: UUID, exclude_case: Case, now: datetime
 ) -> SenderHistorySnapshot:
-    """Mirrors app.sender_history.loader.load_sender_history exactly, with one addition:
-    excludes `exclude_case_id` itself. That loader is only ever called BEFORE the case being
-    analyzed exists (see app.api.routes.analyze), so it never needs this exclusion; an
-    investigation runs AFTER the triggering case is already committed, so without excluding
-    it, a case would count as its own prior correspondence history — inflating seen_count by
-    one and potentially flipping a genuine first-contact sender to "seen_before.\""""
+    """app.sender_history.loader.load_sender_history, plus one exclusion: the triggering
+    case itself (and its own SenderObservation). That loader only runs BEFORE the case being
+    analyzed exists; an investigation runs AFTER it is committed, so without the exclusion a
+    case would count as its own prior correspondence, inflating seen_count by one and
+    possibly flipping a genuine first-contact sender to "seen_before"."""
     cutoff = now - timedelta(days=settings.sender_history_lookback_days)
-    rows = (
-        db.query(Case.from_addr, Case.created_at)
-        .filter(
-            Case.account_id == account_id,
-            Case.channel == "email",
-            Case.from_addr.is_not(None),
-            Case.created_at >= cutoff,
-            Case.id != exclude_case_id,
-        )
-        .all()
+    return build_sender_history(
+        history_rows(db, account_id, cutoff, exclude_case=exclude_case),
+        trusted_vendor_domains(db, account_id),
     )
-    trusted = frozenset(
-        row[0]
-        for row in db.query(TrustedVendorDomain.domain)
-        .filter(TrustedVendorDomain.account_id == account_id)
-        .all()
-    )
-    return build_sender_history(list(rows), trusted)
 
 
 def _build_sender_intelligence(
@@ -122,7 +108,7 @@ def _build_sender_intelligence(
     if not case.from_addr or "@" not in case.from_addr:
         return None
     domain = registrable_domain(case.from_addr.rsplit("@", 1)[-1].lower())
-    snapshot = _load_sender_history_excluding_case(db, account_id, case.id, now)
+    snapshot = _load_sender_history_excluding_case(db, account_id, case, now)
     classification = classify_sender(snapshot, domain)
     history = snapshot.domains.get(domain)
     return SenderIntelligence(
