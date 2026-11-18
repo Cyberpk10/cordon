@@ -16,6 +16,7 @@ from app.geo.countries import COUNTRY_NAMES
 from app.indicators import account_takeover
 from app.core.config import settings
 from app.indicators.engine import run_indicators
+from app.investigation.artifacts import build_artifacts
 from app.ml.classifier import predict as ml_predict
 from app.mapping.framework_mapper import map_indicators
 from app.models.schemas import FrameworkControlRef, Indicator, SenderIpInfo, Verdict
@@ -61,6 +62,9 @@ class PipelineResult:
     sender_signals: MessageSignals | None = None
     sender_baseline: dict | None = None
     account_takeover: dict | None = None
+    # Links, sending IP/provider and campaign signature, persisted on Case.artifacts for the
+    # investigation tools (app.investigation.artifacts).
+    artifacts: dict | None = None
 
 
 def run_email_pipeline(
@@ -139,4 +143,5 @@ def run_email_pipeline(
         sender_signals=signals,
         sender_baseline=baseline_info,
         account_takeover=takeover.as_dict() if takeover else None,
+        artifacts=build_artifacts(parsed, signals),
     )

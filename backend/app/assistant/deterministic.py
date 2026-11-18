@@ -129,6 +129,16 @@ def _verdict(facts: EmailFacts) -> str:
     )
 
 
+def _investigation_line(facts: EmailFacts) -> str:
+    inv = facts.investigation
+    if not inv or facts.verdict == "clean":
+        return ""
+    line = f"\n\nCordon's investigation: {inv['confidence']} confidence. {inv['campaign_line']}"
+    if inv["low_confidence_note"]:
+        line += f" {inv['low_confidence_note']}"
+    return line
+
+
 def _why(facts: EmailFacts) -> str:
     if not facts.indicators:
         return (
@@ -139,7 +149,7 @@ def _why(facts: EmailFacts) -> str:
     return (
         f"This email is rated {facts.verdict} ({facts.score}/100) because of these findings, "
         "strongest first:\n" + "\n".join(lines)
-    )
+    ) + _investigation_line(facts)
 
 
 def _score(facts: EmailFacts) -> str:
@@ -153,6 +163,19 @@ def _score(facts: EmailFacts) -> str:
 
 
 def _action(facts: EmailFacts) -> str:
+    base = _action_advice(facts)
+    inv = facts.investigation
+    if inv and facts.verdict != "clean":
+        base += (
+            f" Cordon's investigation recommends your security team: {inv['recommended_action']} "
+            "(a recommendation; nothing has been done to your mailbox)."
+        )
+        if inv["campaign"] == "wave":
+            base += " " + inv["campaign_line"]
+    return base
+
+
+def _action_advice(facts: EmailFacts) -> str:
     if facts.verdict == "malicious":
         return (
             "Don't click any links, open attachments, reply, or enter any information. Report "

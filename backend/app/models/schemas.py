@@ -1252,6 +1252,9 @@ class InvestigationRelatedCaseResponse(BaseModel):
     score: int
     subject: str | None = None
     to_addresses: list[str] = Field(default_factory=list)
+    # Why the agent linked it: "same sender", "same campaign signature", "shared link domain
+    # x", "same sending IP y". Empty on investigations from before M10 Stage 2.
+    match_reasons: list[str] = Field(default_factory=list)
 
 
 class InvestigationRelatedIncidentResponse(BaseModel):
@@ -1316,6 +1319,86 @@ class InvestigationResponse(BaseModel):
     summary: str | None = None
     summary_model: str | None = None
     summary_evidence_strength: Literal["strong", "moderate", "thin"] | None = None
+    # M10 Stage 2 (app.investigation.agent). Null on investigations from before it and on
+    # incident-triggered ones.
+    report: "InvestigationReport | None" = None
+    evidence: list["InvestigationEvidenceItem"] = Field(default_factory=list)
+    tool_trace: list[dict] = Field(default_factory=list)
+    engine: Literal["agent", "rules"] | None = None
+
+
+class InvestigationEvidenceItem(BaseModel):
+    id: str
+    text: str
+    source: str
+
+
+class InvestigationClaim(BaseModel):
+    text: str
+    evidence_ids: list[str]
+
+
+class InvestigationHypothesis(BaseModel):
+    category: str
+    label: str
+    rationale: str
+    evidence_ids: list[str] = Field(default_factory=list)
+    uncertainty: Literal["low", "medium", "high"]
+
+
+class InvestigationConfidence(BaseModel):
+    level: Literal["high", "medium", "low"]
+    score: float
+    reasons: list[str] = Field(default_factory=list)
+    families: list[str] = Field(default_factory=list)
+
+
+class InvestigationCampaign(BaseModel):
+    status: Literal["one_off", "possible_campaign", "wave"]
+    linked_case_ids: list[str] = Field(default_factory=list)
+    cases_in_window: int
+    recipients_in_window: int
+    window_days: int
+
+
+class InvestigationBlastRadius(BaseModel):
+    recipients: list[str] = Field(default_factory=list)
+    exposed_recipients: list[str] = Field(default_factory=list)
+    related_case_count: int = 0
+    possible_account_compromise: bool = False
+    compromise_signals: list[str] = Field(default_factory=list)
+
+
+class InvestigationRecommendation(BaseModel):
+    action: str | None = None
+    title: str
+    suggested_tier: Literal["L0", "L1", "L2", "L3"] | None = None
+    secondary_actions: list[str] = Field(default_factory=list)
+    applies_to_case_ids: list[str] = Field(default_factory=list)
+    rationale: str
+    # Always false: the investigation recommends; nothing executes it.
+    executed: Literal[False] = False
+
+
+class InvestigationReport(BaseModel):
+    engine: Literal["agent", "rules"]
+    llm_status: str
+    narrative: str
+    claims: list[InvestigationClaim] = Field(default_factory=list)
+    hypothesis: InvestigationHypothesis
+    confidence: InvestigationConfidence
+    campaign: InvestigationCampaign
+    blast_radius: InvestigationBlastRadius
+    recommendation: InvestigationRecommendation
+    unsupported_claims_removed: int = 0
+    removed_claims: list[dict] = Field(default_factory=list)
+    tokens_used: int = 0
+    stop_reason: str | None = None
+    evidence_strength: Literal["strong", "moderate", "thin"]
+    model: str | None = None
+
+
+InvestigationResponse.model_rebuild()
 
 
 # ---- Public /v1 API (programmatic callers: Gmail add-on, scripts) -----------------------
@@ -1344,6 +1427,21 @@ class V1SenderBaseline(BaseModel):
     summary: str
 
 
+class V1Investigation(BaseModel):
+    """Compact view of the case's investigation (app.investigation.agent). Recommend-only:
+    nothing in it has been executed."""
+
+    engine: Literal["agent", "rules"]
+    narrative: str
+    confidence: Literal["high", "medium", "low"]
+    confidence_note: str | None = None
+    hypothesis: str
+    campaign: Literal["one_off", "possible_campaign", "wave"]
+    recommended_action: str
+    suggested_tier: Literal["L0", "L1", "L2", "L3"] | None = None
+    executed: Literal[False] = False
+
+
 class V1AnalyzeEmailResponse(BaseModel):
     """Stable public contract. Keys must not change; see app.analysis.public_contract for
     how each field is derived from the shared pipeline's result."""
@@ -1359,6 +1457,9 @@ class V1AnalyzeEmailResponse(BaseModel):
     # no baseline information (e.g. a Case saved before this existed).
     account_takeover: AccountTakeoverFinding | None = None
     sender_baseline: V1SenderBaseline | None = None
+    # Additive. Present when the email was saved as a Case and investigated (auto-runs for
+    # suspicious/malicious); null for clean mail and unsaved results.
+    investigation: V1Investigation | None = None
 
 
 class V1AssistantTurn(BaseModel):

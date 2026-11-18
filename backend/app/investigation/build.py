@@ -11,17 +11,26 @@ contract.
 
 from __future__ import annotations
 
+import logging
+import threading
 from datetime import datetime, timezone
 from uuid import UUID
+
+from sqlalchemy import event
 
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.time import to_naive_utc
 from app.db.models import Case, Incident, Investigation
+from app.investigation.agent import InvestigationRun, run_investigation
 from app.investigation.gather import InvestigationContext, gather_context
+from app.investigation.tools import EvidenceLedger, ToolContext, resolve_artifacts
 from app.investigation.llm_summary import generate_investigation_summary
 from app.remediation.intrusion_playbook import generate_intrusion_playbook
 from app.remediation.playbook import PlaybookStep, generate_playbook
+
+logger = logging.getLogger(__name__)
 
 
 def _control_refs_for_step(framework_mappings: dict, related_ids: list[str]) -> list[dict]:
@@ -94,6 +103,7 @@ def save_investigation(
     incident: Incident | None = None,
     trigger: str,
     now: datetime | None = None,
+    use_llm: bool | None = None,
 ) -> Investigation:
     """Gathers context, generates recommendations, optionally narrates, and upserts the
     Investigation row for this case/incident (replacing any prior one — see
@@ -109,18 +119,9 @@ def save_investigation(
     if now is None:
         now = datetime.now(timezone.utc)
 
-    context = gather_context(db, account_id, case=case, incident=incident, now=now)
-    recommended_steps = _recommended_steps(case, incident)
-
-    summary = summary_model = summary_evidence_strength = None
-    if settings.enable_llm_reasoning:
-        result = generate_investigation_summary(context)
-        if result is not None:
-            summary = result.narrative
-            summary_model = result.model
-            summary_evidence_strength = result.evidence_strength
-
-    context_fields = _context_to_dicts(context)
+    if use_llm is None:
+        use_llm = settings.enable_llm_reasoning
+    use_llm = use_llm and settings.enable_llm_reasoning
 
     # The "exactly one of case/incident" guard above means exactly one of these two filters
     # is a real UUID match and the other is an `IS NULL` — never both None, so this can never
@@ -134,6 +135,50 @@ def save_investigation(
         )
         .first()
     )
+
+    context = gather_context(db, account_id, case=case, incident=incident, now=now)
+    recommended_steps = _recommended_steps(case, incident)
+    context_fields = _context_to_dicts(context)
+
+    summary = summary_model = summary_evidence_strength = None
+    run: InvestigationRun | None = None
+    if case is not None:
+        # M10 Stage 2: the bounded tool-using agent (rules engine when the LLM is off or
+        # fails). Its related cases (sender + campaign signature + link domain + IP, each
+        # with its match reason) supersede M10's same-sender-only list.
+        ctx = ToolContext(
+            db=db, account_id=account_id, case=case, now=to_naive_utc(now),
+            ledger=EvidenceLedger(), artifacts=resolve_artifacts(case),
+        )
+        run = run_investigation(
+            ctx,
+            context,
+            use_llm=use_llm,
+            cached_report=existing.report if existing is not None else None,
+            cached_fingerprint=existing.input_fingerprint if existing is not None else None,
+            cached_trace=existing.tool_trace if existing is not None else None,
+        )
+        # summary/summary_model keep their M10 meaning (an LLM-written narrative, null
+        # otherwise); the rules narrative lives in run.report.
+        if run.engine == "agent":
+            summary = run.report.get("narrative") or None
+            summary_model = run.model
+            summary_evidence_strength = run.report.get("evidence_strength")
+        context_fields["related_cases"] = run.report.get("related_cases", [])
+    elif use_llm:
+        result = generate_investigation_summary(context)
+        if result is not None:
+            summary = result.narrative
+            summary_model = result.model
+            summary_evidence_strength = result.evidence_strength
+
+    agent_fields = {
+        "report": run.report if run else None,
+        "evidence": run.ledger.items if run else None,
+        "tool_trace": run.tool_trace if run else None,
+        "input_fingerprint": run.fingerprint if run else None,
+        "engine": run.engine if run else None,
+    }
 
     if existing is not None:
         existing.updated_at = now
@@ -153,6 +198,8 @@ def save_investigation(
         existing.summary = summary
         existing.summary_model = summary_model
         existing.summary_evidence_strength = summary_evidence_strength
+        for key, value in agent_fields.items():
+            setattr(existing, key, value)
         return existing
 
     investigation = Investigation(
@@ -170,6 +217,7 @@ def save_investigation(
         summary_model=summary_model,
         summary_evidence_strength=summary_evidence_strength,
         **context_fields,
+        **agent_fields,
     )
     db.add(investigation)
     return investigation
@@ -193,6 +241,55 @@ def maybe_auto_investigate(
     if verdict not in settings.investigation_auto_trigger_verdicts:
         return None
     try:
-        return save_investigation(db, account_id, case=case, incident=incident, trigger="auto", now=now)
+        # Inline: the rules engine only, so analysis latency (the add-ons wait on it) never
+        # includes LLM round-trips. The agent then runs after the caller commits.
+        investigation = save_investigation(
+            db, account_id, case=case, incident=incident, trigger="auto", now=now, use_llm=False
+        )
     except Exception:  # noqa: BLE001 - never let investigation generation break the caller's flow.
         return None
+    if settings.enable_llm_reasoning:
+        _schedule_after_commit(db, account_id, case=case, incident=incident)
+    return investigation
+
+
+# Tests set RUN_AGENT_IN_BACKGROUND = False (run inline after commit) and point
+# SESSION_FACTORY at the test database.
+RUN_AGENT_IN_BACKGROUND = True
+SESSION_FACTORY = None
+
+
+def run_agent_for(account_id: UUID, case_id: UUID | None, incident_id: UUID | None) -> None:
+    """Re-run an auto investigation with the LLM, on a fresh session. Never raises."""
+    from app.db.session import SessionLocal
+
+    db = (SESSION_FACTORY or SessionLocal)()
+    try:
+        case = db.get(Case, case_id) if case_id else None
+        incident = db.get(Incident, incident_id) if incident_id else None
+        if case is None and incident is None:
+            return
+        save_investigation(db, account_id, case=case, incident=incident, trigger="auto", use_llm=True)
+        db.commit()
+    except Exception:  # noqa: BLE001
+        logger.exception("Background investigation agent failed; the rules report stands")
+        db.rollback()
+    finally:
+        db.close()
+
+
+def _schedule_after_commit(
+    db: Session, account_id: UUID, *, case: Case | None, incident: Incident | None
+) -> None:
+    case_id = case.id if case is not None else None
+    incident_id = incident.id if incident is not None else None
+
+    def _start(_session: Session) -> None:
+        if RUN_AGENT_IN_BACKGROUND:
+            threading.Thread(
+                target=run_agent_for, args=(account_id, case_id, incident_id), daemon=True
+            ).start()
+        else:
+            run_agent_for(account_id, case_id, incident_id)
+
+    event.listen(db, "after_commit", _start, once=True)

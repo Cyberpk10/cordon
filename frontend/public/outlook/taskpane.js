@@ -440,6 +440,18 @@
       card.appendChild(el("p", "small", r.sender_baseline.summary));
     }
 
+    // Cordon's investigation (recommend-only). Text nodes only, like everything else here.
+    var inv = r.investigation;
+    if (inv && inv.recommended_action) {
+      var campaignText = { one_off: "One-off", possible_campaign: "Possible campaign", wave: "Part of a wave hitting your organisation" };
+      card.appendChild(el("div", "section-label", "Investigation"));
+      card.appendChild(el("p", "small",
+        "Confidence: " + inv.confidence + " · Campaign: " + (campaignText[inv.campaign] || inv.campaign)));
+      card.appendChild(el("p", "small", "Hypothesis: " + inv.hypothesis));
+      card.appendChild(el("p", "small", "Recommended (not yet done): " + inv.recommended_action));
+      if (inv.confidence_note) card.appendChild(el("p", "small", inv.confidence_note));
+    }
+
     var fw = r.frameworks || [];
     if (fw.length) {
       card.appendChild(el("div", "section-label", "Framework mappings"));

@@ -6,6 +6,7 @@ import {
 import type { Investigation } from "../types/analysis";
 import { FileSearch, Sparkles } from "lucide-react";
 import ControlRefChips from "./ControlRefChips";
+import InvestigationReportView from "./InvestigationReportView";
 import { Badge, Button, Card, EmptyState, ErrorState, LoadingState, type BadgeTone } from "./ui";
 
 const EVIDENCE_TONE: Record<string, BadgeTone> = {
@@ -130,29 +131,36 @@ function InvestigationBody({ investigation: inv }: { investigation: Investigatio
         <span>Updated {new Date(inv.updated_at).toLocaleString()}</span>
       </div>
 
+      {inv.report ? (
+        <InvestigationReportView investigation={inv} />
+      ) : (
+        <>
       {/* Grounded narrative */}
-      <div className="rounded-control border border-accent/25 bg-accent/10 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-fg">
-            <Sparkles aria-hidden="true" className="h-4 w-4 text-accent" />
-            Investigation Summary
-          </h3>
-          {inv.summary_evidence_strength && (
-            <Badge tone={EVIDENCE_TONE[inv.summary_evidence_strength] ?? "neutral"} caps>
-              {inv.summary_evidence_strength} evidence
-            </Badge>
-          )}
-        </div>
-        {inv.summary ? (
-          <p className="mt-2 text-sm leading-relaxed text-fg-secondary">{inv.summary}</p>
-        ) : (
-          <p className="mt-2 text-sm text-fg-secondary">
-            No AI narrative available for this investigation — the deterministic findings
-            below are unaffected. (Either the AI reasoning layer is disabled, or there wasn&apos;t
-            enough gathered evidence to ground one.)
-          </p>
-        )}
-      </div>
+          <div className="rounded-control border border-accent/25 bg-accent/10 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-fg">
+                <Sparkles aria-hidden="true" className="h-4 w-4 text-accent" />
+                Investigation Summary
+              </h3>
+              {inv.summary_evidence_strength && (
+                <Badge tone={EVIDENCE_TONE[inv.summary_evidence_strength] ?? "neutral"} caps>
+                  {inv.summary_evidence_strength} evidence
+                </Badge>
+              )}
+            </div>
+            {inv.summary ? (
+              <p className="mt-2 text-sm leading-relaxed text-fg-secondary">{inv.summary}</p>
+            ) : (
+              <p className="mt-2 text-sm text-fg-secondary">
+                No AI narrative available for this investigation — the deterministic findings
+                below are unaffected. (Either the AI reasoning layer is disabled, or there wasn&apos;t
+                enough gathered evidence to ground one.)
+              </p>
+            )}
+          </div>
+    
+        </>
+      )}
 
       {/* Scope / blast radius */}
       <div>
@@ -255,6 +263,9 @@ function InvestigationBody({ investigation: inv }: { investigation: Investigatio
               <li key={rc.id}>
                 {new Date(rc.created_at).toLocaleDateString()} — {rc.subject ?? "(no subject)"}{" "}
                 <span className="capitalize text-fg-secondary">({rc.verdict})</span>
+                {rc.match_reasons && rc.match_reasons.length > 0 && (
+                  <span className="text-xs text-fg-muted"> · linked by {rc.match_reasons.join("; ")}</span>
+                )}
               </li>
             ))}
             {inv.related_incidents.map((ri) => (

@@ -21,7 +21,9 @@ from app.db.models import Case, Incident, Investigation, User
 from app.db.session import get_db
 from app.investigation.build import save_investigation
 from app.models.schemas import (
+    InvestigationEvidenceItem,
     InvestigationRecommendedStepResponse,
+    InvestigationReport,
     InvestigationRelatedCaseResponse,
     InvestigationRelatedIncidentResponse,
     InvestigationResponse,
@@ -85,6 +87,10 @@ def _to_response(investigation: Investigation) -> InvestigationResponse:
         summary=investigation.summary,
         summary_model=investigation.summary_model,
         summary_evidence_strength=investigation.summary_evidence_strength,
+        report=InvestigationReport.model_validate(investigation.report) if investigation.report else None,
+        evidence=[InvestigationEvidenceItem.model_validate(e) for e in (investigation.evidence or [])],
+        tool_trace=list(investigation.tool_trace or []),
+        engine=investigation.engine,
     )
 
 

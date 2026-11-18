@@ -12,7 +12,7 @@ from app.main import app
 
 CONTRACT_KEYS = {"verdict", "score", "category", "summary", "top_indicators", "auth", "frameworks"}
 # Added later, additively (account-takeover detection); the original keys above are unchanged.
-CONTRACT_KEYS = CONTRACT_KEYS | {"account_takeover", "sender_baseline"}
+CONTRACT_KEYS = CONTRACT_KEYS | {"account_takeover", "sender_baseline", "investigation"}
 
 
 @pytest.fixture()

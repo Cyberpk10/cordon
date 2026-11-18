@@ -286,6 +286,21 @@ function buildResultCard_(r) {
       .addWidget(CardService.newTextParagraph().setText(escape_(r.sender_baseline.summary))));
   }
 
+  // Cordon's investigation (recommend-only): confidence, campaign, and what it suggests.
+  var inv = r.investigation;
+  if (inv && inv.recommended_action) {
+    var campaignText = { one_off: 'One-off', possible_campaign: 'Possible campaign', wave: 'Part of a wave hitting your organisation' };
+    var lines = [
+      '<b>Confidence:</b> ' + escape_(inv.confidence) + ' · <b>Campaign:</b> ' + escape_(campaignText[inv.campaign] || inv.campaign),
+      '<b>Hypothesis:</b> ' + escape_(inv.hypothesis),
+      '<b>Recommended (not yet done):</b> ' + escape_(inv.recommended_action)
+    ];
+    if (inv.confidence_note) lines.push('<i>' + escape_(inv.confidence_note) + '</i>');
+    card.addSection(CardService.newCardSection()
+      .setHeader('Investigation')
+      .addWidget(CardService.newTextParagraph().setText(lines.join('<br>'))));
+  }
+
   var frameworks = r.frameworks || [];
   if (frameworks.length) {
     card.addSection(buildFrameworkSection_(frameworks));

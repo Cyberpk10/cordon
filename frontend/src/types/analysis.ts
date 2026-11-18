@@ -866,6 +866,7 @@ export interface InvestigationRelatedCase {
   score: number;
   subject: string | null;
   to_addresses: string[];
+  match_reasons?: string[];
 }
 
 export interface InvestigationRelatedIncident {
@@ -930,4 +931,64 @@ export interface Investigation {
   summary: string | null;
   summary_model: string | null;
   summary_evidence_strength: "strong" | "moderate" | "thin" | null;
+  // M10 Stage 2 (bounded investigation agent). Null on older and incident investigations.
+  report?: InvestigationReport | null;
+  evidence?: InvestigationEvidenceItem[];
+  tool_trace?: { tool: string; args: Record<string, unknown>; evidence_ids: string[]; ms: number; cached?: boolean }[];
+  engine?: "agent" | "rules" | null;
+}
+
+export interface InvestigationEvidenceItem {
+  id: string;
+  text: string;
+  source: string;
+}
+
+export interface InvestigationClaim {
+  text: string;
+  evidence_ids: string[];
+}
+
+export interface InvestigationReport {
+  engine: "agent" | "rules";
+  llm_status: string;
+  narrative: string;
+  claims: InvestigationClaim[];
+  hypothesis: {
+    category: string;
+    label: string;
+    rationale: string;
+    evidence_ids: string[];
+    uncertainty: "low" | "medium" | "high";
+  };
+  confidence: { level: "high" | "medium" | "low"; score: number; reasons: string[]; families: string[] };
+  campaign: {
+    status: "one_off" | "possible_campaign" | "wave";
+    linked_case_ids: string[];
+    cases_in_window: number;
+    recipients_in_window: number;
+    window_days: number;
+  };
+  blast_radius: {
+    recipients: string[];
+    exposed_recipients: string[];
+    related_case_count: number;
+    possible_account_compromise: boolean;
+    compromise_signals: string[];
+  };
+  recommendation: {
+    action: string | null;
+    title: string;
+    suggested_tier: "L0" | "L1" | "L2" | "L3" | null;
+    secondary_actions: string[];
+    applies_to_case_ids: string[];
+    rationale: string;
+    executed: false;
+  };
+  unsupported_claims_removed: number;
+  removed_claims: { text: string; reason: string }[];
+  tokens_used: number;
+  stop_reason: string | null;
+  evidence_strength: "strong" | "moderate" | "thin";
+  model?: string | null;
 }

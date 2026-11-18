@@ -45,7 +45,7 @@ from app.auth.audit_log import log_event
 from app.auth.dependencies import get_current_user
 from app.auth.rate_limit import API_KEY_ANALYZE_RATE_LIMIT, API_KEY_ASSISTANT_RATE_LIMIT, limiter
 from app.core.config import settings
-from app.db.models import ApiKey, Case, User
+from app.db.models import ApiKey, Case, Investigation, User
 from app.db.session import get_db
 from app.models.schemas import (
     ApiKeyCreatedResponse,
@@ -60,6 +60,7 @@ from app.models.schemas import (
     V1AssistantRequest,
     V1AssistantResponse,
     V1GroundedOn,
+    V1Investigation,
     Verdict,
 )
 from app.parsing.eml_parser import parse_eml
@@ -183,7 +184,41 @@ def _takeover_fields(account_takeover: dict | None, sender_baseline: dict | None
     }
 
 
-def _from_existing_case(case: Case, raw_bytes: bytes) -> V1AnalyzeEmailResponse:
+def _investigation_field(db: Session, account_id, case_id) -> dict:
+    """The additive `investigation` key, from the case's stored investigation report."""
+    inv = (
+        db.query(Investigation)
+        .filter(Investigation.account_id == account_id, Investigation.case_id == case_id)
+        .first()
+    )
+    report = inv.report if inv is not None else None
+    if not report:
+        return {"investigation": None}
+    conf = report["confidence"]
+    return {
+        "investigation": {
+            "engine": report["engine"],
+            "narrative": report["narrative"],
+            "confidence": conf["level"],
+            "confidence_note": conf["reasons"][-1] if conf["level"] == "low" and conf["reasons"] else None,
+            "hypothesis": report["hypothesis"]["label"],
+            "campaign": report["campaign"]["status"],
+            "recommended_action": report["recommendation"]["title"],
+            "suggested_tier": report["recommendation"]["suggested_tier"],
+        }
+    }
+
+
+def _stored_report(db: Session, case: Case) -> dict | None:
+    inv = (
+        db.query(Investigation)
+        .filter(Investigation.account_id == case.account_id, Investigation.case_id == case.id)
+        .first()
+    )
+    return inv.report if inv is not None else None
+
+
+def _from_existing_case(case: Case, raw_bytes: bytes, db: Session | None = None) -> V1AnalyzeEmailResponse:
     return V1AnalyzeEmailResponse.model_validate(
         build_public_result(
             verdict=Verdict(case.verdict),
@@ -194,6 +229,7 @@ def _from_existing_case(case: Case, raw_bytes: bytes) -> V1AnalyzeEmailResponse:
             llm_intent_category=case.llm_intent_category,
         )
         | _takeover_fields(case.account_takeover, case.sender_baseline)
+        | (_investigation_field(db, case.account_id, case.id) if db is not None else {})
     )
 
 
@@ -259,7 +295,7 @@ def analyze_email_v1(
     existing, result = _lookup_or_run(db, api_key, raw_bytes, content_hash)
     if existing is not None:
         db.commit()  # persist last_used_at
-        return _from_existing_case(existing, raw_bytes)
+        return _from_existing_case(existing, raw_bytes, db)
     assert result is not None
 
     if payload.persist == "if_not_clean" and public_verdict(result.verdict) == "clean":
@@ -275,10 +311,14 @@ def analyze_email_v1(
 
     user = db.get(User, api_key.user_id)  # get_api_key already verified it exists and is active
     subject = result.parsed.subject or "api-email"
-    persist_case_and_build_response(
+    saved = persist_case_and_build_response(
         raw_bytes, subject[:200] + ".eml", result, user, db, content_hash=content_hash
     )
-    return _from_pipeline_result(result)
+    response = _from_pipeline_result(result)
+    investigation = _investigation_field(db, api_key.account_id, saved.id)["investigation"]
+    if investigation is not None:
+        response = response.model_copy(update={"investigation": V1Investigation.model_validate(investigation)})
+    return response
 
 
 # ---- assistant (API key) ------------------------------------------------------------------
@@ -314,6 +354,7 @@ def assistant_v1(
             framework_mappings=_case_mappings(existing),
             parsed=parsed,
             sender_baseline=existing.sender_baseline,
+            investigation_report=_stored_report(db, existing),
         )
     else:
         assert result is not None

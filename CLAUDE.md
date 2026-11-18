@@ -238,6 +238,34 @@ SOC source is ever queried here).
   lookback calculation in `gather.py`, the same `app.core.time.to_naive_utc` discipline every
   other hooks module in this codebase already follows.
 
+**Investigation agent** (M10 Stage 2) — `app/investigation/{tools,agent,assessment,verify,
+artifacts}.py`: for email cases, the investigation is now a bounded, tool-using agent built
+on the M10 pieces above (same `Investigation` row, routes, triggers and panel).
+- Five fixed, read-only, account-scoped tools (`tools.py`): `get_sender_baseline`,
+  `find_related_cases` (sender / campaign signature / shared link domain / sending IP, each
+  with its match reason; shared mail-provider IPs never link cases), `enrich_ip` (only IPs on
+  the case; provider IPs flagged as "not the sender's location"), `inspect_links` (nothing
+  fetched), `framework_context`. Each output line becomes a numbered evidence item (EVn).
+  Links and the campaign signature come from `Case.artifacts`, written at analysis time.
+- `agent.py`: the rules engine (all tools in a fixed order, template claims) always runs and
+  is the fallback for everything. With `ENABLE_LLM_REASONING` and a key, an Anthropic tool-use
+  loop picks tools under hard caps (`investigation_agent_max_tool_calls`=6, a token budget, a
+  deadline); hitting a cap forces `submit_investigation`. The email body is never sent.
+- The model writes only claims (each citing EV ids) and a hypothesis (fixed enum).
+  Confidence, campaign/wave, blast radius, the recommended action and its suggested L0–L3 tier
+  come from `assessment.py` and are identical whichever engine ran, so an injected email can't
+  change the recommendation. `verify.py` rejects the whole answer on a schema error, a
+  restated verdict that isn't Cordon's, or a citation the model was never shown; it drops any
+  claim whose IPs/domains/addresses/numbers aren't in the evidence it cites.
+- Auto-trigger runs the rules engine inline and the agent after commit (background thread);
+  "Investigate" runs the agent inline. An unchanged evidence fingerprint reuses the stored
+  agent report. Recommend-only: nothing calls `app.autonomy.executor`.
+- Surfaced in `InvestigationReportView.tsx`, as the additive `investigation` key on
+  `/v1/analyze/email`, and in the assistant's evidence/answers. `GET /api/admin/llm-health`
+  checks the configured key from inside the server. Tests:
+  `tests/integration/test_investigation_agent.py`,
+  `tests/unit/test_investigation_verify_assessment.py` (fake API in `tests/agent_fakes.py`).
+
 **Security & Compliance Report** (M11 Stage 1) — `app/reports/`: a one-click, board/auditor-
 ready artifact, positioned as an extension of Audit Mode (`app/audit/`) rather than a
 replacement — Audit Mode is a per-framework control-evidence table for an auditor to

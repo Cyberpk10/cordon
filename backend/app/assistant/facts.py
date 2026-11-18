@@ -47,6 +47,38 @@ class EmailFacts:
     # Cordon's own one-line summary of its history with this sender (app.sender_baseline),
     # e.g. "First contact: no baseline for this sender yet." Trusted: computed, not email text.
     sender_baseline: str | None = None
+    # Cordon's investigation of this email (app.investigation.agent), reduced to trusted,
+    # computed lines; the narrative is model-written, so it travels as untrusted text.
+    investigation: dict | None = None
+
+
+_CAMPAIGN_LINE = {
+    "one_off": "No other email in this organisation's recent mail is linked to it (a one-off).",
+    "possible_campaign": "It is linked to at least one other recent email (a possible campaign).",
+    "wave": "It is part of a wave: {cases} linked emails reached {recipients} people in the last {days} days.",
+}
+
+
+def investigation_facts(report: dict | None) -> dict | None:
+    """The parts of an investigation report the assistant may state: all computed by
+    app.investigation.assessment, never by a model."""
+    if not report:
+        return None
+    campaign = report["campaign"]
+    conf = report["confidence"]
+    rec = report["recommendation"]
+    return {
+        "confidence": conf["level"],
+        "confidence_reason": conf["reasons"][0] if conf["reasons"] else "",
+        "low_confidence_note": conf["reasons"][-1] if conf["level"] == "low" and conf["reasons"] else None,
+        "campaign": campaign["status"],
+        "campaign_line": _CAMPAIGN_LINE[campaign["status"]].format(
+            cases=campaign["cases_in_window"], recipients=campaign["recipients_in_window"], days=campaign["window_days"]
+        ),
+        "hypothesis": report["hypothesis"]["label"],
+        "recommended_action": rec["title"],
+        "narrative": report.get("narrative") or "",
+    }
 
 
 @dataclass(frozen=True)
@@ -65,6 +97,7 @@ def build_facts(
     framework_mappings: dict[str, list[FrameworkControlRef]],
     parsed: ParsedEmail,
     sender_baseline: dict | None = None,
+    investigation_report: dict | None = None,
 ) -> EmailFacts:
     domains: list[str] = []
     for link in parsed.links:
@@ -85,6 +118,7 @@ def build_facts(
         attachment_names=[a.filename for a in parsed.attachments][:MAX_LIST_ITEMS],
         body_excerpt=(parsed.body_text or "")[:MAX_BODY_CHARS],
         sender_baseline=(sender_baseline or {}).get("summary"),
+        investigation=investigation_facts(investigation_report),
     )
 
 
@@ -135,6 +169,17 @@ def build_evidence(facts: EmailFacts) -> list[EvidenceItem]:
     )
     if facts.sender_baseline:
         items.append(("sender_history", "Cordon's history with this sender: " + facts.sender_baseline, None))
+    if facts.investigation:
+        inv = facts.investigation
+        items.append((
+            "investigation",
+            f"Cordon's investigation of this email: {inv['confidence']} confidence in the verdict "
+            f"({inv['confidence_reason']}) {inv['campaign_line']} Working hypothesis (not a "
+            f"conclusion): {inv['hypothesis']}. Recommended response, not yet carried out: "
+            f"{inv['recommended_action']}."
+            + (f" {inv['low_confidence_note']}" if inv["low_confidence_note"] else ""),
+            inv["narrative"] or None,
+        ))
     items.append(("sender", "The email's From/Reply-To headers.", sender or "(none)"))
     items.append(("subject", "The email's subject line.", facts.subject or "(none)"))
     items.append(

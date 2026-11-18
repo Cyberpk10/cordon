@@ -735,6 +735,27 @@ class Settings:
     # via the "Investigate" action is unaffected by this — a human can always request one
     # regardless of verdict.
     investigation_auto_trigger_verdicts: tuple[str, ...] = ("suspicious", "malicious")
+    # Investigation agent (M10 Stage 2, app.investigation.agent): hard bounds on the LLM's
+    # tool-use loop. Deterministic stop conditions; hitting any of them forces a final
+    # submit, and a failed submit falls back to the rules-only report. Cost stays bounded and
+    # a runaway loop is structurally impossible.
+    investigation_agent_max_tool_calls: int = field(
+        default_factory=lambda: int(os.environ.get("INVESTIGATION_AGENT_MAX_TOOL_CALLS", "6"))
+    )
+    investigation_agent_max_tokens: int = field(
+        default_factory=lambda: int(os.environ.get("INVESTIGATION_AGENT_MAX_TOKENS", "6000"))
+    )
+    investigation_agent_timeout_seconds: float = field(
+        default_factory=lambda: float(os.environ.get("INVESTIGATION_AGENT_TIMEOUT_SECONDS", "30"))
+    )
+    # A "wave": at least this many cases (including the one under investigation) linked by
+    # campaign signature, link domain or sending IP within the window, across 2+ recipients.
+    investigation_wave_min_cases: int = field(
+        default_factory=lambda: int(os.environ.get("INVESTIGATION_WAVE_MIN_CASES", "3"))
+    )
+    investigation_wave_window_days: int = field(
+        default_factory=lambda: int(os.environ.get("INVESTIGATION_WAVE_WINDOW_DAYS", "7"))
+    )
 
 
 settings = Settings()

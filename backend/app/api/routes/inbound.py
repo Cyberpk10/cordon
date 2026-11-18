@@ -183,6 +183,7 @@ async def receive_inbound_email(
         sender_ip_info=result.sender_ip_info.model_dump(mode="json") if result.sender_ip_info else None,
         account_takeover=result.account_takeover,
         sender_baseline=result.sender_baseline,
+        artifacts=result.artifacts,
         raw_email_path=raw_email_path,
         content_hash=content_hash,
     )

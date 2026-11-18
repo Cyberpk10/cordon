@@ -262,6 +262,9 @@ class Case(Base):
     # for chat cases and for cases analyzed before this existed.
     account_takeover: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
     sender_baseline: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    # Links, sending IP/provider and campaign signature (app.investigation.artifacts), what the
+    # investigation tools correlate related cases on. Null on Cases saved before it existed.
+    artifacts: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
 
     labels: Mapped[list["Label"]] = relationship(
         back_populates="case", cascade="all, delete-orphan"
@@ -1084,3 +1087,14 @@ class Investigation(Base):
     # "strong" | "moderate" | "thin" — the model's own assessment of how much it had to go
     # on, required whenever `summary` is populated. None alongside summary=None.
     summary_evidence_strength: Mapped[str | None] = mapped_column(String, nullable=True)
+    # M10 Stage 2, the bounded investigation agent (app.investigation.agent). report: the
+    # structured result {claims, hypothesis, confidence, campaign, blast_radius,
+    # recommendation, unsupported_claims_removed, ...}. evidence: the numbered EV list every
+    # claim cites. tool_trace: which read-only tools ran, in order. input_fingerprint: hash of
+    # the evidence + verdict, so an unchanged re-investigation skips the LLM. engine: "agent"
+    # (LLM-written, verified) or "rules" (deterministic). All null on older rows.
+    report: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    evidence: Mapped[list | None] = mapped_column(_JSONVariant, nullable=True)
+    tool_trace: Mapped[list | None] = mapped_column(_JSONVariant, nullable=True)
+    input_fingerprint: Mapped[str | None] = mapped_column(String, nullable=True)
+    engine: Mapped[str | None] = mapped_column(String, nullable=True)
