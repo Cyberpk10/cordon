@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from app.indicators import (
+    account_lists,
     account_takeover,
     ai_authored,
     attachment_risk,
@@ -42,6 +43,7 @@ _RULES: list[IndicatorRule] = [
     known_bad_sender.evaluate,
     domain_age_heuristic.evaluate,
     hidden_instruction_payload.evaluate,
+    account_lists.evaluate,
 ]
 
 

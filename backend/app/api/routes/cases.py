@@ -16,6 +16,7 @@ from app.db.models import Case, Label, User
 from app.db.session import get_db
 from app.models.schemas import (
     CaseDetailResponse,
+    CaseTriageRequest,
     CaseListResponse,
     CaseSummary,
     LabelRequest,
@@ -60,6 +61,10 @@ def _to_case_detail(case: Case, latest_label: Label | None) -> CaseDetailRespons
         account_takeover=case.account_takeover,
         sender_baseline=case.sender_baseline,
         latest_label=LabelResponse.model_validate(latest_label) if latest_label else None,
+        status=case.status or "new",
+        priority=case.priority,
+        engine_tags=list(case.engine_tags or []),
+        campaign_id=case.campaign_id,
     )
 
 
@@ -112,6 +117,31 @@ async def get_case(
     case = db.get(Case, case_id)
     if case is None or case.account_id != current_user.account_id:
         raise HTTPException(status_code=404, detail="Case not found.")
+    return _to_case_detail(case, _latest_label(db, current_user.account_id, case_id))
+
+
+@router.patch("/{case_id}/triage", response_model=CaseDetailResponse)
+async def set_triage(
+    case_id: UUID,
+    body: CaseTriageRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CaseDetailResponse:
+    """A person sets status/priority. Always wins over the autonomy engine: a later undo of
+    an engine action that set these values refuses rather than overwrite this."""
+    case = db.get(Case, case_id)
+    if case is None or case.account_id != current_user.account_id:
+        raise HTTPException(status_code=404, detail="Case not found.")
+    before = {"status": case.status, "priority": case.priority}
+    if body.status is not None:
+        case.status = body.status
+    if body.priority is not None:
+        case.priority = body.priority
+    log_event(db, event_type="case_triage_updated", account_id=current_user.account_id,
+              user_id=current_user.id, detail={"case_id": str(case_id), "before": before,
+                                               "after": {"status": case.status, "priority": case.priority}})
+    db.commit()
+    db.refresh(case)
     return _to_case_detail(case, _latest_label(db, current_user.account_id, case_id))
 
 

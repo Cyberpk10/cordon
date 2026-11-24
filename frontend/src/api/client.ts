@@ -7,8 +7,13 @@ import type {
   AuditReportListResponse,
   AuditReportSummary,
   AutonomyActionListResponse,
+  AutonomyActionLogEntry,
   AutonomyHaltResponse,
   AutonomyPolicy,
+  CordonListEntry,
+  KillSwitchResponse,
+  NotificationList,
+  ShadowSummary,
   CampaignDetailResponse,
   CampaignRecipientInput,
   CaseDetail,
@@ -547,7 +552,7 @@ export async function getAutonomyPolicy(): Promise<AutonomyPolicy> {
 
 export type PutAutonomyPolicyParams = Pick<
   AutonomyPolicy,
-  "level" | "rules" | "exclusions" | "blast_radius_limit" | "blast_radius_window_minutes"
+  "tier" | "shadow_mode" | "exclusions" | "blast_radius_limit" | "blast_radius_window_minutes"
 >;
 
 export async function putAutonomyPolicy(
@@ -578,6 +583,7 @@ export interface ListAutonomyActionsParams {
   actionType?: string;
   decision?: string;
   status?: string;
+  caseId?: string;
 }
 
 export async function getAutonomyActions(
@@ -589,12 +595,70 @@ export async function getAutonomyActions(
   if (params.actionType) query.set("action_type", params.actionType);
   if (params.decision) query.set("decision", params.decision);
   if (params.status) query.set("status", params.status);
+  if (params.caseId) query.set("case_id", params.caseId);
 
   const response = await apiFetch(`/api/autonomy/actions?${query.toString()}`);
   if (!response.ok) {
     return parseErrorOrThrow(response);
   }
   return response.json();
+}
+
+async function jsonOrThrow<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
+  return response.json();
+}
+
+export async function setKillSwitch(on: boolean): Promise<KillSwitchResponse> {
+  return jsonOrThrow(
+    await apiFetch(`/api/autonomy/kill-switch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ on }),
+    })
+  );
+}
+
+export type AutonomyDecisionVerb = "undo" | "approve" | "dismiss";
+
+export async function decideAutonomyAction(id: string, verb: AutonomyDecisionVerb): Promise<AutonomyActionLogEntry> {
+  return jsonOrThrow(await apiFetch(`/api/autonomy/actions/${id}/${verb}`, { method: "POST" }));
+}
+
+export async function getShadowSummary(days = 30): Promise<ShadowSummary> {
+  return jsonOrThrow(await apiFetch(`/api/autonomy/shadow-summary?days=${days}`));
+}
+
+export async function getCordonLists(): Promise<CordonListEntry[]> {
+  return jsonOrThrow(await apiFetch(`/api/autonomy/lists`));
+}
+
+export async function removeCordonListEntry(id: string): Promise<CordonListEntry> {
+  return jsonOrThrow(await apiFetch(`/api/autonomy/lists/${id}`, { method: "DELETE" }));
+}
+
+export async function getNotifications(): Promise<NotificationList> {
+  return jsonOrThrow(await apiFetch(`/api/notifications`));
+}
+
+export async function markAllNotificationsRead(): Promise<NotificationList> {
+  return jsonOrThrow(await apiFetch(`/api/notifications/read-all`, { method: "POST" }));
+}
+
+export async function setCaseTriage(
+  caseId: string,
+  body: { status?: string; priority?: string }
+): Promise<void> {
+  const response = await apiFetch(`/api/cases/${caseId}/triage`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    return parseErrorOrThrow(response);
+  }
 }
 
 export async function reverseAutonomyAction(id: string): Promise<void> {

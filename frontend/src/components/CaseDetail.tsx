@@ -9,6 +9,8 @@ import IpWithLocation from "./ip/IpWithLocation";
 import SenderIpPanel from "./ip/SenderIpPanel";
 import SenderBaselinePanel from "./ip/SenderBaselinePanel";
 import ResponsePlaybookPanel from "./ResponsePlaybookPanel";
+import AutonomyCasePanel from "./autonomy/AutonomyCasePanel";
+import CaseTriageBadges from "./autonomy/CaseTriageBadges";
 import ChannelBadge from "./ChannelBadge";
 import AnalysisResultCard, { AnalysisResultSkeleton, summarizeIndicators } from "./analyze/AnalysisResultCard";
 import { AnalystFeedbackCard, HumanLabelNote } from "./AnalystLabel";
@@ -34,6 +36,12 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
   const [labelError, setLabelError] = useState<string | null>(null);
   const toast = useToast();
   const confirm = useConfirm();
+
+  const refreshCase = () => {
+    getCase(caseId)
+      .then(setCaseData)
+      .catch(() => undefined);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +141,22 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
               { label: "Subject", value: caseData.subject ?? "—", wide: true },
               { label: "Sender", value: caseData.from_addr ?? "—" },
               { label: "Channel", value: <ChannelBadge channel={caseData.channel} /> },
+              ...(caseData.status && caseData.status !== "new") || caseData.priority || caseData.engine_tags?.length || caseData.campaign_id
+                ? [
+                    {
+                      label: "Triage",
+                      value: (
+                        <CaseTriageBadges
+                          status={caseData.status}
+                          priority={caseData.priority}
+                          tags={caseData.engine_tags}
+                          campaignId={caseData.campaign_id}
+                        />
+                      ),
+                      wide: true,
+                    },
+                  ]
+                : [],
               { label: "Filename", value: <span className="font-mono text-xs">{caseData.filename}</span> },
               { label: "Analyzed", value: new Date(caseData.created_at).toLocaleString() },
               ...(caseData.sender_ip_info?.sending_ip
@@ -172,6 +196,8 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
           <ResponsePlaybookPanel caseId={caseData.id} />
 
           <InvestigationPanel entityId={caseData.id} />
+
+          <AutonomyCasePanel caseId={caseData.id} onChanged={refreshCase} />
 
           {caseData.indicators.length > 0 && (
             <section>

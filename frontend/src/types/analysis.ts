@@ -167,7 +167,14 @@ export interface CaseSummary {
   from_addr: string | null;
   subject: string | null;
   account_takeover_kind?: "external" | "lateral" | null;
+  status?: CaseStatus;
+  priority?: CasePriority | null;
+  engine_tags?: string[];
+  campaign_id?: string | null;
 }
+
+export type CaseStatus = "new" | "triaged" | "escalated" | "resolved";
+export type CasePriority = "low" | "medium" | "high" | "critical";
 
 export interface CaseListResponse {
   items: CaseSummary[];
@@ -203,6 +210,10 @@ export interface CaseDetail {
   account_takeover?: AccountTakeoverFinding | null;
   sender_baseline?: SenderBaselineSummary | null;
   latest_label: Label | null;
+  status?: CaseStatus;
+  priority?: CasePriority | null;
+  engine_tags?: string[];
+  campaign_id?: string | null;
 }
 
 export interface PeriodCount {
@@ -635,6 +646,10 @@ export interface AutonomyPolicy {
   blast_radius_window_minutes: number;
   halted_at: string | null;
   updated_at: string;
+  // D5 graduated autonomy
+  tier: AutonomyLevel;
+  shadow_mode: boolean;
+  kill_switch: boolean;
 }
 
 export interface AutonomyHaltResponse {
@@ -644,8 +659,26 @@ export interface AutonomyHaltResponse {
   halted_pending_count: number;
 }
 
-export type AutonomyDecision = "auto_execute" | "require_approval" | "skip";
-export type AutonomyActionStatus = "executed" | "reversed" | "pending_approval" | "skipped" | "halted";
+export type AutonomyDecision =
+  | "auto_execute"
+  | "require_approval"
+  | "skip"
+  | "performed"
+  | "shadow"
+  | "awaiting_approval"
+  | "above_tier"
+  | "halted";
+export type AutonomyActionStatus =
+  | "executed"
+  | "reversed"
+  | "pending_approval"
+  | "skipped"
+  | "halted"
+  | "execution_failed"
+  | "shadow"
+  | "above_tier"
+  | "approved"
+  | "dismissed";
 
 export interface AutonomyActionLogEntry {
   id: string;
@@ -657,12 +690,74 @@ export interface AutonomyActionLogEntry {
   action_type: string;
   target: string;
   confidence: number;
-  policy_rule: AutonomyPolicyRule | null;
+  policy_rule: Record<string, unknown> | null;
   decision: AutonomyDecision;
   status: AutonomyActionStatus;
-  result: Record<string, unknown> | null;
+  result: { description?: string; rule?: string; params?: Record<string, unknown>; [k: string]: unknown } | null;
   reversible: boolean;
   mapped_controls: Record<string, FrameworkControlRef[]>;
+  // D5 (null on rows from the earlier engine)
+  engine: string | null;
+  tier: AutonomyLevel | null;
+  rule_id: string | null;
+  mode: "shadow" | "active" | null;
+  within_tier: boolean | null;
+  undo: { kind: string; description: string; before?: Record<string, unknown> } | null;
+  actor: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  reversed_by: string | null;
+  reversed_at: string | null;
+}
+
+export interface KillSwitchResponse {
+  kill_switch: boolean;
+  halted_at: string | null;
+  halted_pending_count: number;
+}
+
+export interface CordonListEntry {
+  id: string;
+  kind: "sender" | "domain" | "ip";
+  list_name: "watch" | "block";
+  value: string;
+  active: boolean;
+  added_by: string;
+  reason: string | null;
+  source_action_id: string | null;
+  created_at: string;
+  removed_at: string | null;
+  removed_by: string | null;
+}
+
+export interface ShadowSummaryRow {
+  action_type: string;
+  tier: AutonomyLevel;
+  would_have: number;
+  within_tier: number;
+  later_labeled_safe: number;
+}
+
+export interface ShadowSummary {
+  days: number;
+  cases: number;
+  cases_later_labeled_safe: number;
+  rows: ShadowSummaryRow[];
+}
+
+export interface AppNotification {
+  id: string;
+  case_id: string | null;
+  action_id: string | null;
+  title: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+}
+
+export interface NotificationList {
+  items: AppNotification[];
+  unread: number;
 }
 
 export interface AutonomyActionListResponse {

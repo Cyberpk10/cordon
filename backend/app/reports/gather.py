@@ -130,11 +130,16 @@ def _threats_contained(
 ) -> int:
     """Autonomous response actions Cordon actually executed in the period (quarantine,
     block sender domain, disable session, flag for review) — status == "executed" is the
-    one status that means the action really ran, not just decided or awaiting approval."""
+    one status that means the action really ran, not just decided or awaiting approval.
+
+    D5 graduated-autonomy rows (engine == "d5") are excluded: they tag, triage, notify and
+    watch/blocklist inside Cordon, and none of them removes a message from a mailbox, so
+    counting them as "contained" would overstate what happened."""
     return (
         db.query(AutonomyAction)
         .filter(
             AutonomyAction.account_id == account_id,
+            AutonomyAction.engine.is_(None),
             AutonomyAction.status == "executed",
             AutonomyAction.created_at >= period_start,
             AutonomyAction.created_at <= period_end,

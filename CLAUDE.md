@@ -18,9 +18,10 @@ comments throughout `backend/app/core/config.py`, which doubles as a changelog) 
 - Multi-channel (email + Slack/Teams chat) detection, cross-signal intrusion/UEBA detection over
   ingested activity events, case/incident management, audit evidence packs, and continuous
   control monitoring.
-- Closed-loop autonomous response (quarantine, block domain, disable session, flag for review)
-  gated by a policy engine, executed for real only via a Microsoft Graph connector — otherwise a
-  mock connector, so nothing fires unconfigured.
+- Graduated autonomy (D5): a per-account L0–L3 tier, shadow mode by default, a kill switch,
+  and a full audit log. The engine acts only on Cordon's own records (case tags/triage,
+  notifications, an in-Cordon watch/blocklist, campaign grouping), every action has an undo,
+  and mailbox actions are only ever proposed for a person. Live mailbox writes are deferred.
 - An agentic investigation layer (M10) that turns a flagged Case/Incident into a grounded
   report in one step: Cordon's own correlated signals (sender history, related cases/
   incidents/events, threat-intel hits, early-warning threat level, UEBA findings), an
@@ -167,24 +168,34 @@ single email — over ingested activity `Event`s instead of a parsed email:
   indicator engine consumes (`chat_context` indicator); live ingestion is flagged off
   (`enable_live_slack_ingestion`/`enable_live_teams_ingestion`) pending real webhook wiring.
 
-**Autonomy (closed-loop response)** — `app/autonomy/`:
+**Graduated autonomy (D5)** — `app/autonomy/{engine,cordon_actions,runner}.py`: the first
+rung where Cordon acts. Per account (`AutonomyPolicy`): `tier` L0–L3 (the ceiling, default L1),
+`shadow_mode` (default on: log would-haves, act on nothing), `kill_switch` (stops everything).
+- `engine.py` (pure) — `plan(DecisionInputs, PolicyView)` turns the verdict and D4's
+  deterministic assessment (confidence, campaign, recommendation) into actions, each with a
+  stable rule id (`R1-LABEL` … `R9-MAILBOX`) and one outcome: performed / shadow /
+  awaiting_approval / above_tier / halted. `DecisionInputs` has no free-text field, so email
+  content can't change the plan or the tier. The rate cap applies to L2 actions only.
+- `cordon_actions.py` — the catalog: L1 tag, triage, notify, open investigation; L2
+  watchlist/blocklist (`CordonListEntry`, read back by `app.indicators.account_lists`: a
+  blocklisted sender scores like a threat-intel hit), group campaign (`CaseCampaign`),
+  escalate; L3 `RECOMMEND_MAILBOX_REMEDIATION` (approval records the decision, never
+  executes). Every entry has `apply` → before-state and `undo`; the catalog refuses to load
+  without an undo. Undo refuses (Superseded) to overwrite a value a person changed.
+  `DEFERRED_ACTIONS` documents what's out of scope (mailbox writes need write scopes + CASA).
+- `runner.py` — runs after `maybe_auto_investigate` saves the deterministic investigation;
+  writes one `AutonomyAction` row (engine `d5`, tier, rule, mode, undo path) per planned action;
+  undo / approve (admin) / dismiss, each audit-logged. Routes in `app/api/routes/autonomy.py`
+  (`/kill-switch`, `/actions/{id}/{undo,approve,dismiss}`, `/shadow-summary`, `/lists`) and
+  `notifications.py`. Tests: `tests/unit/test_autonomy_engine.py`,
+  `tests/integration/test_autonomy_d5.py`.
 
-- `actions.py` — the fixed, small action catalog (`QUARANTINE_EMAIL`, `DISABLE_SESSION`,
-  `BLOCK_SENDER_DOMAIN`, `FLAG_ACCOUNT_FOR_REVIEW`). No destructive action exists anywhere in
-  this module — that's a structural property, not a configurable policy.
-  Reversible-by-default; `DISABLE_SESSION` is the one exception (no Graph API to un-revoke),
-  which is why any irreversible action always requires human approval.
-- `policy.py` — pure decision function (`AUTO_EXECUTE` / `REQUIRE_APPROVAL` / `SKIP`), no I/O.
-- `executor.py` — the *only* place that calls a connector: enforces the policy decision, a
-  blast-radius rate limit (reads the audit log, hence not in `policy.py`), and records the
-  action.
-- `connector_factory.py` — per-account seam choosing `MockConnector` (default, fully offline) vs
-  `GraphConnector` (real Microsoft Graph). Falls back to mock unless the shared Graph app
-  registration credentials *and* a per-account `GraphIntegration` row both exist and are enabled
-  — nothing real ever fires for an unconfigured account.
-- `graph_connector.py` — real MSAL/Graph calls; failure contract is strict (success dict or
-  raise — no silent "soft failure" state), since the executor infers success purely from
-  exceptions.
+**M6 autonomy (legacy)** — `actions.py`, `policy.py`, `executor.py`, `connector_factory.py`,
+`graph_connector.py`: the earlier mailbox/identity action catalog and the real Microsoft Graph
+connector. D5 retired its automatic path (the playbook fetch no longer evaluates or executes
+anything), so no automatic path calls a connector. Kept for the next rung (live mailbox
+actions) and for reading/reversing old rows. `DISABLE_SESSION` stays irreversible and
+human-only.
 
 **Agentic investigation** — `app/investigation/`: turns a flagged Case/Incident into a
 grounded investigation in one step, scoped strictly to data Cordon already has (no external

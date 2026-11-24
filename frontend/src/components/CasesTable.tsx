@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getCases } from "../api/client";
 import type { CaseSummary, MessageChannel, Verdict } from "../types/analysis";
 import ChannelBadge from "./ChannelBadge";
+import CaseTriageBadges from "./autonomy/CaseTriageBadges";
 import VerdictBadge from "./VerdictBadge";
 import { ChevronLeft, ChevronRight, FolderOpen, ShieldAlert } from "lucide-react";
 import {
@@ -181,6 +182,7 @@ export default function CasesTable({ onSelectCase, refreshToken }: CasesTablePro
                           {item.account_takeover_kind === "lateral" ? "Internal phishing" : "Account takeover"}
                         </Badge>
                       )}
+                      <CaseTriageBadges status={item.status} priority={item.priority} campaignId={item.campaign_id} />
                     </div>
                   </TD>
                   <TD>

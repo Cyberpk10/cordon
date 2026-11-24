@@ -10,14 +10,13 @@ feature. POST .../action's only effect is inserting a state row; GET /api/target
 write is upserting the stored training recommendation it computed from data already in the
 database.
 
-M6 Stage 1 adds one more side effect to the two playbook-fetch endpoints below: an
-idempotent autonomy policy evaluation (see _run_autonomy_evaluation) that may, per the
-account's configured policy, auto-execute a narrow, reversible action through a connector
-(app.autonomy.connector_factory picks MockConnector by default, or a real
-app.autonomy.graph_connector.GraphConnector once an account has connected Microsoft 365 —
-M6 Stage 2). This is the only place in the whole file that can result in Aegis actually doing
-something rather than just recording a human's decision — everything about *when* and
-*whether* it fires is governed by app.autonomy.policy, not by this module.
+M6 Stage 1 used to add one side effect to the two playbook-fetch endpoints below: an
+autonomy evaluation that could auto-execute a mailbox/identity action through a connector
+(including the real Microsoft Graph one). D5 retired that path: Cordon no longer writes to a
+mailbox automatically at any tier (it needs mailbox write scopes and CASA verification, the
+next rung). Automatic actions now come only from the D5 engine (app.autonomy.runner), which
+acts on Cordon's own records and proposes mailbox remediation for a human to carry out.
+Fetching a playbook has no side effect beyond reading.
 
 Requires auth; every query/write in this file is scoped to the authenticated user's own
 account_id (M8 Stage 2) — a case/incident belonging to another account resolves to 404.
@@ -25,7 +24,6 @@ account_id (M8 Stage 2) — a case/incident belonging to another account resolve
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -33,19 +31,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
-from app.autonomy.actions import (
-    ACTIONS,
-    BLOCK_SENDER_DOMAIN,
-    FINDING_ACTION_MAP,
-    QUARANTINE_EMAIL,
-    confidence_from_scores,
-)
-from app.autonomy.connector_factory import get_connector_for_account
-from app.autonomy.executor import execute_if_authorized
-from app.autonomy.store import get_or_create_policy_row, to_policy_dataclass
 from app.core.config import settings
 from app.db.models import (
-    AutonomyAction,
     Case,
     Incident,
     RemediationAction,
@@ -63,115 +50,13 @@ from app.models.schemas import (
     TargetSummaryResponse,
     TargetsListResponse,
 )
-from app.parsing.eml_parser import parse_eml
 from app.remediation.intrusion_playbook import generate_intrusion_playbook
 from app.remediation.playbook import PlaybookStep, generate_playbook
 from app.remediation.targets import TargetCaseRow, aggregate_targets
-from app.storage.raw_email_store import load_raw_email
 
 cases_router = APIRouter(prefix="/api/cases", tags=["remediation"])
 incidents_router = APIRouter(prefix="/api/incidents", tags=["remediation"])
 targets_router = APIRouter(prefix="/api/targets", tags=["targets"])
-
-
-def _case_target(case: Case, action_type: str) -> str:
-    if action_type == BLOCK_SENDER_DOMAIN and case.from_addr and "@" in case.from_addr:
-        return case.from_addr.split("@", 1)[1]
-    return case.from_addr or str(case.id)
-
-
-def _case_message_id(case: Case) -> str | None:
-    """The original Message-ID header, needed by GraphConnector to locate the email in a
-    real mailbox (M6 Stage 2) — re-read from the stored raw .eml on demand rather than
-    persisted on the Case row, same "raw file is the source of truth" pattern already used
-    for retention/deletion. Returns None (never raises) for anything short of a full,
-    findable header — MockConnector doesn't need it, and GraphConnector.execute() fails
-    cleanly on a missing one rather than the caller needing to pre-validate."""
-    if not case.raw_email_path:
-        return None
-    raw_bytes = load_raw_email(case.raw_email_path)
-    if raw_bytes is None:
-        return None
-    try:
-        parsed = parse_eml(raw_bytes)
-    except Exception:  # noqa: BLE001 - best-effort; a malformed stored file just means no id
-        return None
-    return next((v for k, v in parsed.headers.items() if k.lower() == "message-id"), None)
-
-
-def _case_params(case: Case, action_type: str) -> dict:
-    """Extra context a real connector needs beyond the bare `target` string — MockConnector
-    ignores all of it. QUARANTINE_EMAIL needs one mailbox + the message id to locate the
-    email; BLOCK_SENDER_DOMAIN needs every recipient mailbox the phishing email reached."""
-    if action_type not in (QUARANTINE_EMAIL, BLOCK_SENDER_DOMAIN):
-        return {}
-    params: dict = {"recipient_mailboxes": case.to_addresses}
-    if case.to_addresses:
-        params["recipient_mailbox"] = case.to_addresses[0]
-    message_id = _case_message_id(case)
-    if message_id:
-        params["internet_message_id"] = message_id
-    return params
-
-
-def _run_autonomy_evaluation(
-    db: Session,
-    *,
-    account_id: UUID,
-    case_id: UUID | None,
-    incident_id: UUID | None,
-    raw_findings: list[dict],
-    score_field: str,
-    scope: str,
-    resolve_target: Callable[[str], str],
-    resolve_params: Callable[[str], dict] | None = None,
-) -> None:
-    """Idempotent: only evaluates (and possibly executes) action types that don't already
-    have an AutonomyAction row for this case/incident, so calling this on every playbook
-    fetch never re-evaluates or re-executes an already-resolved action. Does not commit —
-    callers do, alongside the rest of their transaction."""
-    by_action: dict[str, list[dict]] = {}
-    for item in raw_findings:
-        action_type = FINDING_ACTION_MAP.get(item["id"])
-        if action_type is None:
-            continue
-        by_action.setdefault(action_type, []).append(item)
-    if not by_action:
-        return
-
-    existing = db.query(AutonomyAction.action_type).filter(
-        AutonomyAction.account_id == account_id,
-        AutonomyAction.case_id == case_id
-        if case_id is not None
-        else AutonomyAction.incident_id == incident_id,
-    )
-    already_evaluated = {row[0] for row in existing.all()}
-    pending = {t: items for t, items in by_action.items() if t not in already_evaluated}
-    if not pending:
-        return
-
-    policy_row = get_or_create_policy_row(db, account_id)
-    policy = to_policy_dataclass(policy_row)
-    connector = get_connector_for_account(db, account_id)
-
-    for action_type, items in pending.items():
-        confidence = confidence_from_scores(item[score_field] for item in items)
-        trigger_item = min(items, key=lambda i: i[score_field])
-        execute_if_authorized(
-            db,
-            policy=policy,
-            blast_radius_limit=policy_row.blast_radius_limit,
-            blast_radius_window_minutes=policy_row.blast_radius_window_minutes,
-            connector=connector,
-            action=ACTIONS[action_type],
-            confidence=confidence,
-            target=resolve_target(action_type),
-            scope=scope,
-            trigger_finding_id=trigger_item["id"],
-            case_id=case_id,
-            incident_id=incident_id,
-            params=resolve_params(action_type) if resolve_params else None,
-        )
 
 
 def _latest_actions_by_step(
@@ -285,19 +170,6 @@ async def get_case_remediation_playbook(
     if case is None or case.account_id != current_user.account_id:
         raise HTTPException(status_code=404, detail="Case not found.")
 
-    _run_autonomy_evaluation(
-        db,
-        account_id=current_user.account_id,
-        case_id=case.id,
-        incident_id=None,
-        raw_findings=case.indicators,
-        score_field="score",
-        scope="email",
-        resolve_target=lambda action_type: _case_target(case, action_type),
-        resolve_params=lambda action_type: _case_params(case, action_type),
-    )
-    db.commit()
-
     return _build_playbook_response(case, db)
 
 
@@ -312,26 +184,6 @@ async def get_incident_remediation_playbook(
     incident = db.get(Incident, incident_id)
     if incident is None or incident.account_id != current_user.account_id:
         raise HTTPException(status_code=404, detail="Incident not found.")
-
-    # A merged multi-actor incident (Stage 1 cross-actor correlation — related_actors is
-    # populated) has a synthetic, non-actionable `actor` label, not a real account
-    # identity. Auto-executing a containment action (e.g. DISABLE_SESSION) against that
-    # via a real connector would target nothing real. Skip autonomy evaluation entirely
-    # for these — a human analyst can act per-account manually using each finding's own
-    # `actor` field. Full per-member autonomy is a later stage (would need
-    # AutonomyAction's idempotency key to include the actor, not just incident_id+action).
-    if not incident.related_actors:
-        _run_autonomy_evaluation(
-            db,
-            account_id=current_user.account_id,
-            case_id=None,
-            incident_id=incident.id,
-            raw_findings=incident.findings,
-            score_field="points",
-            scope="activity",
-            resolve_target=lambda action_type: incident.actor,
-        )
-        db.commit()
 
     return _build_incident_playbook_response(incident, db)
 

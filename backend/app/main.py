@@ -40,6 +40,7 @@ from app.api.routes.reports import router as reports_router
 from app.api.routes.risk import router as risk_router
 from app.api.routes.simulation import router as simulation_router
 from app.api.routes.llm_health import router as llm_health_router
+from app.api.routes.notifications import router as notifications_router
 from app.api.routes.threat_level import router as threat_level_router
 from app.api.routes.v1 import router as v1_router
 from app.api.routes.vendor_domains import router as vendor_domains_router
@@ -160,6 +161,7 @@ def create_app() -> FastAPI:
     app.include_router(investigations_incidents_router)
     app.include_router(v1_router)
     app.include_router(llm_health_router)
+    app.include_router(notifications_router)
 
     @app.get("/health")
     async def health(db: Session = Depends(get_db)) -> dict[str, str]:

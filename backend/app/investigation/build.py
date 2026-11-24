@@ -247,6 +247,14 @@ def maybe_auto_investigate(
             db, account_id, case=case, incident=incident, trigger="auto", now=now, use_llm=False
         )
     except Exception:  # noqa: BLE001 - never let investigation generation break the caller's flow.
+        investigation = None
+    if case is not None:
+        # D5 graduated autonomy: runs on the deterministic assessment just saved (the
+        # background agent can only change wording, never the assessment). Never raises.
+        from app.autonomy.runner import maybe_run_for_case
+
+        maybe_run_for_case(db, case)
+    if investigation is None:
         return None
     if settings.enable_llm_reasoning:
         _schedule_after_commit(db, account_id, case=case, incident=incident)

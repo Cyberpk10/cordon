@@ -213,7 +213,7 @@ def _rules_claims(ctx: ToolContext, assessed: dict) -> list[dict]:
     claims: list[dict] = []
 
     def add(text: str, *keys: str) -> None:
-        ids = [eid for eid in (L.id_for(k) for k in keys) if eid]
+        ids = list(dict.fromkeys(eid for eid in (L.id_for(k) for k in keys) if eid))
         if ids:
             claims.append({"text": text, "evidence_ids": ids})
 

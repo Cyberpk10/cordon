@@ -69,4 +69,20 @@ def load_sender_history(db: Session, account_id: UUID) -> SenderHistorySnapshot:
     snapshot = build_sender_history(
         history_rows(db, account_id, cutoff), trusted_vendor_domains(db, account_id)
     )
-    return replace(snapshot, account_domains=load_account_domains(db, account_id))
+    return replace(
+        snapshot,
+        account_domains=load_account_domains(db, account_id),
+        account_lists=load_account_lists(db, account_id),
+    )
+
+
+def load_account_lists(db: Session, account_id: UUID) -> frozenset[tuple[str, str, str]]:
+    """Active in-Cordon watch/blocklist entries (D5) as (list_name, kind, value)."""
+    from app.db.models import CordonListEntry
+
+    rows = (
+        db.query(CordonListEntry.list_name, CordonListEntry.kind, CordonListEntry.value)
+        .filter(CordonListEntry.account_id == account_id, CordonListEntry.active.is_(True))
+        .all()
+    )
+    return frozenset((r[0], r[1], r[2]) for r in rows)

@@ -32,6 +32,11 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   pending_approval: "warning",
   skipped: "neutral",
   halted: "danger",
+  shadow: "violet",
+  above_tier: "neutral",
+  approved: "accent",
+  dismissed: "neutral",
+  execution_failed: "danger",
 };
 
 export default function ActionsLog() {
@@ -88,6 +93,16 @@ export default function ActionsLog() {
             className="w-52"
           >
             <option value="">All</option>
+            <option value="LABEL_CASE">Tag the case</option>
+            <option value="SET_TRIAGE">Set status and priority</option>
+            <option value="NOTIFY">Notify the team</option>
+            <option value="OPEN_INVESTIGATION">Open an investigation</option>
+            <option value="WATCHLIST_SENDER">Watch the sender</option>
+            <option value="BLOCKLIST_DOMAIN">Blocklist the domain</option>
+            <option value="WATCHLIST_IP">Watch the sending IP</option>
+            <option value="GROUP_CAMPAIGN">Group into a campaign</option>
+            <option value="ESCALATE_PRIORITY">Escalate priority</option>
+            <option value="RECOMMEND_MAILBOX_REMEDIATION">Recommend mailbox remediation</option>
             <option value="QUARANTINE_EMAIL">Quarantine email</option>
             <option value="FLAG_ACCOUNT_FOR_REVIEW">Flag account for review</option>
             <option value="DISABLE_SESSION">Disable session</option>
@@ -105,8 +120,12 @@ export default function ActionsLog() {
           >
             <option value="">All</option>
             <option value="executed">Executed</option>
+            <option value="shadow">Shadow (would have)</option>
             <option value="reversed">Reversed</option>
             <option value="pending_approval">Pending approval</option>
+            <option value="above_tier">Above tier</option>
+            <option value="approved">Approved</option>
+            <option value="dismissed">Dismissed</option>
             <option value="skipped">Skipped</option>
             <option value="halted">Halted</option>
           </Select>
@@ -124,6 +143,8 @@ export default function ActionsLog() {
                 <TH>Action</TH>
                 <TH>Target</TH>
                 <TH>Why</TH>
+                <TH>Tier / rule</TH>
+                <TH>Undo path</TH>
                 <TH>Confidence</TH>
                 <TH>Controls</TH>
                 <TH>Decision</TH>
@@ -137,9 +158,21 @@ export default function ActionsLog() {
                   <TD className="text-fg-secondary">
                     {new Date(item.created_at).toLocaleString()}
                   </TD>
-                  <TD className="text-fg">{item.action_type}</TD>
+                  <TD className="text-fg">
+                    {(item.result?.description as string | undefined) ?? item.action_type}
+                    {item.mode === "shadow" && (
+                      <Badge size="sm" tone="violet" className="ml-1.5">
+                        shadow
+                      </Badge>
+                    )}
+                  </TD>
                   <TD className="text-fg-secondary">{item.target}</TD>
                   <TD className="text-fg-secondary">{item.trigger_finding_id}</TD>
+                  <TD className="whitespace-nowrap text-fg-secondary">
+                    {item.tier ? `${item.tier} · ` : ""}
+                    <span className="font-mono text-xs">{item.rule_id ?? "—"}</span>
+                  </TD>
+                  <TD className="text-xs text-fg-secondary">{item.undo?.description ?? (item.reversible ? "Reverse" : "None")}</TD>
                   <TD className="text-fg-secondary">{item.confidence.toFixed(2)}</TD>
                   <TD>
                     <div className="flex flex-wrap gap-1">
@@ -179,7 +212,7 @@ export default function ActionsLog() {
                 </tr>
               ))}
               {!error && items.length === 0 && (
-                <TableMessageRow colSpan={9}>
+                <TableMessageRow colSpan={11}>
                   <EmptyState variant="inline" title="No autonomy actions recorded yet." />
                 </TableMessageRow>
               )}

@@ -322,6 +322,11 @@ class CaseSummary(BaseModel):
     subject: str | None = None
     # "external" | "lateral" when account-takeover detection fired for this case, else null.
     account_takeover_kind: str | None = None
+    # D5 triage state (set by people or by reversible autonomy actions).
+    status: str = "new"
+    priority: str | None = None
+    engine_tags: list[str] = Field(default_factory=list)
+    campaign_id: UUID | None = None
 
     model_config = {"from_attributes": True}
 
@@ -378,8 +383,17 @@ class CaseDetailResponse(BaseModel):
     account_takeover: AccountTakeoverFinding | None = None
     sender_baseline: SenderBaselineSummary | None = None
     latest_label: LabelResponse | None = None
+    status: str = "new"
+    priority: str | None = None
+    engine_tags: list[str] = Field(default_factory=list)
+    campaign_id: UUID | None = None
 
     model_config = {"from_attributes": True}
+
+
+class CaseTriageRequest(BaseModel):
+    status: Literal["new", "triaged", "escalated", "resolved"] | None = None
+    priority: Literal["low", "medium", "high", "critical"] | None = None
 
 
 class PeriodCount(BaseModel):
@@ -841,8 +855,12 @@ class AutonomyPolicyRuleSchema(BaseModel):
 
 
 class AutonomyPolicyRequest(BaseModel):
-    level: AutonomyLevel
-    rules: list[AutonomyPolicyRuleSchema] = Field(default_factory=list)
+    # D5: `tier` (ceiling) and `shadow_mode` drive the engine. The kill switch has its own
+    # endpoint. `level`/`rules` are the retired M6 fields, still accepted and stored.
+    tier: AutonomyLevel | None = None
+    shadow_mode: bool | None = None
+    level: AutonomyLevel | None = None
+    rules: list[AutonomyPolicyRuleSchema] | None = None
     exclusions: list[str] = Field(default_factory=list)
     blast_radius_limit: int = Field(default=10, ge=1)
     blast_radius_window_minutes: int = Field(default=60, ge=1)
@@ -857,6 +875,9 @@ class AutonomyPolicyResponse(BaseModel):
     blast_radius_window_minutes: int
     halted_at: datetime | None = None
     updated_at: datetime
+    tier: AutonomyLevel = AutonomyLevel("L1")
+    shadow_mode: bool = True
+    kill_switch: bool = False
 
 
 class AutonomyActionResponse(BaseModel):
@@ -875,8 +896,77 @@ class AutonomyActionResponse(BaseModel):
     result: dict | None = None
     reversible: bool
     mapped_controls: dict[str, list[FrameworkControlRef]]
+    engine: str | None = None
+    tier: str | None = None
+    rule_id: str | None = None
+    mode: str | None = None
+    within_tier: bool | None = None
+    undo: dict | None = None
+    actor: str | None = None
+    decided_by: str | None = None
+    decided_at: datetime | None = None
+    reversed_by: str | None = None
+    reversed_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class KillSwitchRequest(BaseModel):
+    on: bool
+
+
+class KillSwitchResponse(BaseModel):
+    kill_switch: bool
+    halted_at: datetime | None = None
+    halted_pending_count: int
+
+
+class CordonListEntryResponse(BaseModel):
+    id: UUID
+    kind: str
+    list_name: str
+    value: str
+    active: bool
+    added_by: str
+    reason: str | None = None
+    source_action_id: UUID | None = None
+    created_at: datetime
+    removed_at: datetime | None = None
+    removed_by: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ShadowSummaryRow(BaseModel):
+    action_type: str
+    tier: str
+    would_have: int
+    within_tier: int
+    later_labeled_safe: int
+
+
+class ShadowSummaryResponse(BaseModel):
+    days: int
+    cases: int
+    cases_later_labeled_safe: int
+    rows: list[ShadowSummaryRow]
+
+
+class NotificationResponse(BaseModel):
+    id: UUID
+    case_id: UUID | None = None
+    action_id: UUID | None = None
+    title: str
+    body: str
+    created_at: datetime
+    read_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class NotificationListResponse(BaseModel):
+    items: list[NotificationResponse]
+    unread: int
 
 
 class AutonomyActionListResponse(BaseModel):

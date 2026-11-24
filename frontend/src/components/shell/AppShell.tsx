@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import clsx from "clsx";
 import SidebarContent from "./Sidebar";
 import { TopBarSlotsContext } from "./PageActions";
+import NotificationBell from "./NotificationBell";
 import type { UserResponse } from "../../types/auth";
 import { PAGE_META, type Tab } from "../../navigation";
 
@@ -148,6 +149,11 @@ export default function AppShell({
                 />
               </div>
             </div>
+            {user && (
+              <div className="shrink-0 sm:order-last">
+                <NotificationBell onOpenCases={() => onSelectTab("cases")} />
+              </div>
+            )}
             <div
               ref={setActionsSlot}
               className="flex w-full flex-wrap items-center gap-2 empty:hidden sm:ml-auto sm:w-auto sm:justify-end"

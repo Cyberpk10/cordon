@@ -21,6 +21,8 @@ from sqlalchemy import (
     Uuid,
     func,
 )
+from sqlalchemy import false as sa_false
+from sqlalchemy import true as sa_true
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -265,6 +267,15 @@ class Case(Base):
     # Links, sending IP/provider and campaign signature (app.investigation.artifacts), what the
     # investigation tools correlate related cases on. Null on Cases saved before it existed.
     artifacts: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    # Triage state (D5). Set by people, or by the autonomy engine's reversible L1/L2 actions
+    # (app.autonomy.cordon_actions), whose audit rows record the prior value for undo.
+    # "new" | "triaged" | "escalated" | "resolved"; priority "low" | "medium" | "high" | "critical".
+    status: Mapped[str] = mapped_column(String, nullable=False, default="new", server_default="new")
+    priority: Mapped[str | None] = mapped_column(String, nullable=True)
+    engine_tags: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    campaign_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("case_campaigns.id", ondelete="SET NULL"), nullable=True
+    )
 
     labels: Mapped[list["Label"]] = relationship(
         back_populates="case", cascade="all, delete-orphan"
@@ -641,6 +652,13 @@ class AutonomyPolicy(Base):
     blast_radius_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
     blast_radius_window_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
     halted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # D5 graduated autonomy (app.autonomy.engine). `tier` is the ceiling: the engine performs
+    # only actions at or below it. Every account starts in shadow mode (logs would-haves, acts
+    # on nothing). `kill_switch` stops all autonomy instantly. The M6 `level`/`rules` fields
+    # above are kept for history but no longer drive anything.
+    tier: Mapped[str] = mapped_column(String, nullable=False, default="L1", server_default="L1")
+    shadow_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa_true())
+    kill_switch: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=sa_false())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -692,6 +710,20 @@ class AutonomyAction(Base):
     result: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
     reversible: Mapped[bool] = mapped_column(Boolean, nullable=False)
     mapped_controls: Mapped[dict] = mapped_column(_JSONVariant, nullable=False, default=dict)
+    # D5 (app.autonomy.engine/runner). Null on M6 rows. `engine` is "d5" for engine rows.
+    engine: Mapped[str | None] = mapped_column(String, nullable=True)
+    tier: Mapped[str | None] = mapped_column(String, nullable=True)
+    rule_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    mode: Mapped[str | None] = mapped_column(String, nullable=True)  # "shadow" | "active"
+    within_tier: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    # How to undo: {"kind": ..., "description": ..., "before": {...}} — the prior state the
+    # undo restores. Present on every D5 row, performed or not.
+    undo: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    actor: Mapped[str | None] = mapped_column(String, nullable=True)  # "system" or a user's email
+    decided_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reversed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    reversed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class GraphIntegration(Base):
@@ -1098,3 +1130,76 @@ class Investigation(Base):
     tool_trace: Mapped[list | None] = mapped_column(_JSONVariant, nullable=True)
     input_fingerprint: Mapped[str | None] = mapped_column(String, nullable=True)
     engine: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class CaseCampaign(Base):
+    """A group of Cases Cordon judged to be one campaign (D5 GROUP_CAMPAIGN action, or a
+    person). Membership is Case.campaign_id. Created by a reversible engine action, whose undo
+    clears the ids it set and deletes the campaign once empty."""
+
+    __tablename__ = "case_campaigns"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    signature: Mapped[str | None] = mapped_column(String, nullable=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    created_by_action_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+
+class CordonListEntry(Base):
+    """The account's in-Cordon watchlist/blocklist (D5). Lives entirely inside Cordon: a
+    blocklisted sender/domain adds a scored finding to future mail
+    (app.indicators.account_lists), a watched sender/domain/IP an informational one. Nothing
+    here touches a mailbox or any external system. Deactivated, never deleted, so the audit
+    trail keeps what was listed and when."""
+
+    __tablename__ = "cordon_list_entries"
+    __table_args__ = (
+        Index("ix_cordon_list_entries_account_active", "account_id", "active"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String, nullable=False)  # "sender" | "domain" | "ip"
+    list_name: Mapped[str] = mapped_column(String, nullable=False)  # "watch" | "block"
+    value: Mapped[str] = mapped_column(String, nullable=False)  # lowercased
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    source_action_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    added_by: Mapped[str] = mapped_column(String, nullable=False, default="system")
+    reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    removed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class Notification(Base):
+    """An in-app notification for an account's members (D5 NOTIFY action). Retracted, not
+    deleted, when the action that created it is undone."""
+
+    __tablename__ = "notifications"
+    __table_args__ = (Index("ix_notifications_account_created", "account_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    case_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("cases.id", ondelete="CASCADE"), nullable=True
+    )
+    action_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    retracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

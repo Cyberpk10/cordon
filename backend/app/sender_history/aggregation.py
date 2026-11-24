@@ -46,6 +46,9 @@ class SenderHistorySnapshot:
     # account context. And the account's own organisation domains, for the lateral case.
     sender_baseline: SenderBaseline | None = None
     account_domains: frozenset[str] = field(default_factory=frozenset)
+    # The account's in-Cordon watch/blocklist (D5, app.db.models.CordonListEntry): active
+    # (list_name, kind, value) triples, read by app.indicators.account_lists.
+    account_lists: frozenset[tuple[str, str, str]] = field(default_factory=frozenset)
 
 
 def empty_sender_history() -> SenderHistorySnapshot:

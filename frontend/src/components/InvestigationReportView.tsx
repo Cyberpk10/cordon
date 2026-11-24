@@ -26,7 +26,7 @@ function EvidenceChips({
 }) {
   return (
     <span className="ml-1 inline-flex flex-wrap gap-1 align-middle">
-      {ids.map((id) => (
+      {[...new Set(ids)].map((id) => (
         <button
           key={id}
           type="button"

@@ -13,7 +13,7 @@ and audit-logged.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -22,11 +22,17 @@ from sqlalchemy.orm import Session
 from app.auth.audit_log import log_event
 from app.auth.dependencies import get_current_user, require_admin
 from app.autonomy.connector_factory import get_connector_for_account
+from app.autonomy import runner
 from app.autonomy.executor import reverse_action
 from app.autonomy.store import get_or_create_policy_row
-from app.db.models import AutonomyAction, AutonomyPolicy, GraphIntegration, User
+from app.db.models import AutonomyAction, AutonomyPolicy, CordonListEntry, GraphIntegration, Label, User
 from app.db.session import get_db
 from app.models.schemas import (
+    CordonListEntryResponse,
+    KillSwitchRequest,
+    KillSwitchResponse,
+    ShadowSummaryResponse,
+    ShadowSummaryRow,
     AutonomyActionListResponse,
     AutonomyActionResponse,
     AutonomyHaltResponse,
@@ -54,6 +60,9 @@ def _to_policy_response(row: AutonomyPolicy) -> AutonomyPolicyResponse:
         blast_radius_window_minutes=row.blast_radius_window_minutes,
         halted_at=row.halted_at,
         updated_at=row.updated_at,
+        tier=row.tier,
+        shadow_mode=row.shadow_mode,
+        kill_switch=row.kill_switch,
     )
 
 
@@ -74,8 +83,14 @@ async def put_policy(
 ) -> AutonomyPolicyResponse:
     row = get_or_create_policy_row(db, current_user.account_id)
 
-    row.level = body.level.value
-    row.rules = [rule.model_dump(mode="json") for rule in body.rules]
+    if body.tier is not None:
+        row.tier = body.tier.value
+    if body.shadow_mode is not None:
+        row.shadow_mode = body.shadow_mode
+    if body.level is not None:
+        row.level = body.level.value
+    if body.rules is not None:
+        row.rules = [rule.model_dump(mode="json") for rule in body.rules]
     row.exclusions = body.exclusions
     row.blast_radius_limit = body.blast_radius_limit
     row.blast_radius_window_minutes = body.blast_radius_window_minutes
@@ -85,7 +100,7 @@ async def put_policy(
         event_type="autonomy_policy_updated",
         account_id=current_user.account_id,
         user_id=current_user.id,
-        detail={"level": row.level},
+        detail={"tier": row.tier, "shadow_mode": row.shadow_mode, "level": row.level},
         ip_address=_client_ip(request),
     )
 
@@ -108,6 +123,7 @@ async def halt(
     now = datetime.now(timezone.utc)
     row.level = "L0"
     row.halted_at = now
+    row.kill_switch = True  # D5: /halt is the kill switch's "on"
 
     halted_count = (
         db.query(AutonomyAction)
@@ -194,9 +210,9 @@ async def reverse(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AutonomyActionResponse:
-    row = db.get(AutonomyAction, action_id)
-    if row is None or row.account_id != current_user.account_id:
-        raise HTTPException(status_code=404, detail="Action not found.")
+    row = _own_action(db, action_id, current_user)
+    if row.engine == runner.ENGINE:
+        return await _decide(runner.undo, action_id, None, db, current_user)
 
     # Whatever connector actually executed this action is what must reverse it too — a
     # GraphConnector-executed action reversed through MockConnector would report success
@@ -210,6 +226,152 @@ async def reverse(
     db.commit()
     db.refresh(row)
     return AutonomyActionResponse.model_validate(row)
+
+
+def _own_action(db: Session, action_id: UUID, user: User) -> AutonomyAction:
+    row = db.get(AutonomyAction, action_id)
+    if row is None or row.account_id != user.account_id:
+        raise HTTPException(status_code=404, detail="Action not found.")
+    return row
+
+
+@router.post("/kill-switch", response_model=KillSwitchResponse)
+async def kill_switch(
+    body: KillSwitchRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+) -> KillSwitchResponse:
+    """D5 kill switch: on stops every autonomous action instantly (the engine records
+    decisions as halted and performs nothing) and halts pending approvals. Off resumes."""
+    row, halted = runner.set_kill_switch(db, current_user.account_id, body.on, current_user, _client_ip(request))
+    db.commit()
+    return KillSwitchResponse(kill_switch=row.kill_switch, halted_at=row.halted_at, halted_pending_count=halted)
+
+
+async def _decide(fn, action_id: UUID, request: Request | None, db: Session, user: User) -> AutonomyActionResponse:
+    row = _own_action(db, action_id, user)
+    try:
+        row = fn(db, row, user, _client_ip(request) if request else None)
+    except runner.AutonomyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    db.refresh(row)
+    return AutonomyActionResponse.model_validate(row)
+
+
+@router.post("/actions/{action_id}/undo", response_model=AutonomyActionResponse)
+async def undo_action(
+    action_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AutonomyActionResponse:
+    """Undo a performed D5 action. Open to any member: undo is the safe direction."""
+    return await _decide(runner.undo, action_id, request, db, current_user)
+
+
+@router.post("/actions/{action_id}/approve", response_model=AutonomyActionResponse)
+async def approve_action(
+    action_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+) -> AutonomyActionResponse:
+    """Approve a recommendation. A Cordon action is performed (and stays undoable); a
+    mailbox recommendation is recorded as approved and is never executed by Cordon."""
+    return await _decide(runner.approve, action_id, request, db, current_user)
+
+
+@router.post("/actions/{action_id}/dismiss", response_model=AutonomyActionResponse)
+async def dismiss_action(
+    action_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AutonomyActionResponse:
+    return await _decide(runner.dismiss, action_id, request, db, current_user)
+
+
+@router.get("/shadow-summary", response_model=ShadowSummaryResponse)
+async def shadow_summary(
+    days: int = Query(30, ge=1, le=365),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ShadowSummaryResponse:
+    """What the engine would have done in shadow mode, per action, and how many of those
+    cases an analyst later labelled safe: the false-positive rate to check before going
+    active."""
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    rows = (
+        db.query(AutonomyAction)
+        .filter(
+            AutonomyAction.account_id == current_user.account_id,
+            AutonomyAction.engine == runner.ENGINE,
+            AutonomyAction.mode == "shadow",
+            AutonomyAction.created_at >= since,
+        )
+        .all()
+    )
+    case_ids = {r.case_id for r in rows if r.case_id}
+    latest: dict = {}
+    if case_ids:
+        for label in (
+            db.query(Label)
+            .filter(Label.account_id == current_user.account_id, Label.case_id.in_(case_ids))
+            .order_by(Label.created_at.asc())
+            .all()
+        ):
+            latest[label.case_id] = label.analyst_verdict
+    safe_cases = {cid for cid, v in latest.items() if v == "safe"}
+    groups: dict[tuple[str, str], ShadowSummaryRow] = {}
+    for r in rows:
+        key = (r.action_type, r.tier or "")
+        g = groups.setdefault(key, ShadowSummaryRow(action_type=r.action_type, tier=r.tier or "", would_have=0,
+                                                    within_tier=0, later_labeled_safe=0))
+        g.would_have += 1
+        g.within_tier += 1 if r.within_tier else 0
+        g.later_labeled_safe += 1 if r.case_id in safe_cases else 0
+    ordered = sorted(groups.values(), key=lambda g: (g.tier, g.action_type))
+    return ShadowSummaryResponse(days=days, cases=len(case_ids), cases_later_labeled_safe=len(safe_cases), rows=ordered)
+
+
+@router.get("/lists", response_model=list[CordonListEntryResponse])
+async def list_entries(
+    include_removed: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[CordonListEntryResponse]:
+    q = db.query(CordonListEntry).filter(CordonListEntry.account_id == current_user.account_id)
+    if not include_removed:
+        q = q.filter(CordonListEntry.active.is_(True))
+    return [CordonListEntryResponse.model_validate(e) for e in q.order_by(CordonListEntry.created_at.desc()).all()]
+
+
+@router.delete("/lists/{entry_id}", response_model=CordonListEntryResponse)
+async def remove_entry(
+    entry_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CordonListEntryResponse:
+    """Remove a watch/blocklist entry. When the engine added it, this is the same as
+    undoing that action, so the audit row records the reversal too."""
+    entry = db.get(CordonListEntry, entry_id)
+    if entry is None or entry.account_id != current_user.account_id:
+        raise HTTPException(status_code=404, detail="Entry not found.")
+    source = db.get(AutonomyAction, entry.source_action_id) if entry.source_action_id else None
+    if source is not None and source.engine == runner.ENGINE and source.status == "executed":
+        runner.undo(db, source, current_user, _client_ip(request))
+    elif entry.active:
+        entry.active = False
+        entry.removed_at = datetime.now(timezone.utc)
+        entry.removed_by = current_user.email
+        log_event(db, event_type="cordon_list_entry_removed", account_id=current_user.account_id,
+                  user_id=current_user.id, detail={"entry_id": str(entry.id)}, ip_address=_client_ip(request))
+    db.commit()
+    db.refresh(entry)
+    return CordonListEntryResponse.model_validate(entry)
 
 
 def _to_graph_integration_response(row: GraphIntegration | None) -> GraphIntegrationResponse:
