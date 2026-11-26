@@ -60,6 +60,61 @@ class _LinkExtractor(HTMLParser):
         self._current_text = []
 
 
+_SKIP_TEXT_TAGS = {"script", "style", "head", "title", "noscript", "template"}
+_BLOCK_TAGS = {
+    "p", "div", "br", "tr", "li", "ul", "ol", "table", "h1", "h2", "h3", "h4", "h5", "h6",
+    "blockquote", "section", "article", "header", "footer", "hr", "pre", "td", "th",
+}
+_INLINE_WS_RE = re.compile(r"[ \t\f\v\u00a0]+")
+
+
+class _HtmlTextExtractor(HTMLParser):
+    """HTML -> the text a reader sees: script/style/head contents dropped, block elements
+    become line breaks, entities decoded. Text inside hidden elements is kept (the text rules
+    only add points, so extra text can't lower a score)."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._skip_depth = 0
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if tag in _SKIP_TEXT_TAGS:
+            self._skip_depth += 1
+        elif tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() in _BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if tag in _SKIP_TEXT_TAGS:
+            self._skip_depth = max(0, self._skip_depth - 1)
+        elif tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_data(self, data: str) -> None:
+        if not self._skip_depth:
+            self.parts.append(data)
+
+
+def html_to_text(body_html: str) -> str:
+    """Plain text from an HTML body, for HTML-only mail. Never raises."""
+    if not body_html:
+        return ""
+    extractor = _HtmlTextExtractor()
+    try:
+        extractor.feed(body_html)
+        extractor.close()
+    except Exception:  # noqa: BLE001 - malformed HTML must never break parsing
+        pass
+    lines = (_INLINE_WS_RE.sub(" ", line).strip() for line in "".join(extractor.parts).splitlines())
+    return "\n".join(line for line in lines if line)
+
+
 def _domain_of(url: str) -> str | None:
     try:
         netloc = urlsplit(url).netloc
@@ -160,7 +215,14 @@ def parse_eml(raw_bytes: bytes) -> ParsedEmail:
     received_spf_header = msg.get("Received-SPF")
 
     body_text, body_html, attachments = _walk_body_and_attachments(msg)
+    # Links first, from the real parts: running the plain-text URL scan over text converted
+    # from HTML would turn an anchor's visible text ("https://www.paypal.com") into a
+    # phantom link.
     links = _extract_links(body_html, body_text)
+    if not body_text.strip() and body_html:
+        # HTML-only mail: without this every text rule (urgency, credential/payment asks,
+        # lure themes) saw an empty body and scored nothing.
+        body_text = html_to_text(body_html)
 
     return ParsedEmail(
         channel=Channel.EMAIL,
