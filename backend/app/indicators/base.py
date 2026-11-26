@@ -31,7 +31,7 @@ def make_indicator(
         category=category,
         title=title,
         description=description,
-        evidence=evidence,
+        evidence=list(dict.fromkeys(evidence)),
         severity=severity,
         score=score,
     )

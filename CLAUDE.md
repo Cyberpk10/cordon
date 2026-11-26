@@ -155,6 +155,26 @@ raw bytes -> parse_eml() -> run_indicators() -> [optional ML predict()] -> fuse(
   ones that mock a "successfully compromised" model response (claiming `intent_risk=0`/benign
   for a known-malicious email) and confirm the score is never lowered by it.
 
+**Lure combinations and attachments** — `app/indicators/{lure_theme,institutional_sender_mismatch,
+combinations}.py`, `app/parsing/attachment_inspect.py`:
+- `SOCIAL_ENGINEERING_THEME` (romance, sextortion, prize, crypto bait; specific phrases, 8 pts) is
+  weak alone. `LURE_COMBINATION` is a post-pass in `run_indicators` over the fired findings: a
+  lure (that theme, or PAYMENT_REQUEST + URGENCY_LANGUAGE) plus obfuscated links (+20), a
+  risky attachment (+25) or a hijacked institutional sender (+20), capped at +35. No lure, no
+  bonus, so a newsletter with a bit.ly link gets nothing.
+- `AUTHENTICATED_SENDER_CONTENT_MISMATCH` (30): SPF or DKIM pass from an edu/gov/ac/… domain,
+  carrying a lure theme, and no security-awareness wording. Counts as account takeover in
+  `investigation/assessment.py`. Payment/deadline wording alone never fires it.
+- Attachments are inspected statically at parse time (magic bytes, the zip central directory
+  only, VBA markers; nothing decompressed or executed, bytes not stored) →
+  `ATTACHMENT_HTML`, `_ARCHIVE_RISKY_CONTENT`, `_ENCRYPTED_ARCHIVE`, `_TYPE_MISMATCH`, and
+  content-detected macros. Names are attacker data: sanitized in evidence and delimited with
+  `<`/`>` neutralized in the LLM prompt.
+- `run_indicators` merges findings that share an id (one per id; a pure repeat adds no
+  points). Links are deduped by normalized href. Threat-intel hostname hits on shared hosts
+  (`domain_utils.SHARED_LINK_HOSTS`: shorteners, Drive, Dropbox, LinkedIn…) don't count, only
+  exact-URL hits do: PhishTank lists bit.ly/t.co/tinyurl as whole hosts.
+
 **Detections (intrusion/UEBA) mirror the indicators pattern exactly**, one level up from a
 single email — over ingested activity `Event`s instead of a parsed email:
 

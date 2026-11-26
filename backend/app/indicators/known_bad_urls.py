@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from app.core.config import settings
 from app.indicators.base import make_indicator
+from app.indicators.domain_utils import SHARED_LINK_HOSTS, normalize_href
 from app.channels.message import Message
 from app.models.schemas import Indicator, Severity
 from app.sender_history.aggregation import SenderHistorySnapshot
@@ -29,8 +30,16 @@ def evaluate(
         return []
 
     matched: list[str] = []
+    seen: set[str] = set()
     for link in email.links:
-        match = match_hostname(link.href_domain) or match_url(link.href)
+        key = normalize_href(link.href)
+        if key in seen:
+            continue
+        seen.add(key)
+        # A shared host (URL shortener, file-sharing, code hosting) on a hostname feed means one
+        # URL on it was bad, not this one: only an exact URL match counts for those hosts.
+        host_match = None if (link.href_domain or "") in SHARED_LINK_HOSTS else match_hostname(link.href_domain)
+        match = host_match or match_url(link.href)
         if match is not None:
             matched.append(
                 f"{link.href_domain or link.href} — feed={match.feed}, "

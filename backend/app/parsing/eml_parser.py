@@ -16,6 +16,8 @@ from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
 from app.channels.message import Attachment, Channel, Link, Message
+from app.indicators.domain_utils import normalize_href
+from app.parsing.attachment_inspect import inspect as inspect_attachment
 from app.parsing.auth_results import parse_authentication_results
 
 _URL_RE = re.compile(r"https?://[^\s<>\"'()]+", re.IGNORECASE)
@@ -88,12 +90,14 @@ def _extract_links(body_html: str, body_text: str) -> list[Link]:
             seen.add(key)
             links.append(Link(display_text=display_text, href=href, href_domain=_domain_of(href)))
 
+    # The plain-text alternative usually repeats the HTML links; one entry per URL.
+    seen_hrefs = {normalize_href(link.href) for link in links}
     for match in _URL_RE.finditer(body_text):
         url = match.group(0)
-        key = (url, url)
-        if key in seen:
+        href_key = normalize_href(url)
+        if href_key in seen_hrefs:
             continue
-        seen.add(key)
+        seen_hrefs.add(href_key)
         links.append(Link(display_text=url, href=url, href_domain=_domain_of(url)))
 
     return links
@@ -122,6 +126,7 @@ def _walk_body_and_attachments(msg: EmailMessage) -> tuple[str, str, list[Attach
                     filename=filename or "(unnamed)",
                     content_type=content_type,
                     size_bytes=len(payload),
+                    inspection=inspect_attachment(filename or "", content_type, payload),
                 )
             )
             continue

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 from collections import Counter
 
 # Common multi-label public suffixes. Not exhaustive (no full Public Suffix List bundled to
@@ -12,7 +13,42 @@ _MULTI_LABEL_SUFFIXES = {
     "co.uk", "org.uk", "ac.uk", "gov.uk",
     "co.jp", "co.in", "co.kr", "co.nz", "co.za",
     "com.au", "com.br", "com.cn", "com.mx", "com.sg",
+    # Institutional/government second levels: without these, every university under e.g.
+    # edu.br collapsed to the registrable domain "edu.br" and shared one sender history.
+    "edu.br", "gov.br", "org.br", "net.br",
+    "edu.au", "gov.au", "org.au", "net.au",
+    "ac.jp", "go.jp", "ac.in", "gov.in", "edu.in",
+    "edu.cn", "gov.cn", "edu.mx", "gob.mx", "ac.za", "gov.za",
+    "ac.nz", "govt.nz", "ac.kr", "go.kr",
+    "edu.sg", "gov.sg", "edu.ar", "gob.ar", "edu.co", "gov.co", "sch.uk", "nhs.uk",
 }
+
+# URL shorteners: links through them hide the destination (LINK_SHORTENER).
+KNOWN_SHORTENERS = frozenset({
+    "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly",
+    "rebrand.ly", "cutt.ly", "shorturl.at", "rb.gy", "tiny.cc", "s.id",
+})
+
+# Hosts shared by millions of unrelated users. Threat-intel feeds list some of them as whole
+# hostnames because one URL on them was malicious (PhishTank lists bit.ly, t.co, tinyurl.com),
+# so a hostname-level hit on these says nothing about this link: only an exact URL match counts.
+SHARED_LINK_HOSTS = KNOWN_SHORTENERS | frozenset({
+    "drive.google.com", "docs.google.com", "sites.google.com", "forms.gle", "storage.googleapis.com",
+    "dropbox.com", "www.dropbox.com", "dl.dropboxusercontent.com", "1drv.ms", "onedrive.live.com",
+    "github.io", "raw.githubusercontent.com", "github.com", "gitlab.com",
+    "linkedin.com", "www.linkedin.com", "lnkd.in", "youtu.be", "youtube.com", "www.youtube.com",
+    "forms.office.com", "sharepoint.com", "notion.site", "wetransfer.com", "we.tl",
+})
+
+
+def normalize_href(href: str) -> str:
+    """Dedupe key for a link: lowercase scheme+host, trailing slash and stray punctuation
+    stripped. Path/query case is kept (shortener codes are case-sensitive)."""
+    h = (href or "").strip().rstrip(".,;:!?)]>'\"").rstrip("/")
+    m = re.match(r"^([a-z][a-z0-9+.-]*://)([^/?#]*)(.*)$", h, re.IGNORECASE)
+    if not m:
+        return h
+    return m.group(1).lower() + m.group(2).lower() + m.group(3)
 
 
 def registrable_domain(domain: str) -> str:

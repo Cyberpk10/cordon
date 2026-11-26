@@ -17,6 +17,7 @@ from enum import Enum
 from urllib.parse import urlsplit
 
 from app.models.schemas import AuthResults
+from app.parsing.attachment_inspect import AttachmentInspection
 
 _URL_RE = re.compile(r"https?://[^\s<>\"'()]+", re.IGNORECASE)
 
@@ -39,6 +40,9 @@ class Attachment:
     filename: str
     content_type: str | None
     size_bytes: int
+    # Static inspection result (app.parsing.attachment_inspect), set by the .eml parser.
+    # None for chat messages and hand-built test messages.
+    inspection: "AttachmentInspection | None" = None
 
 
 @dataclass

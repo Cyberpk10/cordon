@@ -5,15 +5,12 @@ from __future__ import annotations
 import re
 
 from app.indicators.base import make_indicator
-from app.indicators.domain_utils import is_ip_literal_host, registrable_domain
+from app.indicators.domain_utils import KNOWN_SHORTENERS, is_ip_literal_host, normalize_href, registrable_domain
 from app.models.schemas import Indicator, Severity
 from app.channels.message import Message
 from app.sender_history.aggregation import SenderHistorySnapshot
 
-_KNOWN_SHORTENERS = {
-    "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly",
-    "rebrand.ly", "cutt.ly", "shorturl.at", "rb.gy", "tiny.cc", "s.id",
-}
+_KNOWN_SHORTENERS = KNOWN_SHORTENERS
 
 _SUSPICIOUS_TLDS = {
     "zip", "mov", "top", "xyz", "click", "support", "gq", "tk", "ml", "cf",
@@ -47,16 +44,30 @@ def evaluate(
     suspicious_tld_evidence: list[str] = []
     ip_literal_evidence: list[str] = []
 
+    seen_mismatch: set[tuple[str, str]] = set()
+    seen_href: set[str] = set()
     for link in email.links:
         href_domain = link.href_domain
         if not href_domain:
             continue
+        key = normalize_href(link.href)
 
         display_domain = _display_text_domain(link.display_text)
-        if display_domain and registrable_domain(display_domain) != registrable_domain(href_domain):
+        if (
+            display_domain
+            and registrable_domain(display_domain) != registrable_domain(href_domain)
+            and (display_domain, key) not in seen_mismatch
+        ):
+            seen_mismatch.add((display_domain, key))
             mismatch_evidence.append(
                 f"Displayed '{link.display_text.strip()}' links to '{link.href}' (domain: {href_domain})"
             )
+
+        # Each unique URL counts once below, however many times it appears (HTML anchor and
+        # the plain-text alternative usually both carry it).
+        if key in seen_href:
+            continue
+        seen_href.add(key)
 
         if href_domain in _KNOWN_SHORTENERS:
             shortener_evidence.append(f"{href_domain} ({link.href})")

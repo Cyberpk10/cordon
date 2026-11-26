@@ -39,13 +39,23 @@ _FAMILIES: dict[str, frozenset[str]] = {
         "LINK_DISPLAY_HREF_MISMATCH", "LINK_SHORTENER", "LINK_SUSPICIOUS_TLD", "LINK_IP_LITERAL",
         "SUSPICIOUS_LINK_PUBLIC_CHANNEL", "EXTERNAL_DM_WITH_LINK",
     }),
-    "attachment": frozenset({"ATTACHMENT_RISKY_EXTENSION", "ATTACHMENT_DOUBLE_EXTENSION", "ATTACHMENT_MACRO_ENABLED"}),
+    "attachment": frozenset({
+        "ATTACHMENT_RISKY_EXTENSION", "ATTACHMENT_DOUBLE_EXTENSION", "ATTACHMENT_MACRO_ENABLED",
+        "ATTACHMENT_HTML", "ATTACHMENT_ARCHIVE_RISKY_CONTENT", "ATTACHMENT_ENCRYPTED_ARCHIVE",
+        "ATTACHMENT_TYPE_MISMATCH",
+    }),
     "sensitive_ask": frozenset({"CREDENTIAL_REQUEST", "PAYMENT_REQUEST", "UNKNOWN_VENDOR_CLAIM", "TRUSTED_SENDER_ANOMALY"}),
-    "account_takeover": frozenset({"ACCOUNT_TAKEOVER", "ACCOUNT_TAKEOVER_LATERAL"}),
+    # AUTHENTICATED_SENDER_CONTENT_MISMATCH: real institutional mail carrying a lure, i.e. a
+    # hijacked mailbox.
+    "account_takeover": frozenset({"ACCOUNT_TAKEOVER", "ACCOUNT_TAKEOVER_LATERAL", "AUTHENTICATED_SENDER_CONTENT_MISMATCH"}),
     "evasion": frozenset({"HIDDEN_AI_INSTRUCTION_PAYLOAD"}),
 }
 # Present but weak on their own: they never raise confidence by themselves.
-_WEAK = frozenset({"FIRST_CONTACT_SENDER", "URGENCY_LANGUAGE", "AI_AUTHORED_SUSPECTED"})
+# LURE_COMBINATION only restates findings already counted in their own families.
+_WEAK = frozenset({
+    "FIRST_CONTACT_SENDER", "URGENCY_LANGUAGE", "AI_AUTHORED_SUSPECTED",
+    "SOCIAL_ENGINEERING_THEME", "LURE_COMBINATION",
+})
 
 _FAMILY_LABEL = {
     "threat_intel": "a threat-intelligence match",
