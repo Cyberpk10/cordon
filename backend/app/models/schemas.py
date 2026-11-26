@@ -1604,3 +1604,22 @@ class ApiKeyCreatedResponse(ApiKeySummary):
 
 class ApiKeyListResponse(BaseModel):
     keys: list[ApiKeySummary]
+
+
+class MultiAgentResponse(BaseModel):
+    """D6 multi-agent assessment for a case (app.orchestration). Recommend-only."""
+
+    case_id: UUID
+    stored: bool  # False when computed on the fly (the case has no investigation row yet)
+    version: str
+    generated_at: str
+    agents: list[dict]
+    synthesis: dict
+    narrative: dict
+    engine: str
+    llm_status: str
+    model: str | None = None
+    usage: dict
+    caps: dict
+    stop_reason: str | None = None
+    executed: bool = False

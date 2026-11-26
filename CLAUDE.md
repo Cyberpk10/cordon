@@ -213,6 +213,27 @@ rung where Cordon acts. Per account (`AutonomyPolicy`): `tier` L0–L3 (the ceil
   `notifications.py`. Tests: `tests/unit/test_autonomy_engine.py`,
   `tests/integration/test_autonomy_d5.py`.
 
+**Multi-agent orchestration (D6)** — `app/orchestration/`: one consolidated, attributed
+assessment per flagged case. Recommend-only; no new action powers.
+- `blackboard.py`: a frozen `CaseSnapshot` (verdict, indicators, D3 sender intel/ATO, threat-intel
+  hits, D4 report, D5 policy; no body field) plus append-only `Contribution`s. Findings have
+  citable ids (DET-n, TI-n, ID-n, INV-n, RSP-n) and `refs` to the earlier findings they used.
+- `agents.py` (pure): detection → threat_intel → identity → investigation → response. The
+  response agent calls the pure D5 `plan()`, never the runner. Two round-2 cross-checks.
+- `synthesis.py` (pure): conflict catalog C1–C5 (trusted sender flagged, shared-host intel
+  match, AI-vs-rules hypothesis, tier gap, corroboration). The consolidated verdict is always
+  the detection verdict; D6 adjusts confidence (±1 level) and the recommended action only.
+- `orchestrator.py`: caps (`orchestrator_*` settings: rounds ≤2, agent steps, LLM calls,
+  projected tokens and cost checked before the call, deadline); hitting one sets `stop_reason`
+  and degrades. Stored on `Investigation.multi_agent`. Runs rules-only inline from
+  `maybe_auto_investigate`, then with LLM wording in `run_agent_for` after D4.
+- `llm_synthesis.py`: words only, same hardening as the investigation agent. It must restate
+  the verdict and action; agent summaries may cite only their own agent's ids. Any violation
+  keeps the rules narrative.
+- Routes: `GET /api/cases/{id}/multi-agent`, `POST .../multi-agent/run`. UI:
+  `MultiAgentPanel.tsx`. Tests: `tests/unit/test_orchestration.py`,
+  `tests/integration/test_multi_agent.py`.
+
 **M6 autonomy (legacy)** — `actions.py`, `policy.py`, `executor.py`, `connector_factory.py`,
 `graph_connector.py`: the earlier mailbox/identity action catalog and the real Microsoft Graph
 connector. D5 retired its automatic path (the playbook fetch no longer evaluates or executes

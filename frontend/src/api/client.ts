@@ -31,6 +31,7 @@ import type {
   IncidentDetail,
   IncidentListResponse,
   Investigation,
+  MultiAgentAssessment,
   Label,
   MessageChannel,
   RemediationPlaybook,
@@ -512,6 +513,14 @@ export async function investigateCase(caseId: string): Promise<Investigation> {
     return parseErrorOrThrow(response);
   }
   return response.json();
+}
+
+export async function getCaseMultiAgent(caseId: string): Promise<MultiAgentAssessment> {
+  return jsonOrThrow(await apiFetch(`/api/cases/${caseId}/multi-agent`));
+}
+
+export async function runCaseMultiAgent(caseId: string): Promise<MultiAgentAssessment> {
+  return jsonOrThrow(await apiFetch(`/api/cases/${caseId}/multi-agent/run`, { method: "POST" }));
 }
 
 export async function getIncidentInvestigation(incidentId: string): Promise<Investigation> {

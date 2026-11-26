@@ -1087,3 +1087,84 @@ export interface InvestigationReport {
   evidence_strength: "strong" | "moderate" | "thin";
   model?: string | null;
 }
+
+// --- D6 multi-agent orchestration ---------------------------------------------------------
+
+export type MultiAgentName = "detection" | "threat_intel" | "identity" | "investigation" | "response";
+
+export interface MultiAgentFinding {
+  id: string;
+  text: string;
+  kind: string;
+  refs: string[];
+  meta: Record<string, unknown>;
+}
+
+export interface MultiAgentContribution {
+  agent: MultiAgentName;
+  label: string;
+  round: number;
+  status: "ok" | "no_data" | "error" | "skipped";
+  stance: "supports_threat" | "supports_benign" | "neutral";
+  weight: "strong" | "moderate" | "weak";
+  summary: string;
+  findings: MultiAgentFinding[];
+  cross_check_of: string | null;
+}
+
+export interface MultiAgentConflict {
+  id: string;
+  title: string;
+  agents: MultiAgentName[];
+  refs: string[];
+  cross_check: string | null;
+  resolution: string;
+  effect: Record<string, unknown>;
+}
+
+export interface MultiAgentSynthesis {
+  verdict: Verdict;
+  score: number;
+  confidence: { level: "low" | "medium" | "high"; score: number; base_level: string; change: number; reasons: string[] };
+  hypothesis: { category: string; label: string };
+  recommended_action: {
+    action: string | null;
+    title: string;
+    suggested_tier: string | null;
+    rationale: string;
+    source: string;
+    executed: boolean;
+  };
+  escalation_advised: boolean;
+  would_d5_act: { summary: string; outcomes: Record<string, number>; mode: "shadow" | "active" };
+  conflicts: MultiAgentConflict[];
+  agreement: Record<string, { stance?: string; weight?: string; status: string }>;
+  citations: Record<string, string[]>;
+}
+
+export interface MultiAgentNarrativeItem {
+  agent?: MultiAgentName;
+  text: string;
+  finding_ids: string[];
+}
+
+export interface MultiAgentAssessment {
+  case_id: string;
+  stored: boolean;
+  version: string;
+  generated_at: string;
+  agents: MultiAgentContribution[];
+  synthesis: MultiAgentSynthesis;
+  narrative: {
+    agent_summaries: MultiAgentNarrativeItem[];
+    synthesis: MultiAgentNarrativeItem;
+    dropped_agent_summaries?: string[];
+  };
+  engine: "rules" | "llm";
+  llm_status: string;
+  model: string | null;
+  usage: { rounds: number; steps: number; llm_calls: number; tokens: number; est_cost_usd: number };
+  caps: Record<string, number>;
+  stop_reason: string | null;
+  executed: boolean;
+}

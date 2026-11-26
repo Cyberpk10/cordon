@@ -748,6 +748,35 @@ class Settings:
     investigation_agent_timeout_seconds: float = field(
         default_factory=lambda: float(os.environ.get("INVESTIGATION_AGENT_TIMEOUT_SECONDS", "30"))
     )
+    # D6 multi-agent orchestration (app.orchestration): hard caps. Every one is checked
+    # deterministically and degrades to the rules synthesis (never an error). The LLM call is
+    # skipped BEFORE it is made when the projected tokens or cost exceed the cap: the
+    # projection is a char-based input estimate plus the full output allowance, priced with the
+    # per-million-token rates below (set them to your model's list price).
+    orchestrator_max_rounds: int = field(
+        default_factory=lambda: int(os.environ.get("ORCHESTRATOR_MAX_ROUNDS", "2"))
+    )
+    orchestrator_max_agent_steps: int = field(
+        default_factory=lambda: int(os.environ.get("ORCHESTRATOR_MAX_AGENT_STEPS", "12"))
+    )
+    orchestrator_max_llm_calls: int = field(
+        default_factory=lambda: int(os.environ.get("ORCHESTRATOR_MAX_LLM_CALLS", "1"))
+    )
+    orchestrator_max_tokens: int = field(
+        default_factory=lambda: int(os.environ.get("ORCHESTRATOR_MAX_TOKENS", "3000"))
+    )
+    orchestrator_max_cost_usd: float = field(
+        default_factory=lambda: float(os.environ.get("ORCHESTRATOR_MAX_COST_USD", "0.01"))
+    )
+    orchestrator_deadline_seconds: float = field(
+        default_factory=lambda: float(os.environ.get("ORCHESTRATOR_DEADLINE_SECONDS", "15"))
+    )
+    llm_price_input_per_mtok_usd: float = field(
+        default_factory=lambda: float(os.environ.get("LLM_PRICE_INPUT_PER_MTOK_USD", "1.0"))
+    )
+    llm_price_output_per_mtok_usd: float = field(
+        default_factory=lambda: float(os.environ.get("LLM_PRICE_OUTPUT_PER_MTOK_USD", "5.0"))
+    )
     # A "wave": at least this many cases (including the one under investigation) linked by
     # campaign signature, link domain or sending IP within the window, across 2+ recipients.
     investigation_wave_min_cases: int = field(

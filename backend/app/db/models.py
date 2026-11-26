@@ -1130,6 +1130,11 @@ class Investigation(Base):
     tool_trace: Mapped[list | None] = mapped_column(_JSONVariant, nullable=True)
     input_fingerprint: Mapped[str | None] = mapped_column(String, nullable=True)
     engine: Mapped[str | None] = mapped_column(String, nullable=True)
+    # D6 multi-agent orchestration (app.orchestration): each agent's attributed contribution,
+    # the conflicts found and how they were resolved, and the consolidated synthesis.
+    # Recommend-only. multi_agent_fingerprint lets an unchanged case reuse stored LLM wording.
+    multi_agent: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    multi_agent_fingerprint: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class CaseCampaign(Base):

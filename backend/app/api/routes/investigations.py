@@ -20,7 +20,9 @@ from app.auth.dependencies import get_current_user
 from app.db.models import Case, Incident, Investigation, User
 from app.db.session import get_db
 from app.investigation.build import save_investigation
+from app.orchestration.orchestrator import run_orchestration, save_orchestration
 from app.models.schemas import (
+    MultiAgentResponse,
     InvestigationEvidenceItem,
     InvestigationRecommendedStepResponse,
     InvestigationReport,
@@ -109,6 +111,8 @@ async def investigate_case(
     investigation = save_investigation(
         db, current_user.account_id, case=case, trigger="manual"
     )
+    db.flush()
+    save_orchestration(db, case, use_llm=True)  # D6 on the fresh report
     db.commit()
     db.refresh(investigation)
     return _to_response(investigation)
@@ -132,6 +136,57 @@ async def get_case_investigation(
     if investigation is None:
         raise HTTPException(status_code=404, detail="No investigation has been run for this case yet.")
     return _to_response(investigation)
+
+
+def _case_for(db: Session, case_id: UUID, user: User) -> Case:
+    case = db.get(Case, case_id)
+    if case is None or case.account_id != user.account_id:
+        raise HTTPException(status_code=404, detail="Case not found.")
+    return case
+
+
+def _multi_agent_response(case: Case, record: dict, stored: bool) -> MultiAgentResponse:
+    return MultiAgentResponse(case_id=case.id, stored=stored, **record)
+
+
+@cases_router.get("/{case_id}/multi-agent", response_model=MultiAgentResponse)
+async def get_case_multi_agent(
+    case_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MultiAgentResponse:
+    """D6 multi-agent view. Stored record when there is one; otherwise computed now, rules-only
+    (and stored when the case has an investigation to store it on)."""
+    case = _case_for(db, case_id, current_user)
+    investigation = (
+        db.query(Investigation)
+        .filter(Investigation.account_id == current_user.account_id, Investigation.case_id == case_id)
+        .first()
+    )
+    if investigation is not None and investigation.multi_agent:
+        return _multi_agent_response(case, investigation.multi_agent, True)
+    if investigation is not None:
+        record = save_orchestration(db, case, use_llm=False)
+        db.commit()
+        return _multi_agent_response(case, record, True)
+    record, _ = run_orchestration(db, case, use_llm=False)
+    return _multi_agent_response(case, record, False)
+
+
+@cases_router.post("/{case_id}/multi-agent/run", response_model=MultiAgentResponse)
+async def run_case_multi_agent(
+    case_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MultiAgentResponse:
+    """Re-run the D6 synthesis now (with LLM wording when enabled; bounded by the caps)."""
+    case = _case_for(db, case_id, current_user)
+    record = save_orchestration(db, case, use_llm=True)
+    if record is not None:
+        db.commit()
+        return _multi_agent_response(case, record, True)
+    record, _ = run_orchestration(db, case, use_llm=True)
+    return _multi_agent_response(case, record, False)
 
 
 @incidents_router.post("/{incident_id}/investigate", response_model=InvestigationResponse)

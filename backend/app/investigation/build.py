@@ -254,6 +254,11 @@ def maybe_auto_investigate(
         from app.autonomy.runner import maybe_run_for_case
 
         maybe_run_for_case(db, case)
+        if investigation is not None:
+            # D6 multi-agent synthesis, rules-only inline (no LLM latency). Never raises.
+            from app.orchestration.orchestrator import maybe_orchestrate
+
+            maybe_orchestrate(db, case, use_llm=False)
     if investigation is None:
         return None
     if settings.enable_llm_reasoning:
@@ -278,6 +283,12 @@ def run_agent_for(account_id: UUID, case_id: UUID | None, incident_id: UUID | No
         if case is None and incident is None:
             return
         save_investigation(db, account_id, case=case, incident=incident, trigger="auto", use_llm=True)
+        if case is not None:
+            # D6 re-runs on D4's final report; its LLM wording (if any) is bounded and verified.
+            from app.orchestration.orchestrator import maybe_orchestrate
+
+            db.flush()
+            maybe_orchestrate(db, case, use_llm=True)
         db.commit()
     except Exception:  # noqa: BLE001
         logger.exception("Background investigation agent failed; the rules report stands")

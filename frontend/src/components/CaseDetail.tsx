@@ -5,6 +5,7 @@ import AiAuthoredFlag from "./AiAuthoredFlag";
 import AIAnalystSummary from "./AIAnalystSummary";
 import IndicatorList from "./IndicatorList";
 import InvestigationPanel from "./InvestigationPanel";
+import MultiAgentPanel from "./MultiAgentPanel";
 import IpWithLocation from "./ip/IpWithLocation";
 import SenderIpPanel from "./ip/SenderIpPanel";
 import SenderBaselinePanel from "./ip/SenderBaselinePanel";
@@ -196,6 +197,8 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
           <ResponsePlaybookPanel caseId={caseData.id} />
 
           <InvestigationPanel entityId={caseData.id} />
+
+          <MultiAgentPanel caseId={caseData.id} />
 
           <AutonomyCasePanel caseId={caseData.id} onChanged={refreshCase} />
 
