@@ -41,6 +41,27 @@ SHARED_LINK_HOSTS = KNOWN_SHORTENERS | frozenset({
 })
 
 
+# The subset of SHARED_LINK_HOSTS whose links hide where they really lead: shorteners and
+# file/document hosting, where anyone can park a credential form or payload behind a
+# trusted-looking URL. Social/video/code-browsing hosts (linkedin.com, youtube.com,
+# github.com) are left out: their links show their destination and fill ordinary newsletter
+# footers. Matched on the host or any parent (tenant.sharepoint.com, user.github.io).
+HIDDEN_DESTINATION_HOSTS = KNOWN_SHORTENERS | frozenset({
+    "lnkd.in",
+    "drive.google.com", "docs.google.com", "sites.google.com", "forms.gle", "storage.googleapis.com",
+    "dropbox.com", "dl.dropboxusercontent.com", "1drv.ms", "onedrive.live.com",
+    "github.io", "raw.githubusercontent.com",
+    "forms.office.com", "sharepoint.com", "notion.site", "wetransfer.com", "we.tl",
+})
+
+
+def is_hidden_destination_host(host: str | None) -> bool:
+    if not host:
+        return False
+    labels = host.lower().strip(".").removeprefix("www.").split(".")
+    return any(".".join(labels[i:]) in HIDDEN_DESTINATION_HOSTS for i in range(len(labels) - 1))
+
+
 def normalize_href(href: str) -> str:
     """Dedupe key for a link: lowercase scheme+host, trailing slash and stray punctuation
     stripped. Path/query case is kept (shortener codes are case-sensitive)."""

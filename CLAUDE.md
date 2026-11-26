@@ -159,9 +159,12 @@ raw bytes -> parse_eml() -> run_indicators() -> [optional ML predict()] -> fuse(
 combinations}.py`, `app/parsing/attachment_inspect.py`:
 - `SOCIAL_ENGINEERING_THEME` (romance, sextortion, prize, crypto bait; specific phrases, 8 pts) is
   weak alone. `LURE_COMBINATION` is a post-pass in `run_indicators` over the fired findings: a
-  lure (that theme, or PAYMENT_REQUEST + URGENCY_LANGUAGE) plus obfuscated links (+20), a
-  risky attachment (+25) or a hijacked institutional sender (+20), capped at +35. No lure, no
-  bonus, so a newsletter with a bit.ly link gets nothing.
+  lure (that theme, CREDENTIAL_REQUEST, PAYMENT_REQUEST, or URGENCY_LANGUAGE with 2+ phrases)
+  plus a hidden destination (+20: shortener/mismatch/IP-literal findings, or any link to
+  `domain_utils.HIDDEN_DESTINATION_HOSTS`, i.e. shorteners and file/document hosting; social/
+  video hosts excluded), a risky attachment (+25) or a hijacked institutional sender (+20),
+  capped at +35, +10 when the lure has 2+ parts (cap 45). No lure, no bonus, so a newsletter
+  with a bit.ly link gets nothing.
 - `AUTHENTICATED_SENDER_CONTENT_MISMATCH` (30): SPF or DKIM pass from an edu/gov/ac/… domain,
   carrying a lure theme, and no security-awareness wording. Counts as account takeover in
   `investigation/assessment.py`. Payment/deadline wording alone never fires it.

@@ -59,7 +59,7 @@ def run_indicators(
     indicators: list[Indicator] = []
     for rule in _RULES:
         indicators.extend(rule(email, history))
-    indicators.extend(combinations.evaluate(indicators))
+    indicators.extend(combinations.evaluate(indicators, email))
     return merge_duplicates(indicators)
 
 

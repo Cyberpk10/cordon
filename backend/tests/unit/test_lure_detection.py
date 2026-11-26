@@ -318,3 +318,68 @@ def test_registrable_domain_handles_institutional_suffixes():
     assert registrable_domain("aluno.ifsp.edu.br") == "ifsp.edu.br"
     assert registrable_domain("mail.unimelb.edu.au") == "unimelb.edu.au"
     assert registrable_domain("news.stateu.edu") == "stateu.edu"
+
+
+# --- shortener / file-sharing links as a hidden destination ----------------------------------
+
+def test_shortener_with_credential_lure_is_malicious():
+    raw = _eml(
+        sender="IT Helpdesk <helpdesk@mailbox-support.net>",
+        subject="Action required: mailbox storage full",
+        text=(
+            "Your mailbox is full and incoming mail will stop. Verify your account within 24 hours "
+            "to keep access: https://bit.ly/3MbxFix\nFailure to act will disable your mailbox."
+        ),
+    )
+    _, ids, score, verdict = _score(raw)
+    assert verdict == Verdict.MALICIOUS, (score, list(ids))
+    assert any("bit.ly" in e for e in ids["LURE_COMBINATION"].evidence)
+
+
+def test_file_share_link_with_urgent_payment_ask_is_malicious():
+    raw = _eml(
+        sender="Accounts <ap@northwind-billing.co>",
+        subject="Outstanding invoice - final notice",
+        text=(
+            "Our records show an outstanding invoice on your account. Please process the payment "
+            "immediately; this is the final notice. Invoice: https://drive.google.com/file/d/1XyZinvoice/view"
+        ),
+    )
+    _, ids, score, verdict = _score(raw)
+    assert verdict == Verdict.MALICIOUS, (score, list(ids))
+    assert "LINK_SHORTENER" not in ids  # the escalation came from the file-share link itself
+    assert any("drive.google.com" in e for e in ids["LURE_COMBINATION"].evidence)
+
+
+def test_shortener_on_marketing_newsletter_with_one_urgency_word_stays_clean():
+    raw = _eml(
+        sender="Deals <offers@shop.contoso-outdoor.com>",
+        subject="Our winter sale is on",
+        text=(
+            "Up to 40% off jackets and boots. Last chance before the weekend!\n"
+            "Shop now: https://bit.ly/ContosoWinter\n"
+            "Follow us: https://www.linkedin.com/company/contoso-outdoor and https://youtu.be/abc123"
+        ),
+    )
+    _, ids, score, verdict = _score(raw)
+    assert verdict == Verdict.SAFE, (score, list(ids))
+    assert "LURE_COMBINATION" not in ids
+
+
+def test_colleague_drive_share_without_lure_stays_clean():
+    raw = _eml(
+        sender="Priya <priya@fabrikam-design.com>",
+        subject="Mockups for review",
+        text="Hi Sam, the updated mockups are in this folder: https://drive.google.com/drive/folders/1AbCdEfGhIjK\nThanks, Priya",
+    )
+    _, ids, score, verdict = _score(raw)
+    assert verdict == Verdict.SAFE, (score, list(ids))
+    assert not ({"LURE_COMBINATION", "LINK_KNOWN_MALICIOUS"} & ids.keys())
+
+
+def test_hidden_destination_host_matching():
+    from app.indicators.domain_utils import is_hidden_destination_host as hidden
+    assert hidden("bit.ly") and hidden("drive.google.com") and hidden("contoso.sharepoint.com")
+    assert hidden("www.dropbox.com") and hidden("someone.github.io")
+    assert not hidden("www.linkedin.com") and not hidden("github.com") and not hidden("google.com")
+    assert not hidden("notbit.ly") and not hidden(None)
