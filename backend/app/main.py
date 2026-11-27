@@ -15,6 +15,8 @@ from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.routes.mailbox_remediation import app_router as mailbox_remediation_app_router
+from app.api.routes.mailbox_remediation import v1_router as mailbox_remediation_v1_router
 from app.api.routes.activity_log import router as activity_log_router
 from app.api.routes.analyze import router as analyze_router
 from app.api.routes.audit import router as audit_router
@@ -162,6 +164,8 @@ def create_app() -> FastAPI:
     app.include_router(v1_router)
     app.include_router(llm_health_router)
     app.include_router(notifications_router)
+    app.include_router(mailbox_remediation_v1_router)
+    app.include_router(mailbox_remediation_app_router)
 
     @app.get("/health")
     async def health(db: Session = Depends(get_db)) -> dict[str, str]:

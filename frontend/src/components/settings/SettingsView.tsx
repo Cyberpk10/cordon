@@ -1,5 +1,6 @@
 import { useAuth } from "../../auth/AuthContext";
 import ApiKeysCard from "./ApiKeysCard";
+import AutoQuarantinePanel from "./AutoQuarantinePanel";
 import ForwardingAddressCard from "./ForwardingAddressCard";
 
 export default function SettingsView() {
@@ -11,6 +12,7 @@ export default function SettingsView() {
     <div className="flex flex-col gap-6">
       <ForwardingAddressCard forwardingAddress={user.forwarding_address} />
       <ApiKeysCard />
+      <AutoQuarantinePanel />
     </div>
   );
 }

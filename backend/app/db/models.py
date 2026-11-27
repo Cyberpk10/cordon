@@ -1208,3 +1208,117 @@ class Notification(Base):
     )
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     retracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+# ---- D7 live auto-quarantine (app.remediation_d7) -------------------------------------------
+
+
+class MailboxRemediationPolicy(Base):
+    """One per account. D7 is off until the owner calibrates and enables it; there is no
+    shadow mode. `owner_user_id` + `mailbox_address` pin it to the owner's own Gmail: a
+    directive is only ever issued to that user's API key, for that mailbox, and only when the
+    mailbox is also in settings.d7_allowed_mailboxes (the CASA gate)."""
+
+    __tablename__ = "mailbox_remediation_policies"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    owner_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    mailbox_address: Mapped[str | None] = mapped_column(String, nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=sa_false())
+    score_floor: Mapped[int] = mapped_column(Integer, nullable=False, default=95, server_default="95")
+    max_moves_per_hour: Mapped[int] = mapped_column(Integer, nullable=False, default=5, server_default="5")
+    notify_email: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=sa_false())
+    calibrated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    calibrated_floor: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    halted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    halt_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
+class MailboxAction(Base):
+    """One per directive: the D7 audit row. `kind` "move" | "undo". A directive names exactly
+    one Gmail message id; there is no query or list form anywhere in the protocol.
+    status: issued -> claimed -> executed | aborted | failed | expired; a move whose undo
+    completed becomes "undone"."""
+
+    __tablename__ = "mailbox_actions"
+    __table_args__ = (Index("ix_mailbox_actions_account_issued", "account_id", "issued_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    case_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("cases.id", ondelete="SET NULL"), nullable=True
+    )
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)  # an undo's move
+    kind: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    mailbox_address: Mapped[str] = mapped_column(String, nullable=False)
+    gmail_message_id: Mapped[str] = mapped_column(String, nullable=False)
+    fingerprint: Mapped[str] = mapped_column(String, nullable=False)
+    label: Mapped[str] = mapped_column(String, nullable=False)
+    nonce: Mapped[str] = mapped_column(String, nullable=False)
+    gate: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    issued_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    undone_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    actor: Mapped[str] = mapped_column(String, nullable=False)
+    undo_source: Mapped[str | None] = mapped_column(String, nullable=True)  # addon | app | manual
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class CalibrationRun(Base):
+    """A one-shot D7 backtest over the owner's recent received mail. `rows` holds metadata
+    only (date, sender, truncated subject, score, verdict, gate checks), never a body."""
+
+    __tablename__ = "d7_calibration_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    score_floor: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="running")  # running | complete
+    rows: Mapped[list] = mapped_column(_JSONVariant, nullable=False, default=list)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class RuleFeedback(Base):
+    """A false-positive signal against one rule that fired on an auto-moved email the owner
+    then restored. Recorded and surfaced; never applied to weights automatically."""
+
+    __tablename__ = "rule_feedback"
+    __table_args__ = (Index("ix_rule_feedback_account_indicator", "account_id", "indicator_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    case_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("cases.id", ondelete="SET NULL"), nullable=True
+    )
+    action_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    indicator_id: Mapped[str] = mapped_column(String, nullable=False)
+    kind: Mapped[str] = mapped_column(String, nullable=False, default="false_positive")
+    source: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )

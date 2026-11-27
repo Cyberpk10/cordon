@@ -234,6 +234,32 @@ assessment per flagged case. Recommend-only; no new action powers.
   `MultiAgentPanel.tsx`. Tests: `tests/unit/test_orchestration.py`,
   `tests/integration/test_multi_agent.py`.
 
+**Live auto-quarantine (D7)** — `app/remediation_d7/`, `app/api/routes/mailbox_remediation.py`,
+`integrations/gmail-addon/Code.gs`: the first rung that writes to a real mailbox, the owner's own
+Gmail only. No shadow mode: off until a one-shot calibration and an explicit enable.
+- The backend holds no Gmail credential. The add-on (`gmail.modify`, restricted scope, owner's
+  test deployment only) polls on a time trigger (`cordonTick`), posts each new inbox message to
+  `/v1/remediation/inbound`, and executes what comes back. The backend decides.
+- `gate.py` (pure): verdict malicious, rules score (Case score minus `llm_intent_risk`) ≥ floor
+  (default 95), D6 C5 present, no unresolved C1 (a C1 resolved as `account_takeover` passes).
+  Computed from a fresh rules-only D6 run; no text or LLM output reaches it.
+- `service.py`: a passing gate gets a directive only if D7 is enabled, not halted, the kill switch
+  (D5's) is off, the mailbox is in `D7_ALLOWED_MAILBOXES` (the CASA gate), the key's user is the
+  policy owner, calibration covers the floor, and the hourly cap has room (over cap → halt +
+  alert). A directive (`directives.py`, HMAC with `D7_DIRECTIVE_SECRET`) names ONE Gmail message
+  id plus a sender+subject fingerprint; schemas are `extra="forbid"`, no list/query form exists.
+  The add-on re-checks the fingerprint, calls `/claim` (kill switch/halt re-checked, single use),
+  does a message-level `users.messages.modify` (label + remove INBOX; never delete), reports
+  `/result`. `MailboxAction` is the audit row; every step also writes an `AuditLogEntry`.
+- Undo (add-on button, app button queued to the next tick, or a manual drag back) restores INBOX,
+  marks the move `undone` (never re-moved), and writes one `RuleFeedback` false-positive row per
+  fired indicator. Recorded and shown, never applied to weights.
+- `calibration.py`: the add-on sends ~30 days of recent mail; each malicious one is built as a
+  Case and investigated inside a savepoint that is always rolled back. Only `CalibrationRun`
+  metadata rows persist. Enabling needs a run within 7 days at a floor ≤ the current one.
+- UI: `settings/AutoQuarantinePanel.tsx`, `CaseQuarantineBanner.tsx`. Tests:
+  `tests/unit/test_d7_gate.py`, `tests/integration/test_mailbox_remediation_d7.py`.
+
 **M6 autonomy (legacy)** — `actions.py`, `policy.py`, `executor.py`, `connector_factory.py`,
 `graph_connector.py`: the earlier mailbox/identity action catalog and the real Microsoft Graph
 connector. D5 retired its automatic path (the playbook fetch no longer evaluates or executes

@@ -6,6 +6,7 @@ import AIAnalystSummary from "./AIAnalystSummary";
 import IndicatorList from "./IndicatorList";
 import InvestigationPanel from "./InvestigationPanel";
 import MultiAgentPanel from "./MultiAgentPanel";
+import CaseQuarantineBanner from "./CaseQuarantineBanner";
 import IpWithLocation from "./ip/IpWithLocation";
 import SenderIpPanel from "./ip/SenderIpPanel";
 import SenderBaselinePanel from "./ip/SenderBaselinePanel";
@@ -193,6 +194,8 @@ export default function CaseDetail({ caseId, onBack, onDeleted }: CaseDetailProp
             isSubmitting={isSubmittingLabel}
             error={labelError}
           />
+
+          <CaseQuarantineBanner caseId={caseData.id} />
 
           <ResponsePlaybookPanel caseId={caseData.id} />
 

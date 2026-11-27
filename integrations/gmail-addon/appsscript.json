@@ -2,10 +2,20 @@
   "timeZone": "Etc/UTC",
   "runtimeVersion": "V8",
   "exceptionLogging": "STACKDRIVER",
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "Gmail",
+        "serviceId": "gmail",
+        "version": "v1"
+      }
+    ]
+  },
   "oauthScopes": [
     "https://www.googleapis.com/auth/gmail.addons.current.message.readonly",
     "https://www.googleapis.com/auth/gmail.addons.execute",
-    "https://www.googleapis.com/auth/script.external_request"
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/gmail.modify"
   ],
   "urlFetchWhitelist": [
     "https://aegis-backend-zbcr.onrender.com/"

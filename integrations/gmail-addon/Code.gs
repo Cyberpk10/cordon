@@ -9,6 +9,12 @@
  *
  * The API key lives in this user's PropertiesService.getUserProperties(), which only this
  * user's script runs can read. It is never logged.
+ *
+ * D7 auto-quarantine (owner's own mailbox only; see "Auto-quarantine" at the bottom and the
+ * README): a time-driven trigger runs cordonTick(), which sends new inbox mail to Cordon and,
+ * when Cordon returns a signed directive for one message, moves exactly that message to the
+ * "Cordon Quarantine" label. The decision is Cordon's; this file only executes a directive after
+ * re-checking it names the message it read. It never deletes and never acts on a query.
  */
 
 // Must match urlFetchWhitelist in appsscript.json.
@@ -46,6 +52,9 @@ function onGmailMessageOpen(e) {
   var apiKey = getApiKey_();
   if (!apiKey) {
     return [buildSettingsCard_('Paste your Cordon API key to start analyzing email.')];
+  }
+  if (isQuarantined_(e)) {
+    return [buildQuarantinedCard_()];
   }
   var cached = getCachedResult_(apiKey, e);
   if (cached) {
@@ -439,4 +448,365 @@ function escape_(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+
+// ---- D7 auto-quarantine (owner's own mailbox) ----------------------------------------------
+//
+// Setup (README "Auto-quarantine"): run setupAutoQuarantine() once from the editor, run
+// runCalibration() and review the report in Cordon, enable it in Cordon, then add a
+// time-driven trigger for cordonTick (every 5 minutes) in the editor's Triggers panel.
+//
+// Everything here uses the Advanced Gmail service under gmail.modify. GmailApp is not used for
+// the loop: Google documents most GmailApp methods as needing the full https://mail.google.com/
+// scope, which this add-on does not request. The move is message-level
+// (users.messages.modify on one id); GmailApp's label methods are thread-level and would move
+// other messages in the same thread.
+
+var D7_LABEL = 'Cordon Quarantine';
+var D7_CHECKPOINT_PROPERTY = 'CORDON_D7_CHECKPOINT';
+var D7_MAILBOX_PROPERTY = 'CORDON_D7_MAILBOX';
+var D7_CALIBRATION_PROPERTY = 'CORDON_D7_CALIBRATION';
+var D7_MAX_PER_TICK = 20;
+var D7_CALIBRATION_MAX = 300;
+var D7_CALIBRATION_BATCH = 10;
+var D7_RUN_BUDGET_MS = 4.5 * 60 * 1000;  // Apps Script stops a run at 6 minutes
+var GMAIL_ID_RE = /^[0-9a-f]{10,32}$/;
+
+/** Run once from the editor: creates the label, records your address, starts the checkpoint
+ * at "now" so older mail is never auto-moved (calibration covers that, read-only). */
+function setupAutoQuarantine() {
+  var mailbox = mailbox_(true);
+  var labelId = ensureLabel_();
+  var props = PropertiesService.getUserProperties();
+  if (!props.getProperty(D7_CHECKPOINT_PROPERTY)) {
+    props.setProperty(D7_CHECKPOINT_PROPERTY, String(Math.floor(Date.now() / 1000)));
+  }
+  Logger.log('Auto-quarantine ready for %s (label id %s). Next: runCalibration(), then enable it in Cordon, ' +
+    'then add a time-driven trigger for cordonTick every 5 minutes.', mailbox, labelId);
+}
+
+/** The loop. Safe to run by hand; the trigger runs it every 5 minutes. */
+function cordonTick() {
+  var apiKey = getApiKey_();
+  if (!apiKey) return;
+  var lock = LockService.getUserLock();
+  if (!lock.tryLock(1000)) return;  // a previous tick is still running
+  try {
+    var mailbox = mailbox_(false);
+    var labelId = ensureLabel_();
+
+    // 1. Undos queued from the Cordon app, and quarantined mail you dragged back yourself.
+    var pending = d7Call_(apiKey, 'get', '/v1/remediation/pending?mailbox=' + encodeURIComponent(mailbox));
+    if (pending.ok) {
+      (pending.body.undos || []).forEach(function (d) { safeExecute_(apiKey, d, labelId); });
+      (pending.body.quarantined || []).forEach(function (q) { checkManualRestore_(apiKey, mailbox, q, labelId); });
+    }
+
+    // 2. New inbox mail since the checkpoint, oldest first. The search is discovery only
+    // (read-only); each message is analyzed, and acted on, individually by its own id.
+    var props = PropertiesService.getUserProperties();
+    var since = Number(props.getProperty(D7_CHECKPOINT_PROPERTY) || Math.floor(Date.now() / 1000) - 600);
+    var listed = Gmail.Users.Messages.list('me', { q: 'in:inbox after:' + since, maxResults: 100 });
+    var ids = (listed.messages || []).map(function (m) { return m.id; }).reverse().slice(0, D7_MAX_PER_TICK);
+    var cache = CacheService.getUserCache();
+    var newest = since;
+    ids.forEach(function (id) {
+      var seenKey = 'cordon:d7:seen:' + id;
+      var msg = readMessage_(id);
+      if (!msg) return;
+      newest = Math.max(newest, Math.floor(Number(msg.internalDate) / 1000));
+      if (cache.get(seenKey)) return;
+      if (msg.labelIds.indexOf(labelId) >= 0 || msg.isCordonNotice) {
+        cache.put(seenKey, '1', 21600);
+        return;
+      }
+      var res = d7Call_(apiKey, 'post', '/v1/remediation/inbound', {
+        raw_email: msg.raw, gmail_message_id: id, mailbox: mailbox,
+        fingerprint: msg.fingerprint, from_addr: msg.fromAddr
+      });
+      if (!res.ok) return;  // retried next tick (not marked seen)
+      cache.put(seenKey, '1', 21600);
+      if (res.body.directive) safeExecute_(apiKey, res.body.directive, labelId);
+    });
+    props.setProperty(D7_CHECKPOINT_PROPERTY, String(newest));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function safeExecute_(apiKey, d, labelId) {
+  try {
+    return executeDirective_(apiKey, d, labelId);
+  } catch (err) {
+    console.warn('Cordon directive refused: ' + ((err && err.message) || err));
+    return 'refused';
+  }
+}
+
+/** Executes exactly ONE directive for ONE message. Refuses anything else outright. */
+function executeDirective_(apiKey, d, labelId) {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('Expected exactly one directive.');
+  ['query', 'q', 'ids', 'messages', 'gmail_message_ids'].forEach(function (k) {
+    if (Object.prototype.hasOwnProperty.call(d, k)) throw new Error('Directives never carry a query or a list.');
+  });
+  if (typeof d.gmail_message_id !== 'string' || !GMAIL_ID_RE.test(d.gmail_message_id)) {
+    throw new Error('Directive must name one Gmail message id.');
+  }
+  if (d.kind !== 'move' && d.kind !== 'undo') throw new Error('Unknown directive kind.');
+  if (d.label !== D7_LABEL) throw new Error('Unexpected label.');
+  if (!(Date.parse(d.expires_at) > Date.now())) return 'expired';
+
+  var id = d.gmail_message_id;
+  var meta = readMeta_(id);
+  if (!meta) return report_(apiKey, d, 'aborted', 'Message not found.');
+  // The id must still name the message Cordon analyzed: same sender + subject fingerprint.
+  if (meta.fingerprint !== d.fingerprint) return report_(apiKey, d, 'aborted', 'Fingerprint mismatch.');
+  if (d.kind === 'move' && meta.labelIds.indexOf('INBOX') < 0) {
+    return report_(apiKey, d, 'aborted', 'No longer in the inbox.');
+  }
+
+  var claim = d7Call_(apiKey, 'post', '/v1/remediation/directives/' + d.id + '/claim', { directive: d });
+  if (!claim.ok || !claim.body.go) return 'no_go';
+
+  try {
+    if (d.kind === 'move') {
+      Gmail.Users.Messages.modify({ addLabelIds: [labelId], removeLabelIds: ['INBOX'] }, 'me', id);
+    } else {
+      Gmail.Users.Messages.modify({ addLabelIds: ['INBOX'], removeLabelIds: [labelId] }, 'me', id);
+    }
+  } catch (err) {
+    return report_(apiKey, d, 'failed', String((err && err.message) || err).slice(0, 300));
+  }
+  var res = d7Call_(apiKey, 'post', '/v1/remediation/directives/' + d.id + '/result',
+    { directive: d, status: 'executed', detail: null });
+  if (d.kind === 'move' && res.ok && res.body.insert_notice) insertNotice_(meta);
+  return 'executed';
+}
+
+function report_(apiKey, d, status, detail) {
+  d7Call_(apiKey, 'post', '/v1/remediation/directives/' + d.id + '/result',
+    { directive: d, status: status, detail: detail });
+  return status;
+}
+
+function checkManualRestore_(apiKey, mailbox, q, labelId) {
+  if (!q || typeof q.gmail_message_id !== 'string' || !GMAIL_ID_RE.test(q.gmail_message_id)) return;
+  var meta = readMeta_(q.gmail_message_id);
+  if (!meta) return;
+  if (meta.labelIds.indexOf('INBOX') >= 0 || meta.labelIds.indexOf(labelId) < 0) {
+    d7Call_(apiKey, 'post', '/v1/remediation/manual-restore',
+      { action_id: q.action_id, gmail_message_id: q.gmail_message_id, mailbox: mailbox });
+  }
+}
+
+/** One-shot, read-only backtest. Run from the editor; if it stops for time, run it again and
+ * it continues where it left off. The report is in Cordon: Settings → Auto-quarantine. */
+function runCalibration() {
+  var apiKey = getApiKey_();
+  if (!apiKey) throw new Error('Save your Cordon API key in the add-on first.');
+  var mailbox = mailbox_(false);
+  var props = PropertiesService.getUserProperties();
+  var state = JSON.parse(props.getProperty(D7_CALIBRATION_PROPERTY) || 'null');
+  if (!state) {
+    var start = d7Call_(apiKey, 'post', '/v1/remediation/calibration', { mailbox: mailbox });
+    if (!start.ok) throw new Error('Cordon refused to start calibration (HTTP ' + start.status + ').');
+    state = { runId: start.body.run_id, pageToken: null, done: 0 };
+  }
+  var started = Date.now();
+  var finished = false;
+  while (Date.now() - started < D7_RUN_BUDGET_MS) {
+    var page = Gmail.Users.Messages.list('me',
+      { q: 'in:inbox newer_than:30d', maxResults: 50, pageToken: state.pageToken || undefined });
+    var ids = (page.messages || []).map(function (m) { return m.id; });
+    for (var i = 0; i < ids.length && state.done < D7_CALIBRATION_MAX; i += D7_CALIBRATION_BATCH) {
+      var batch = ids.slice(i, i + D7_CALIBRATION_BATCH).map(readMessage_).filter(function (m) { return m; })
+        .map(function (m) {
+          return { raw_email: m.raw, gmail_message_id: m.id,
+            received_at: new Date(Number(m.internalDate)).toISOString() };
+        });
+      if (batch.length) {
+        var res = d7Call_(apiKey, 'post', '/v1/remediation/calibration/' + state.runId + '/batch',
+          { mailbox: mailbox, messages: batch });
+        if (!res.ok) throw new Error('Calibration batch failed (HTTP ' + res.status + '). Run again to retry.');
+      }
+      state.done += batch.length;
+    }
+    state.pageToken = page.nextPageToken || null;
+    if (!state.pageToken || state.done >= D7_CALIBRATION_MAX) { finished = true; break; }
+    props.setProperty(D7_CALIBRATION_PROPERTY, JSON.stringify(state));
+  }
+  if (!finished) {
+    props.setProperty(D7_CALIBRATION_PROPERTY, JSON.stringify(state));
+    Logger.log('Calibrated %s messages so far. Run runCalibration() again to continue.', state.done);
+    return;
+  }
+  var done = d7Call_(apiKey, 'post', '/v1/remediation/calibration/' + state.runId + '/complete', { mailbox: mailbox });
+  props.deleteProperty(D7_CALIBRATION_PROPERTY);
+  if (!done.ok) throw new Error('Could not complete calibration (HTTP ' + done.status + ').');
+  Logger.log('Calibration done: %s messages, %s would be auto-moved at floor %s. Review it in Cordon: ' +
+    'Settings → Auto-quarantine.', done.body.total, done.body.would_move, done.body.score_floor);
+}
+
+// ---- sidebar: quarantined message -----------------------------------------------------------
+
+function isQuarantined_(e) {
+  try {
+    if (!e || !e.gmail || !e.gmail.messageId) return false;
+    var labelId = findLabelId_();
+    if (!labelId) return false;
+    var meta = Gmail.Users.Messages.get('me', e.gmail.messageId, { format: 'minimal' });
+    return (meta.labelIds || []).indexOf(labelId) >= 0;
+  } catch (err) {
+    return false;  // never let this block the normal card
+  }
+}
+
+function buildQuarantinedCard_() {
+  return CardService.newCardBuilder()
+    .setHeader(CardService.newCardHeader().setTitle('Cordon: moved to quarantine'))
+    .addSection(CardService.newCardSection()
+      .addWidget(CardService.newTextParagraph().setText(
+        '<font color="' + COLORS.danger + '"><b>Moved to "' + D7_LABEL + '" by Cordon.</b></font> ' +
+        'Nothing was deleted. If this is not phishing, undo puts it back in your inbox and tells Cordon ' +
+        'the rules got it wrong.'))
+      .addWidget(CardService.newTextButton()
+        .setText('Undo / Not phishing')
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setOnClickAction(CardService.newAction().setFunctionName('undoQuarantine')))
+      .addWidget(buildFooterButtons_()))
+    .build();
+}
+
+function undoQuarantine(e) {
+  var apiKey = getApiKey_();
+  var text;
+  try {
+    var res = d7Call_(apiKey, 'post', '/v1/remediation/undo',
+      { gmail_message_id: e.gmail.messageId, mailbox: mailbox_(false) });
+    if (!res.ok) {
+      text = 'Cordon could not undo this (HTTP ' + res.status + ').';
+    } else {
+      var outcome = executeDirective_(apiKey, res.body.directive, ensureLabel_());
+      text = outcome === 'executed' ? 'Restored to your inbox.' : 'Undo did not complete (' + outcome + ').';
+    }
+  } catch (err) {
+    text = 'Undo failed: ' + ((err && err.message) || err);
+  }
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText(text))
+    .build();
+}
+
+// ---- Gmail helpers (Advanced Gmail service, gmail.modify) ----------------------------------
+
+function mailbox_(refresh) {
+  var props = PropertiesService.getUserProperties();
+  var cached = props.getProperty(D7_MAILBOX_PROPERTY);
+  if (cached && !refresh) return cached;
+  var address = String(Gmail.Users.getProfile('me').emailAddress).toLowerCase();
+  props.setProperty(D7_MAILBOX_PROPERTY, address);
+  return address;
+}
+
+function findLabelId_() {
+  var labels = Gmail.Users.Labels.list('me').labels || [];
+  for (var i = 0; i < labels.length; i++) {
+    if (labels[i].name === D7_LABEL) return labels[i].id;
+  }
+  return null;
+}
+
+function ensureLabel_() {
+  return findLabelId_() || Gmail.Users.Labels.create(
+    { name: D7_LABEL, labelListVisibility: 'labelShow', messageListVisibility: 'show' }, 'me').id;
+}
+
+function header_(headers, name) {
+  for (var i = 0; i < (headers || []).length; i++) {
+    if (String(headers[i].name).toLowerCase() === name.toLowerCase()) return String(headers[i].value || '');
+  }
+  return '';
+}
+
+function fromAddress_(from) {
+  var m = /<([^>]+)>/.exec(from);
+  return (m ? m[1] : from).trim().toLowerCase();
+}
+
+/** sha256(lowercase From address + "\n" + Subject), hex. The same function runs when the
+ * message is read for analysis and again right before acting on a directive. */
+function fingerprintOf_(fromAddr, subject) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, fromAddr + '\n' + subject,
+    Utilities.Charset.UTF_8);
+  return bytes.map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
+}
+
+function readMeta_(id) {
+  try {
+    var m = Gmail.Users.Messages.get('me', id, { format: 'metadata', metadataHeaders: ['From', 'Subject'] });
+    var headers = m.payload && m.payload.headers;
+    var fromAddr = fromAddress_(header_(headers, 'From'));
+    var subject = header_(headers, 'Subject');
+    return { id: id, labelIds: m.labelIds || [], fromAddr: fromAddr, subject: subject,
+      fingerprint: fingerprintOf_(fromAddr, subject) };
+  } catch (err) {
+    return null;
+  }
+}
+
+function readMessage_(id) {
+  var meta = readMeta_(id);
+  if (!meta) return null;
+  try {
+    var full = Gmail.Users.Messages.get('me', id, { format: 'raw' });
+    var raw = Utilities.newBlob(Utilities.base64DecodeWebSafe(full.raw)).getDataAsString();
+    meta.raw = raw;
+    meta.internalDate = full.internalDate;
+    meta.isCordonNotice = /^X-Cordon-Notice:/mi.test(raw.split(/\r?\n\r?\n/)[0]);
+    return meta;
+  } catch (err) {
+    return null;
+  }
+}
+
+/** Optional notice email (Settings → Auto-quarantine → email notice). Inserted straight into
+ * your own inbox with users.messages.insert (covered by gmail.modify), so no send scope. */
+function insertNotice_(meta) {
+  try {
+    var mailbox = mailbox_(false);
+    var body = 'Cordon moved a message out of your inbox into the "' + D7_LABEL + '" label.\r\n\r\n' +
+      'From: ' + meta.fromAddr + '\r\nSubject: ' + meta.subject + '\r\n\r\n' +
+      'Nothing was deleted. Not phishing? Open it in the "' + D7_LABEL + '" label and tap ' +
+      '"Undo / Not phishing" in the Cordon panel, or use Undo in Cordon.\r\n';
+    var rfc822 = 'From: Cordon <' + mailbox + '>\r\nTo: ' + mailbox + '\r\n' +
+      'Subject: Cordon quarantined a message\r\nX-Cordon-Notice: 1\r\n' +
+      'Content-Type: text/plain; charset=UTF-8\r\n\r\n' + body;
+    Gmail.Users.Messages.insert({ raw: Utilities.base64EncodeWebSafe(rfc822, Utilities.Charset.UTF_8),
+      labelIds: ['INBOX', 'UNREAD'] }, 'me');
+  } catch (err) {
+    console.warn('Cordon notice not inserted: ' + ((err && err.message) || err));
+  }
+}
+
+function d7Call_(apiKey, method, path, payload) {
+  var options = {
+    method: method,
+    headers: { Authorization: 'Bearer ' + apiKey },
+    muteHttpExceptions: true,
+    followRedirects: false
+  };
+  if (payload) {
+    options.contentType = 'application/json';
+    options.payload = JSON.stringify(payload);
+  }
+  try {
+    var r = UrlFetchApp.fetch(CORDON_API_BASE + path, options);
+    var status = r.getResponseCode();
+    var body = null;
+    try { body = JSON.parse(r.getContentText()); } catch (err) { body = null; }
+    return { ok: status === 200 && body !== null, status: status, body: body };
+  } catch (err) {
+    return { ok: false, status: 0, body: null };
+  }
 }

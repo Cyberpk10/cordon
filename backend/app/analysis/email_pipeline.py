@@ -71,6 +71,7 @@ def run_email_pipeline(
     raw_bytes: bytes,
     sender_history: SenderHistorySnapshot | None = None,
     baseline_lookup: Callable[[str], SenderBaseline] | None = None,
+    use_llm: bool = True,
 ) -> PipelineResult:
     """Parses raw .eml bytes and runs the full rule-based + optional ML + optional LLM analysis.
     Raises whatever parse_eml raises on malformed input — callers translate that into their own
@@ -78,7 +79,8 @@ def run_email_pipeline(
     is the caller's pre-loaded per-account correspondence history (M8 Stage 3a,
     app.sender_history.aggregation) — None for callers with no account context.
     `baseline_lookup` (app.sender_baseline.loader.baseline_lookup_for) fetches the behavioral
-    baseline for the parsed From address, for the account-takeover rule."""
+    baseline for the parsed From address, for the account-takeover rule. `use_llm=False` skips
+    the LLM assessment (D7 calibration: its backtest gate never counts LLM points anyway)."""
     parsed = parse_eml(raw_bytes)
 
     signals = extract_signals(parsed)
@@ -103,7 +105,7 @@ def run_email_pipeline(
     rule_score, rule_verdict = fuse(indicators, ml_probability)
 
     llm_assessment = None
-    if settings.enable_llm_reasoning:
+    if settings.enable_llm_reasoning and use_llm:
         llm_assessment = generate_llm_assessment(parsed, indicators, rule_score, rule_verdict)
 
     # Pass 2: fold in the bounded, additive-only LLM intent signal. llm_intent_risk is None

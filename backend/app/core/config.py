@@ -785,6 +785,38 @@ class Settings:
     investigation_wave_window_days: int = field(
         default_factory=lambda: int(os.environ.get("INVESTIGATION_WAVE_WINDOW_DAYS", "7"))
     )
+    # D7 live auto-quarantine (app.remediation_d7). The first rung that writes to a real
+    # mailbox: the Gmail add-on moves ONE message to a label when the backend issues a signed
+    # directive for it. Off unless BOTH are set:
+    #   D7_DIRECTIVE_SECRET   HMAC key for directives. Unset -> no directive is ever issued.
+    #   D7_ALLOWED_MAILBOXES  comma-separated Gmail addresses. gmail.modify is a RESTRICTED
+    #                         scope: only the owner's own unverified test deployment may use
+    #                         it. Any other mailbox needs Google's CASA assessment and app
+    #                         verification first, so it stays out of this list until then.
+    d7_directive_secret: str = field(default_factory=lambda: os.environ.get("D7_DIRECTIVE_SECRET", ""))
+    d7_allowed_mailboxes: list[str] = field(
+        default_factory=lambda: [
+            m.strip().lower() for m in os.environ.get("D7_ALLOWED_MAILBOXES", "").split(",") if m.strip()
+        ]
+    )
+    d7_default_score_floor: int = field(
+        default_factory=lambda: int(os.environ.get("D7_DEFAULT_SCORE_FLOOR", "95"))
+    )
+    d7_default_max_moves_per_hour: int = field(
+        default_factory=lambda: int(os.environ.get("D7_DEFAULT_MAX_MOVES_PER_HOUR", "5"))
+    )
+    d7_move_directive_ttl_seconds: int = field(
+        default_factory=lambda: int(os.environ.get("D7_MOVE_DIRECTIVE_TTL_SECONDS", "600"))
+    )
+    d7_undo_directive_ttl_seconds: int = field(
+        default_factory=lambda: int(os.environ.get("D7_UNDO_DIRECTIVE_TTL_SECONDS", "86400"))
+    )
+    d7_calibration_max_age_days: int = field(
+        default_factory=lambda: int(os.environ.get("D7_CALIBRATION_MAX_AGE_DAYS", "7"))
+    )
+    d7_quarantine_label: str = field(
+        default_factory=lambda: os.environ.get("D7_QUARANTINE_LABEL", "Cordon Quarantine")
+    )
 
 
 settings = Settings()

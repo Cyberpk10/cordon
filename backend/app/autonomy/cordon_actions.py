@@ -42,7 +42,8 @@ ESCALATE_PRIORITY = "ESCALATE_PRIORITY"
 RECOMMEND_MAILBOX_REMEDIATION = "RECOMMEND_MAILBOX_REMEDIATION"
 
 DEFERRED_ACTIONS: dict[str, str] = {
-    "MAILBOX_QUARANTINE": "Moving real mail needs mailbox write scopes and CASA verification. Next rung.",
+    "MAILBOX_QUARANTINE": "Not a D5 action. D7 (app.remediation_d7) moves one message to a label in the "
+                          "owner's own Gmail only; any other mailbox needs CASA verification first.",
     "MAILBOX_DELETE": "Never automatic. Not planned for any tier.",
     "MAILBOX_RULES": "Transport/inbox rules need mailbox write scopes. Next rung.",
     "SESSION_REVOKE": "Irreversible (no un-revoke API). Human-only.",

@@ -1623,3 +1623,104 @@ class MultiAgentResponse(BaseModel):
     caps: dict
     stop_reason: str | None = None
     executed: bool = False
+
+
+# ---- D7 live auto-quarantine (app.remediation_d7) -------------------------------------------
+# Strict (extra="forbid") so the executor protocol can't grow a list-of-ids or query field by
+# accident: a request carrying one is rejected outright.
+
+_GMAIL_ID = r"^[0-9a-f]{10,32}$"
+_SHA256 = r"^[0-9a-f]{64}$"
+
+
+class D7Directive(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    kind: Literal["move", "undo"]
+    gmail_message_id: str = Field(pattern=_GMAIL_ID)
+    fingerprint: str = Field(pattern=_SHA256)
+    label: str
+    nonce: str
+    expires_at: str
+    sig: str
+
+
+class D7InboundRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    raw_email: str = Field(min_length=1)
+    gmail_message_id: str = Field(pattern=_GMAIL_ID)
+    mailbox: str = Field(min_length=3, max_length=320)
+    # sha256(lowercase From address + "\n" + Subject), computed by the add-on when it read the
+    # message; it recomputes it from the live message before acting and aborts on a mismatch.
+    fingerprint: str = Field(pattern=_SHA256)
+    from_addr: str = Field(max_length=320)
+
+
+class D7InboundResponse(BaseModel):
+    verdict: str
+    score: int
+    case_id: str | None
+    gate: dict | None
+    directive: D7Directive | None
+    withheld: list[str] = []
+
+
+class D7ClaimRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    directive: D7Directive
+
+
+class D7ResultRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    directive: D7Directive
+    status: Literal["executed", "aborted", "failed"]
+    detail: str | None = Field(default=None, max_length=500)
+
+
+class D7AddonUndoRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    gmail_message_id: str = Field(pattern=_GMAIL_ID)
+    mailbox: str = Field(min_length=3, max_length=320)
+
+
+class D7ManualRestoreRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action_id: UUID
+    gmail_message_id: str = Field(pattern=_GMAIL_ID)
+    mailbox: str = Field(min_length=3, max_length=320)
+
+
+class D7CalibrationStartRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mailbox: str = Field(min_length=3, max_length=320)
+
+
+class D7CalibrationMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    raw_email: str = Field(min_length=1)
+    gmail_message_id: str = Field(pattern=_GMAIL_ID)
+    received_at: str | None = Field(default=None, max_length=40)
+
+
+class D7CalibrationBatchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mailbox: str = Field(min_length=3, max_length=320)
+    messages: list[D7CalibrationMessage] = Field(min_length=1, max_length=10)
+
+
+class D7PolicyUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mailbox_address: str | None = Field(default=None, max_length=320)
+    score_floor: int | None = Field(default=None, ge=55, le=100)
+    max_moves_per_hour: int | None = Field(default=None, ge=1, le=50)
+    notify_email: bool | None = None

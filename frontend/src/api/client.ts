@@ -830,3 +830,131 @@ export async function revokeApiKey(id: string): Promise<void> {
   const response = await apiFetch(`/v1/keys/${id}`, { method: "DELETE" });
   if (!response.ok) return parseErrorOrThrow(response);
 }
+
+// ---- D7 auto-quarantine (owner's own mailbox) ------------------------------------------------
+
+export interface MailboxGateCheck {
+  id: string;
+  label: string;
+  ok: boolean;
+}
+
+export interface MailboxGate {
+  passed: boolean;
+  decision: "auto_move" | "recommend_only";
+  checks: MailboxGateCheck[];
+  reasons: string[];
+  score: number;
+  floor: number;
+}
+
+export interface MailboxAction {
+  id: string;
+  kind: "move" | "undo";
+  status: "issued" | "claimed" | "executed" | "aborted" | "failed" | "expired" | "undone";
+  case_id: string | null;
+  parent_id: string | null;
+  gmail_message_id: string;
+  label: string;
+  gate: MailboxGate | null;
+  issued_at: string | null;
+  executed_at: string | null;
+  undone_at: string | null;
+  undo_source: "addon" | "app" | "manual" | null;
+  detail: string | null;
+  actor: string;
+  from_addr: string | null;
+  subject: string | null;
+}
+
+export interface MailboxPolicy {
+  enabled: boolean;
+  mailbox_address: string | null;
+  owner_user_id: string | null;
+  score_floor: number;
+  max_moves_per_hour: number;
+  notify_email: boolean;
+  calibrated_at: string | null;
+  calibrated_floor: number | null;
+  halted_at: string | null;
+  halt_reason: string | null;
+  mailbox_allowlisted: boolean;
+  enable_blockers: string[];
+  moves_last_hour: number;
+}
+
+export interface CalibrationSummary {
+  id: string;
+  status: "running" | "complete";
+  score_floor: number;
+  started_at: string | null;
+  completed_at: string | null;
+  total: number;
+  would_move: number;
+  near_misses: number;
+  errors: number;
+}
+
+export interface CalibrationRow {
+  gmail_message_id: string;
+  received_at: string | null;
+  from_addr?: string | null;
+  subject?: string;
+  verdict?: string;
+  score?: number;
+  rule_score?: number;
+  checks?: Record<string, boolean>;
+  would_move: boolean;
+  reasons?: string[];
+  error?: string;
+}
+
+export interface MailboxRemediationState {
+  policy: MailboxPolicy | null;
+  server: { secret_set: boolean; label: string; calibration_max_age_days: number };
+  calibration: CalibrationSummary | null;
+  actions: MailboxAction[];
+  feedback: { indicator_id: string; false_positives: number }[];
+  kill_switch: boolean;
+}
+
+export interface MailboxPolicyUpdate {
+  mailbox_address?: string;
+  score_floor?: number;
+  max_moves_per_hour?: number;
+  notify_email?: boolean;
+}
+
+const MAILBOX_BASE = "/api/remediation/mailbox";
+
+export async function getMailboxRemediation(): Promise<MailboxRemediationState> {
+  return jsonOrThrow(await apiFetch(MAILBOX_BASE));
+}
+
+export async function updateMailboxRemediation(update: MailboxPolicyUpdate): Promise<MailboxRemediationState> {
+  return jsonOrThrow(
+    await apiFetch(MAILBOX_BASE, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    }),
+  );
+}
+
+export async function setMailboxRemediation(
+  op: "enable" | "disable" | "resume",
+): Promise<MailboxRemediationState> {
+  return jsonOrThrow(await apiFetch(`${MAILBOX_BASE}/${op}`, { method: "POST" }));
+}
+
+export async function getMailboxCalibration(): Promise<{ summary: CalibrationSummary | null; rows: CalibrationRow[] }> {
+  return jsonOrThrow(await apiFetch(`${MAILBOX_BASE}/calibration`));
+}
+
+export async function getCaseMailboxActions(caseId: string): Promise<{ actions: MailboxAction[] }> {
+  return jsonOrThrow(await apiFetch(`${MAILBOX_BASE}/cases/${caseId}`));
+}
+
+export async function undoMailboxAction(actionId: string): Promise<{ queued: boolean; detail: string }> {
+  return jsonOrThrow(await apiFetch(`${MAILBOX_BASE}/actions/${actionId}/undo`, { method: "POST" }));
+}

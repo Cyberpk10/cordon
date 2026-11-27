@@ -30,6 +30,47 @@ from app.threat_level.hooks import record_case_signal
 router = APIRouter(prefix="/api", tags=["analyze"])
 
 
+def case_from_result(
+    *, case_id: uuid.UUID, account_id: uuid.UUID, filename: str, result: PipelineResult,
+    raw_email_path: str | None, content_hash: str | None,
+) -> Case:
+    """The Case row for a pipeline result, not yet added to the session. Shared with D7
+    calibration, which evaluates a Case inside a savepoint it always rolls back."""
+    parsed = result.parsed
+    indicators_json = [i.model_dump(mode="json") for i in result.indicators]
+    framework_mappings_json = {
+        key: [ref.model_dump(mode="json") for ref in refs]
+        for key, refs in result.framework_mappings.items()
+    }
+
+    return Case(
+        id=case_id,
+        account_id=account_id,
+        filename=filename,
+        verdict=result.verdict.value,
+        score=result.score,
+        from_addr=parsed.from_address,
+        subject=parsed.subject,
+        to_addresses=parsed.to_addresses,
+        indicators=indicators_json,
+        framework_mappings=framework_mappings_json,
+        analyst_narrative=result.analyst_narrative,
+        analyst_model=result.analyst_model,
+        llm_intent_category=result.llm_intent_category,
+        llm_intent_risk=result.llm_intent_risk,
+        llm_intent_confidence=result.llm_intent_confidence,
+        llm_intent_reasons=result.llm_intent_reasons,
+        ml_probability=result.ml_probability,
+        ml_model_version=result.ml_model_version,
+        sender_ip_info=result.sender_ip_info.model_dump(mode="json") if result.sender_ip_info else None,
+        account_takeover=result.account_takeover,
+        sender_baseline=result.sender_baseline,
+        artifacts=result.artifacts,
+        raw_email_path=raw_email_path,
+        content_hash=content_hash,
+    )
+
+
 def persist_case_and_build_response(
     raw_bytes: bytes,
     filename: str,
@@ -53,38 +94,9 @@ def persist_case_and_build_response(
 
     case_id = uuid.uuid4()
     raw_email_path = save_raw_email(case_id, raw_bytes)
-
-    indicators_json = [i.model_dump(mode="json") for i in result.indicators]
-    framework_mappings_json = {
-        key: [ref.model_dump(mode="json") for ref in refs]
-        for key, refs in result.framework_mappings.items()
-    }
-
-    case = Case(
-        id=case_id,
-        account_id=current_user.account_id,
-        filename=filename,
-        verdict=result.verdict.value,
-        score=result.score,
-        from_addr=parsed.from_address,
-        subject=parsed.subject,
-        to_addresses=parsed.to_addresses,
-        indicators=indicators_json,
-        framework_mappings=framework_mappings_json,
-        analyst_narrative=result.analyst_narrative,
-        analyst_model=result.analyst_model,
-        llm_intent_category=result.llm_intent_category,
-        llm_intent_risk=result.llm_intent_risk,
-        llm_intent_confidence=result.llm_intent_confidence,
-        llm_intent_reasons=result.llm_intent_reasons,
-        ml_probability=result.ml_probability,
-        ml_model_version=result.ml_model_version,
-        sender_ip_info=result.sender_ip_info.model_dump(mode="json") if result.sender_ip_info else None,
-        account_takeover=result.account_takeover,
-        sender_baseline=result.sender_baseline,
-        artifacts=result.artifacts,
-        raw_email_path=raw_email_path,
-        content_hash=content_hash,
+    case = case_from_result(
+        case_id=case_id, account_id=current_user.account_id, filename=filename, result=result,
+        raw_email_path=raw_email_path, content_hash=content_hash,
     )
     db.add(case)
     record_observation(

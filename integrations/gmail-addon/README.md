@@ -52,11 +52,15 @@ change it in **both** places, or Google blocks the request:
 2. Under **Application(s): Gmail**, click **Install**, then **Done**.
 3. Open Gmail (refresh if it was already open) and open any email. The Cordon icon appears in
    the right-hand side panel. Click it.
-4. The first time, Google asks you to authorize the add-on. It requests three scopes:
+4. The first time, Google asks you to authorize the add-on. It requests four scopes:
    - read the **currently open** message only (`gmail.addons.current.message.readonly`), not
      your whole mailbox;
    - run as a Gmail add-on (`gmail.addons.execute`);
-   - call an external service, Cordon (`script.external_request`).
+   - call an external service, Cordon (`script.external_request`);
+   - read, label and move messages in your mailbox (`gmail.modify`), used only by
+     auto-quarantine (see [Auto-quarantine](#auto-quarantine-owners-own-mailbox-only)). It is a
+     **restricted** scope: fine for your own test deployment, never for anyone else's mailbox
+     without CASA (below).
 
    For an unpublished test deployment Google shows an "unverified app" screen. That is expected
    for your own script. Choose **Advanced → Go to Cordon for Gmail (unsafe)**.
@@ -144,6 +148,70 @@ Content-Type: application/json
   "frameworks": ["MITRE T1566", "NIST DE.CM-01", "ISO A.5.7", "SOC 2 CC7.2"]
 }
 ```
+
+## Auto-quarantine (owner's own mailbox only)
+
+Cordon can move a message out of your inbox into a **Cordon Quarantine** label when it is
+confident the message is phishing. It never deletes anything: the message stays in the label,
+visible in Gmail's sidebar, and one tap puts it back.
+
+**When a message is moved.** Cordon's backend decides; the add-on only carries it out. All four
+must hold, computed by Cordon's rules (nothing an email says can change them):
+1. the verdict is malicious;
+2. the rules score is at or above your floor (default 95);
+3. Cordon's multi-agent check found independent agents agreeing (corroboration);
+4. there is no unresolved "trusted sender flagged" conflict.
+
+Anything less is shown as a recommendation and the message stays put.
+
+**How it executes.** For a qualifying message Cordon returns a signed directive naming exactly
+one Gmail message id. Before touching anything, the add-on:
+1. re-reads that one message and checks its sender and subject still match what Cordon
+   analyzed (aborts if not);
+2. asks Cordon to confirm right then (the kill switch, a halt or "disabled" stops it here);
+3. adds the label and removes INBOX on that one message (`users.messages.modify`; never a
+   thread, a query or a batch);
+4. reports back. Cordon notifies you in the app, and optionally with an email notice inserted
+   into your inbox.
+
+More than the hourly cap (default 5) of qualifying messages halts auto-quarantine and alerts you
+until you resume it.
+
+**Setup:**
+1. Paste the updated `appsscript.json` and `Code.gs` into your Apps Script project and save.
+   The manifest enables the **Gmail** advanced service; if the editor asks, turn it on under
+   **Services**.
+2. Run **`setupAutoQuarantine`** from the editor (function dropdown → Run). Google asks you to
+   re-authorize for `gmail.modify`; accept it for your own account. This creates the label and
+   starts from "now", so older mail is never auto-moved.
+3. In Cordon, open **Settings → Auto-quarantine**, enter your Gmail address, and save.
+4. Run **`runCalibration`** from the editor. It reads up to 300 messages from the last 30 days
+   (read-only, nothing is moved) and Cordon reports exactly which ones would have been moved at
+   your floor. If it stops for time, run it again; it continues.
+5. Review the report in Cordon. Raise the floor if anything there shouldn't move, then click
+   **Enable**. (Lowering the floor later turns it off until you recalibrate.)
+6. In the Apps Script editor, open **Triggers** (clock icon) → **Add Trigger**: function
+   `cordonTick`, event source **Time-driven**, **Minutes timer**, **Every 5 minutes**.
+
+**Undo.**
+- Open the moved message and tap **Undo / Not phishing** in the Cordon panel. This is immediate.
+- Or click **Undo** in Cordon. The add-on restores it on its next run, within about 5 minutes.
+- Or drag it back to your inbox. Cordon notices on the next run.
+
+Each undo is recorded as a false-positive signal against the rules that fired. It's shown in
+Settings, never applied automatically.
+
+**Stopping it.** Disable it in Cordon, use the autonomy kill switch, or delete the trigger.
+
+### CASA is required before any other account
+
+`gmail.modify` is a Google **restricted** scope. An unverified test deployment may use it only for
+your own account. Before auto-quarantine can run on **any other mailbox**, the app must pass
+Google's OAuth verification, including the annual third-party CASA security assessment.
+
+Cordon enforces this on the server: it issues a directive only for a mailbox listed in
+`D7_ALLOWED_MAILBOXES`, only to the API key of the user who set it up, and only when
+`D7_DIRECTIVE_SECRET` is set. Keep that list to your own address until CASA is done.
 
 ## Sharing it with others
 
